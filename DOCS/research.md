@@ -1,4 +1,4 @@
-# AI-Driven Hyper-Local Business Advisory and Financial Structuring Assistant for Rural Micro-Entrepreneurs in India
+# UdyogSaarthi
 
 ## 1. The Macro-Economic Architecture of Rural Micro-Enterprise Funding
 The systematic empowerment of marginalized communities through rural micro-entrepreneurship is a fundamental pillar of economic policy in India . Central institutions such as the National Backward Classes Finance and Development Corporation (NBCFDC), the National Scheduled Castes Finance and Development Corporation (NSFDC), the National Scheduled Tribes Finance and Development Corporation (NSTFDC), and the National Minorities Development and Finance Corporation (NMDFC) deploy substantial capital to foster grassroots enterprise . These schemes are implemented across all states and Union Territories through nominated State Channelizing Agencies (SCAs) . These governmental schemes mandate a highly structured, co-financed participation model designed to ensure beneficiary commitment while minimizing the upfront capital barrier .

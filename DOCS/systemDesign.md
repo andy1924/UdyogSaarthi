@@ -1,216 +1,214 @@
-# System Design: AI-Driven Rural Micro-Enterprise Advisory & Financial Platform
+# System Design: AI-Driven Hyper-Local Business Advisory & Deterministic Loan Structuring Platform
 
-**Prepared for:** Cloud-native, pan-India deployment
-**Scope:** Cash Flow · Inventory · Govt Subsidies · License · Know-Your-Need (KYN) · Language · Farmers & Vendors · Supply Chain · Loans
+**Mandate (per `research.md`):** Rural micro-enterprise failure is a knowledge problem, not a capital problem. The platform's job is to fix two decisions before money moves — *what business to start* and *how to structure the loan* — for a low-literacy, low-connectivity, voice-first user base. Every module in this document is justified against that mandate; nothing else is in scope for v1.
 
 ---
 
-## 1. Design Principles (from the research doc, translated into engineering constraints)
+## 0. Why This Is a Rewrite, Not an Extension
 
-| Constraint from research | Engineering implication |
+The prior draft of this design scoped in Cash Flow (double-entry ledger), Inventory, and a bespoke/ONDC Supply Chain matching engine as core modules, and treated Account Aggregator (AA) integration as a prerequisite for loan underwriting. All four decisions are reversed here:
+
+| Removed / demoted | Why it doesn't belong in the core mandate |
 |---|---|
-| Users are low-literacy, rural, low-bandwidth | PWA-first, offline-capable UI, voice-first interaction, aggressive payload minimization |
-| Deterministic financial logic (no LLM arithmetic) | Separate a **Rules/Calculator Engine** from the **LLM/RAG layer** — never let the LLM compute EMIs or eligibility |
-| 22-language support (Bhashini) | i18n at the API contract level (locale-tagged responses), not just frontend string swapping |
-| Hyper-local geospatial analysis (LGD + OSM) | PostGIS is non-negotiable; treat location as a first-class entity, not a text field |
-| National scale (6.7 lakh villages) but early-stage adoption | Start as a **modular monolith**, not microservices. Split into services only when a module's load/team actually demands it — avoid distributed-systems overhead on day one |
-| Integrates with DICs, NRLM, SCAs (govt bodies) | Contract-first REST APIs (OpenAPI spec) so government IT teams can integrate without hand-holding |
+| **Inventory module** | Requires ongoing, disciplined data entry (stock in/out) from a user segment the research explicitly characterizes as having low financial and digital literacy. This is an *operating* concern for a business that already exists — the platform's job per `research.md` §2–3 is *pre-launch* feasibility and financial structuring. Adding a daily-use bookkeeping burden at onboarding raises the abandonment risk of the core advisory flow for zero contribution to the NPA-reduction and over-indebtedness goals stated in §8.1. |
+| **Cash Flow / double-entry ledger** | Same failure mode: a general ledger is a bookkeeping product, not an advisory one. The research's actual cash-flow need is narrow and already scoped — the working-capital buffer calculation and quarter-by-quarter EQI schedule in Module 2 (§5.3). That is fully covered by the Deterministic Scheme Engine below; it does not require a persistent transactional ledger. |
+| **Supply Chain / ONDC matching** | Not mentioned anywhere in `research.md`. It's a marketplace/logistics problem, orthogonal to feasibility analysis and loan structuring, and pulls engineering effort into buyer/seller-side protocol integration instead of the LGD/OSM/Bhashini/scheme-router stack the research actually specifies. |
+| **Account Aggregator as a hard prerequisite** | The research's borrowers are frequently *first-time*, informal-sector entrepreneurs (§2, "missing middle") — many will have thin or no formal banking/GST trail for AA to pull from. Making AA mandatory would exclude exactly the population the mandate targets. AA becomes an **optional enrichment** to the manual estimation workflow (§5.4), not a gate. |
+
+What remains — **KYN Feasibility Engine, Deterministic Scheme Engine, DPR Generator, Multilingual Voice Layer, Compliance/Licensing checklist** — is a direct 1:1 mapping to `research.md` Modules 1 and 2, plus the two supporting concerns (DPR submission and license eligibility) the research says beneficiaries currently outsource to predatory middlemen (§7.1.3).
+
+Farmers/Vendors directory and License checklist remain in scope as **thin, read-oriented modules** (profile + eligibility lookup), not as transactional platforms — see §3.5.
 
 ---
 
-## 2. High-Level Architecture
+## 1. High-Level Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│  CLIENTS                                                          │
-│  React (Next.js) Web PWA   │  React Native app (Android-first)    │
-│  IVR/SMS fallback (Bhashini + Exotel/Twilio) for feature-phone use│
-└───────────────┬────────────────────────────────────────────────┬─┘
-                │ HTTPS/REST (OpenAPI) + WebSocket (voice stream) │
-┌───────────────▼────────────────────────────────────────────────▼─┐
-│  API GATEWAY  (Kong / AWS API Gateway) — auth, rate limit, i18n   │
-└───────────────┬────────────────────────────────────────────────┬─┘
-                │                                                  │
-┌───────────────▼───────────┐   ┌──────────────────────────────────▼─┐
-│  BACKEND — FastAPI (Python)│   │  ASYNC WORKERS — Celery + Redis    │
-│  Modular monolith, domain- │   │  (DPR generation, Bhashini calls,  │
-│  driven modules:           │   │  credit-bureau pulls, notif.)      │
-│  • KYN / Feasibility Engine│   └──────────────────────────────────┬─┘
-│  • Financial Calculator    │                                      │
-│  • Subsidy/Scheme Router   │   ┌──────────────────────────────────▼─┐
-│  • License & Compliance    │   │  LLM / RAG LAYER                   │
-│  • Cash Flow & Ledger      │   │  Anthropic Claude API + pgvector   │
-│  • Inventory               │   │  (advisory text, SWOT, verbaliza-  │
-│  • Vendor/Farmer Directory │   │  tion — NEVER does arithmetic)     │
-│  • Supply Chain Matching   │   └─────────────────────────────────────┘
-│  • Loan Origination        │
-└───────────────┬────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│ CLIENTS                                                                 │
+│  • Next.js PWA — LOCAL-FIRST (IndexedDB-backed, background sync)       │
+│  • React Native (Android-first), same local-first data layer            │
+│  • IVR/SMS fallback (feature phones) via Bhashini + telephony gateway   │
+└───────────────┬──────────────────────────────────────────────────────┬─┘
+                │ REST (OpenAPI) — resilient, retry-safe                │
+                │ Async voice-note upload (chunked, resumable)          │
+┌───────────────▼──────────────────────────────────────────────────────▼─┐
+│ API GATEWAY (Kong / AWS API Gateway) — auth, rate limit, locale routing │
+└───────────────┬──────────────────────────────────────────────────────┬─┘
+                │                                                        │
+┌───────────────▼───────────────┐   ┌──────────────────────────────────▼─┐
+│ BACKEND — FastAPI (async)      │   │ ASYNC WORKERS — Celery + Redis     │
+│ Modular monolith:               │   │  • Voice-note ASR/NMT batch queue  │
+│  • KYN Feasibility Engine       │   │  • DPR document rendering          │
+│  • Deterministic Scheme Engine  │   │  • Bhashini live-stream fallback   │
+│    (pure Python, unit-tested,   │   │    → batch reprocessing            │
+│     zero LLM involvement)       │   └──────────────────────────────────┬─┘
+│  • DPR Generator                │                                      │
+│  • Compliance/Licensing         │   ┌──────────────────────────────────▼─┐
+│  • Farmer/Vendor directory      │   │ LLM / RAG LAYER                    │
+│    (read-only profile lookup)   │   │ Claude API + pgvector, HARD        │
+└───────────────┬──────────────────┘   │ partitioned by LGD block/district  │
+                │                       │ code (§5). Verbalization only —   │
+                │                       │ never computes numbers.            │
+┌───────────────▼───────────────────────┴─────────────────────────────────┐
+│ DATA LAYER                                                               │
+│ PostgreSQL 16 + PostGIS + pgvector (single instance, schema-per-module)  │
+│ Redis (cache, session, Celery broker, offline-sync conflict resolution) │
+│ S3-compatible object store (voice notes, DPR PDFs, KYC/license docs)     │
+└──────────────────────────────────────────────────────────────────────────┘
                 │
-┌───────────────▼──────────────────────────────────────────────────┐
-│  DATA LAYER                                                        │
-│  PostgreSQL 16 + PostGIS  (transactional + geospatial, single      │
-│  source of truth — schema-per-module inside one DB initially)      │
-│  Redis (cache, session, Celery broker)                             │
-│  S3-compatible object store (DPRs, KYC docs, licenses)             │
-│  OpenSearch (optional, phase 2) — vendor/supplier search           │
-└──────────────────────────────────────────────────────────────────┘
-                │
-┌───────────────▼──────────────────────────────────────────────────┐
-│  EXTERNAL INTEGRATIONS                                             │
-│  Bhashini (ASR/NMT/TTS) · LGD API · OSM Overpass · Account         │
-│  Aggregator (Setu/Sahamati) · DigiLocker (KYC/license) · GSTN ·    │
-│  ONDC (supply-chain matching) · JanSamarth · Payment gateway       │
-└──────────────────────────────────────────────────────────────────┘
+┌───────────────▼──────────────────────────────────────────────────────────┐
+│ EXTERNAL INTEGRATIONS                                                     │
+│ Bhashini (ASR/NMT/TTS, live + batch) · LGD API · OSM Overpass ·           │
+│ DigiLocker (KYC/license) · GSTN (where applicable) · JanSamarth ·         │
+│ Account Aggregator (Setu/Sahamati) — OPTIONAL enrichment, not a gate      │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Why a modular monolith, not microservices:** the 9 features share one user, one location context, and one financial ledger. Splitting them into separate services on day one means distributed transactions for something as simple as "loan disbursal updates cash flow and inventory." Build clean module boundaries (separate FastAPI routers + service classes + DB schemas) inside one deployable unit; extract a module to its own service later only if it needs independent scaling (Supply Chain matching and the LLM/RAG layer are the most likely early candidates, since they carry different load profiles).
+---
+
+## 2. Core Modules
+
+### 2.1 KYN Feasibility Engine
+Directly implements `research.md` Module 1.
+
+- **Flow:** capture location (voice or text) → LGD code resolution → PostGIS radius query against OSM Overpass POI data → competitive density score → LLM-generated SWOT/opportunity narrative, spatially grounded per §5.
+- **Entities:** `User`, `Location(lgd_state, lgd_district, lgd_block, lgd_gp, lat, lon)`, `FeasibilityReport`, `POIQueryResult`.
+- **Output:** a feasibility report object (structured JSON + rendered narrative) that becomes an input to the DPR Generator — not a standalone artifact the user must interpret unaided.
+
+### 2.2 Deterministic Scheme Engine
+Directly implements `research.md` Module 2, and is the financial core of the platform. **This module contains zero LLM calls.**
+
+- Pure, versioned, unit-tested Python functions:
+  - `compute_tpc(margin_capital: Decimal) -> Decimal` → TPC = margin / 0.10
+  - `max_loan_eligibility(tpc: Decimal) -> Decimal` → TPC × 0.90
+  - `route_scheme(tpc: Decimal) -> SchemeTier` → Micro Finance Scheme (≤ ₹1.40L) vs Term Loan Scheme (₹1.40L–₹50L), per §5.2
+  - `generate_eqi_schedule(loan, rate, tenure, moratorium) -> list[QuarterlyObligation]`
+  - `working_capital_buffer(loan_amount) -> Decimal` → 20–30% reserve recommendation, §5.3
+- Scheme parameters (rates, caps, tenure, moratorium) are stored as **versioned config data** (a `scheme_rules` table with an `effective_from` date), not hardcoded constants — government schemes revise rates periodically, and NPA-relevant calculations must remain auditable against the rule version active at the time of each user's calculation.
+- **LLM's only role here:** take the structured output of these functions and phrase it in the user's language via the Multilingual Voice Layer. The LLM prompt explicitly forbids arithmetic and is validated by asserting the numbers in its output string match the calculator's output before the response is returned to the user.
+
+### 2.3 Manual/Assisted Cash-Flow Estimation (replaces AA-as-prerequisite)
+Since Account Aggregator cannot be assumed available for first-time informal borrowers (§0), the DPR needs a lightweight, assisted estimation workflow instead of a ledger product:
+
+- A short, voice-guided Q&A ("What do you expect to spend on X per month? What will you charge for Y?") that produces a simple CAPEX/OPEX split — enough to feed the Scheme Engine's working-capital calculation, without requiring the user to maintain ongoing books.
+- This is a **one-time or periodic estimation form**, not a transactional ledger — no double-entry, no running balance, no daily use burden.
+- **Optional enrichment:** if the user has a bank/UPI history, an Account Aggregator pull (via Setu/Sahamati, with explicit consent) can refine the estimate. The DPR clearly flags whether figures are self-reported or AA-verified, since that distinction matters to the SCA/DIC reviewing the application — but AA absence never blocks DPR generation.
+
+### 2.4 DPR Generator
+- Template-driven document generation (`WeasyPrint` HTML→PDF or `python-docx`) that populates a standard Detailed Project Report template with: the Feasibility Engine's report, the Scheme Engine's TPC/eligibility/EQI output, and the cash-flow estimation from §2.3.
+- Directly eliminates the "exploitative middleman" friction point named in `research.md` §7.1.3 — this is the single highest-value deliverable in the platform per the research's own competitive analysis (only Finline/DPR generators currently do this, and they assume accounting literacy the target user doesn't have).
+
+### 2.5 Multilingual Voice Layer
+See §4 for the full resiliency architecture. Functionally: ASR → NMT (to English) → route to Feasibility Engine / Scheme Engine / DPR Generator → NMT (back to native language) → TTS. Every backend response carries a `locale` field.
+
+### 2.6 Compliance / Licensing (thin module)
+- A **checklist/state-machine**, not a transactional workflow: for a given business category (identified during KYN), surface the small set of licenses typically required (Udyam registration, FSSAI for food/dairy, trade license) and track checklist completion status.
+- DigiLocker integration for pulling/verifying already-issued IDs and licenses. No bespoke license-issuance workflow is built — the platform tracks and informs, it does not replace the issuing authority.
+
+### 2.7 Farmers/Vendors Directory (thin module)
+- A read-oriented profile + geospatial lookup (`ST_DWithin` against PostGIS), scoped to "who else near me is doing what" as an input to the Feasibility Engine's competitive density scoring (§2.1) and as a discovery aid.
+- Explicitly **not** a marketplace, ordering, or matching engine (see §0 — Supply Chain removed). No transaction, inventory, or logistics logic lives here.
 
 ---
 
-## 3. FastAPI vs "REST" — the actual decision
+## 3. Tech Stack & Justifications
 
-This isn't really an either/or — FastAPI is a *framework* for building REST (or GraphQL) APIs; REST is the architectural *style*. Here's the concrete recommendation:
-
-- **Use FastAPI as the framework, exposing RESTful endpoints.** Reasons specific to this project:
-  - **Async-native** — critical because Bhashini ASR/TTS calls, Claude API calls, and Account Aggregator calls are all I/O-bound network calls. Django (WSGI, sync by default) would block worker threads; FastAPI/ASGI (via Uvicorn/Gunicorn) handles concurrent I/O far better with less infra.
-  - **Pydantic validation** — you have deterministic financial math (EMI, moratorium, TPC) where a malformed input must never silently pass through to the calculator. Pydantic schemas enforce this at the boundary.
-  - **Auto-generated OpenAPI spec** — you need this for DIC/NRLM integrators and for your own React frontend to codegen a typed client (`openapi-typescript`).
-  - **Native WebSocket support** — needed for Bhashini's full-duplex voice pipeline.
-- **Don't add GraphQL.** Your data access patterns are workflow-driven (apply for scheme → get eligibility → generate DPR), not ad-hoc client-side querying. GraphQL would add a resolver layer and N+1 query risk for no real benefit here. Revisit only if you build a public developer ecosystem around the platform.
-- **Django REST Framework** is a reasonable alternative if the team is more comfortable with a batteries-included admin panel and ORM migrations out of the box — but given the async, voice-streaming, and LLM-orchestration needs, FastAPI is the better fit.
-
----
-
-## 4. Tech Stack
-
-| Layer | Choice | Why |
+| Layer | Choice | Justification |
 |---|---|---|
-| Backend framework | **FastAPI** + Uvicorn/Gunicorn | See §3 |
-| ORM | **SQLAlchemy 2.0 (async)** + Alembic for migrations | Mature, works cleanly with PostGIS via GeoAlchemy2 |
-| Frontend | **Next.js (React)** | SSR/ISR for low-end devices, built-in i18n routing, PWA support via `next-pwa`, better SEO for DIC-facing landing pages than a plain CRA/Vite SPA |
-| Mobile | **React Native (Android-first)** | India rural smartphone penetration is overwhelmingly Android; share business logic/types with the Next.js codebase via a shared TypeScript package |
-| Database | **PostgreSQL 16 + PostGIS** | Already implied by the research doc's use of PostGIS for the 5–10km radius queries; also handles JSONB for flexible scheme-rule storage |
-| Caching / queue broker | **Redis** | Session cache, rate limiting, Celery broker — one tool, multiple jobs, avoids over-provisioning |
-| Background jobs | **Celery** (or **Dramatiq** if you want a lighter dependency footprint) | DPR generation, Bhashini calls, notification fan-out |
-| Vector store (RAG) | **pgvector** (Postgres extension) | Avoid standing up a separate vector DB (Pinecone/Weaviate) until you have real scale pain — pgvector keeps your data layer to one system |
-| LLM | **Claude API** (Claude Sonnet 5 for advisory generation, Claude Haiku 4.5 for cheap/fast verbalization tasks) | Strong at following deterministic-constraint prompting (i.e., "only phrase this output, don't compute it") and at multi-turn RAG |
-| Object storage | **AWS S3** (or Cloudflare R2 to cut egress costs) | KYC docs, DPRs, license uploads |
-| Search (phase 2) | **OpenSearch** or Postgres full-text (`tsvector`) to start | Vendor/supplier directory search — don't introduce Elasticsearch/OpenSearch until directory size justifies it |
-| API Gateway | **Kong** (self-hosted) or **AWS API Gateway** | Central auth, rate limiting, request/response locale tagging |
-| Auth | **Keycloak** (self-hosted) or **AWS Cognito** | OAuth2/OIDC, supports Aadhaar/DigiLocker-based eKYC federation later |
-| Cloud | **AWS (ap-south-1, Mumbai)** | See §5 |
-| CI/CD | **GitHub Actions** → container build → **AWS ECS Fargate** (or EKS once you need finer orchestration control) | Fargate avoids managing K8s nodes for a team that isn't there yet |
-| Observability | **Grafana + Prometheus** (self-hosted or Grafana Cloud free tier) + **Sentry** for error tracking | Cheap, standard, avoids vendor lock-in to a pricier APM |
-| Infra-as-code | **Terraform** | Reproducible environments across dev/staging/prod |
+| Backend framework | **FastAPI** (async, Uvicorn/Gunicorn) | I/O-bound integrations dominate (Bhashini, LGD, Overpass, Claude, DigiLocker) — async concurrency matters more here than in a typical CRUD app. Pydantic schemas enforce strict input validation at the boundary feeding the Deterministic Scheme Engine — a malformed margin-capital input must never reach the calculator. |
+| ORM | SQLAlchemy 2.0 (async) + Alembic | GeoAlchemy2 support for PostGIS; standard migration tooling for the versioned `scheme_rules` table. |
+| Frontend | **Next.js (React), configured local-first** | SSR/ISR for low-end devices; `next-i18next` for static UI strings; PWA + IndexedDB for offline form state (§6). |
+| Mobile | React Native (Android-first) | Matches India's rural smartphone base; shares the local-first data layer and TypeScript types with the web PWA. |
+| Database | **PostgreSQL 16 + PostGIS + pgvector** | One system for relational, geospatial, and vector data — see §5 for the mandatory partitioning strategy. |
+| Caching / queue broker | Redis | Session cache, rate limiting, Celery broker, and background-sync conflict metadata (§6). |
+| Background jobs | Celery | Voice-note batch processing queue (§4), DPR rendering, notification fan-out. |
+| LLM | Claude API (Sonnet for SWOT/advisory synthesis, Haiku for cheap verbalization) | Reliable instruction-following for the "verbalize, never compute" constraint (§2.2); strong multi-turn RAG behavior for spatially-filtered retrieval (§5). |
+| Object storage | AWS S3 (or Cloudflare R2) | Voice-note chunks, DPR PDFs, KYC/license documents. |
+| Auth | Keycloak (self-hosted) or AWS Cognito | OAuth2/OIDC; supports future DigiLocker/Aadhaar-based federation. |
+| Cloud | AWS `ap-south-1` (Mumbai) | Data residency for DPDP Act 2023 and RBI-adjacent norms; physical proximity to Bhashini/LGD/govt API endpoints minimizes voice-pipeline latency. |
+| CI/CD | GitHub Actions → ECS Fargate | Avoids Kubernetes operational overhead until a specific module demonstrably needs independent scaling. |
+| Observability | Sentry + Grafana Cloud (free tier) | Adequate for MVP scale; avoids premature APM spend. |
+
+**No change from the prior draft on FastAPI-vs-REST reasoning** (async I/O, Pydantic validation, OpenAPI contract for DIC/NRLM integrators, native WebSocket support for the live-voice path) — that decision stands and is not affected by the scope pruning.
 
 ---
 
-## 5. Cloud Provider Recommendation
+## 4. Network & Voice Architecture — Hybrid, Resilient
 
-**AWS, region `ap-south-1` (Mumbai).**
+The prior WebSocket-only design assumed consistently available full-duplex connectivity, which is not a safe assumption across 2G/3G rural coverage. Replaced with a **hybrid ingestion pipeline**:
 
-- Data residency: RBI's data localization norms for payment/financial data, and the DPDP Act 2023, both push toward keeping financial and personal data within India — Mumbai region satisfies this without extra compliance engineering.
-- Bhashini, LGD, and most Indian govt APIs are hosted in India — co-locating your compute in Mumbai minimizes round-trip latency for the voice pipeline (latency matters per §6.2 of your research doc).
-- Mature managed-service ecosystem: RDS for Postgres+PostGIS, ElastiCache for Redis, ECS Fargate/EKS, Cognito, S3 — all first-party, well-documented, and easy to hire for.
-- GCP (`asia-south1`) is a reasonable alternative if you want tighter Vertex AI integration, but AWS currently has broader startup credit programs (AWS Activate) and a larger Indian systems-integrator/partner base for eventual govt procurement.
-
-Avoid multi-cloud at this stage — it triples your ops burden for no benefit until you have a specific regulatory or redundancy reason.
+1. **Primary path — live streaming:** WebSocket connection to Bhashini for full-duplex ASR/TTS when connection quality supports it (client-side measures round-trip latency/packet loss and decides).
+2. **Fallback path — async voice-note queue:** if the live connection degrades or drops mid-session, the client automatically switches to **recording locally and uploading resumable audio chunks** (via chunked/resumable upload, e.g. `tus` protocol or S3 multipart) as connectivity allows. A Celery worker picks up completed chunks, runs batch ASR/NMT, and pushes the result back to the client (via push notification or next poll) rather than requiring the session to stay open.
+3. **Client behavior:** the UI always shows an explicit state — "Listening (live)" vs "Recorded — will process when connected" — so a low-literacy user isn't left uncertain about whether their input was captured. This is a product-trust requirement, not just an engineering nicety, given the target demographic.
+4. **IVR/SMS tier:** for feature-phone users with no smartphone/data at all, a telephony gateway (Exotel/Twilio, India-compliant) captures voice over a standard phone call, applies the same batch ASR/NMT pipeline, and delivers results via SMS/voice callback.
 
 ---
 
-## 6. Feature Module Breakdown
+## 5. Database & Data Partitioning Strategy
 
-### 6.1 Know Your Need (KYN) — the Feasibility Engine
-Maps to Module 1 of the research doc. Onboarding wizard (voice or text) → location capture → LGD lookup → Overpass POI density query → LLM-generated SWOT/opportunity report.
-- **Key entities:** `User`, `Location(lgd_code, lat, lon)`, `FeasibilityReport`, `POIQueryResult`
-- **Components:** LGD API client, Overpass QL query builder, PostGIS radius queries, Claude API for SWOT synthesis (RAG-grounded on District Statistical Abstracts you ingest into pgvector)
+### 5.1 Hard Spatial Partitioning for RAG (mandatory)
+The prior design ran pgvector similarity search without a hard geographic filter, creating a real risk of **cross-district hallucination** — e.g., a SWOT report for a block in rural Odisha getting contaminated by embeddings retrieved from a semantically similar but geographically irrelevant district in Maharashtra. This is fixed structurally, not just by prompt instruction:
 
-### 6.2 Cash Flow
-- **Key entities:** `Ledger`, `Transaction` (double-entry: debit/credit), `CashFlowForecast`
-- Build this as a proper append-only ledger table (never mutate historical rows) — this is what your EMI/moratorium schedule (§5.3 of the research doc) and future audits both depend on.
-- Expose read-side projections (running balance, quarterly EQI schedule) computed via a scheduled job, not on every read, to keep it fast at scale.
+- Every embedded document (District Statistical Abstracts, prior feasibility reports, scheme-rule explanations) is tagged at ingestion time with its `lgd_district_code` (and `lgd_block_code` where applicable).
+- The retrieval query is **always** of the form:
+  ```sql
+  SELECT content, embedding <-> :query_embedding AS distance
+  FROM knowledge_base
+  WHERE lgd_district_code = :user_district_code   -- hard filter, applied BEFORE similarity ranking
+  ORDER BY distance
+  LIMIT :k;
+  ```
+  The `WHERE` clause is enforced at the query-builder level (not left to prompt instructions or optional parameters), so a request literally cannot retrieve embeddings outside the user's district. If a district lacks sufficient indexed content, the system falls back to the parent state-level partition explicitly and **labels the report as state-level, not block-level**, rather than silently pulling from an unrelated district for the sake of returning *a* result.
+- Implementation: a composite pgvector index scoped per partition (e.g., partial indexes per state, or a partitioned table by `lgd_state_code` with local pgvector indexes) to keep this filter cheap at scale rather than a full-table scan with a `WHERE` bolted on.
 
-### 6.3 Inventory
-- **Key entities:** `Product`, `StockLevel`, `StockMovement`
-- Simple event-sourced stock ledger (movements in/out), same pattern as cash flow — reuse the append-only design so you don't build two different consistency models.
-- Low-bandwidth UI: barcode/photo-based stock entry where possible (use device camera + a lightweight on-device OCR/barcode lib rather than round-tripping images to the server for every scan).
+### 5.2 Deterministic Layer Isolation
+The `scheme_rules`, and the calculator functions in §2.2, live in a schema with **no LLM/RAG dependency whatsoever** — no foreign keys into the `knowledge_base` or embeddings tables, no shared service layer with the RAG module. This is enforced by module boundary (separate FastAPI router + service class + DB schema), so a future refactor cannot accidentally let a "helpful" LLM shortcut compute a number that should come from the calculator.
 
-### 6.4 Govt Subsidies (Scheme Router)
-- Maps to Module 2. This is the deterministic rules engine — implement scheme eligibility as versioned, testable Python functions (not LLM prompts), e.g. `route_scheme(tpc: Decimal) -> SchemeTier`. Store scheme parameters (rates, caps, tenures) as data (JSONB or a config table), not hardcoded constants, since government schemes change rates/caps periodically.
-
-### 6.5 License
-- **Key entities:** `LicenseApplication`, `LicenseDocument`, `ComplianceChecklist`
-- Integrate **DigiLocker** for pulling/verifying existing government IDs and issued licenses, and **GSTN API** for business registration status where applicable. Store checklist state machine per license type (Udyam registration, FSSAI for food/dairy businesses, trade license, etc.) — most rural micro-enterprises will need a small, predictable set of these.
-
-### 6.6 Language
-- **Bhashini API** integration exactly as the research doc describes: ASR → NMT (to English) → LLM → NMT (back to native) → TTS, over WebSocket for full-duplex low latency.
-- At the API contract level, every response carries a `locale` field so the frontend/IVR layer doesn't need to guess which language to render in.
-- Fallback: pre-translated static UI strings via `next-i18next` for the 8–10 highest-traffic languages, reserving live Bhashini NMT for dynamic/generated content (SWOT reports, chat responses).
-
-### 6.7 Farmers and Vendors
-- **Key entities:** `Vendor`, `Farmer`, `Profile(category, location, products_offered)`
-- This is essentially a directory/marketplace core — geospatial search (PostGIS `ST_DWithin`) for "vendors near me," plus a verification badge tied to the License module's compliance checklist.
-
-### 6.8 Supply Chain (vendor ↔ supplier, e.g. e-milk)
-- **This is the strongest candidate to build on ONDC (Open Network for Digital Commerce)** rather than a bespoke matching engine. ONDC is a government-backed open protocol specifically designed to connect buyers/sellers/logistics across categories including agriculture and retail, and several dairy/agri networks are already live on it. Building your matching layer as an ONDC network participant (buyer-app or seller-app role, per your users' side) gives you interoperability with an existing national supplier base instead of a cold-start marketplace.
-- If ONDC integration isn't feasible in your first release, build a minimal internal matching service (order/demand posted by vendor → matched against supplier inventory within radius) as a stopgap, but design the data model to be ONDC-schema-compatible from day one so migration is cheap later.
-
-### 6.9 Loan
-- **Key entities:** `LoanApplication`, `DPR (Detailed Project Report)`, `DisbursementSchedule`
-- DPR auto-generation: template-driven document generation (populate a DOCX/PDF template with the calculator's output — TPC, margin, scheme tier, EMI schedule) rather than asking an LLM to draft financial figures.
-- Where feasible, integrate the **Account Aggregator framework (via Setu or Anumati)** for consented, verified cash-flow/bank-statement data — this both strengthens the DPR and gives real underwriting signal, and it's the RBI-sanctioned way to pull financial data with user consent (avoids scraping or manual statement uploads).
-- Loan status can integrate with **JanSamarth** where the relevant SCA/scheme is already on that portal, rather than duplicating a lending workflow the government already runs.
+### 5.3 Schema Layout (single Postgres instance, schema-per-module)
+- `identity` — users, roles, auth metadata
+- `geo` — LGD reference data, PostGIS location tables, Overpass query cache
+- `feasibility` — feasibility reports, POI query results
+- `scheme_engine` — `scheme_rules` (versioned), calculation audit log (every TPC/EQI calculation stored with the rule version used — required for NPA/audit traceability per `research.md` §8.1)
+- `dpr` — generated DPR records and their source-data snapshots
+- `compliance` — license checklist state per user/business category
+- `directory` — farmer/vendor profiles (read-oriented, per §2.7)
+- `knowledge_base` — embeddings + LGD partition tags, isolated from `scheme_engine` per §5.2
 
 ---
 
-## 7. Third-Party APIs — Consolidated List
+## 6. Local-First Offline Architecture (upgraded from "offline-capable")
 
-| API / Service | Used for | Notes |
-|---|---|---|
-| **Bhashini** | ASR, NMT, TTS across 22 languages | Free, govt-provided; use WebSocket mode for latency |
-| **LGD API** (Ministry of Panchayati Raj) | District/block/GP codes | Free, authoritative source of administrative boundaries |
-| **OSM Overpass API** | POI density, spatial queries | Free but rate-limited — self-host an Overpass instance if query volume grows, rather than hammering the public endpoint |
-| **Account Aggregator (Setu / Sahamati / Anumati)** | Consented bank statement / cash-flow data for loans | RBI-regulated, consent-based — the correct way to underwrite, not screen-scraping |
-| **DigiLocker** | KYC, license document verification | Govt-issued document verification |
-| **GSTN API** | Business registration/license status | For vendors above GST threshold |
-| **ONDC** | Supply-chain vendor↔supplier matching | See §6.8 |
-| **JanSamarth** | Cross-reference/integration with existing govt loan portal | Avoids duplicating scheme application workflows |
-| **Anthropic Claude API** | RAG-based advisory text, SWOT synthesis, conversational layer | Never used for arithmetic — deterministic calculator owns all numbers |
-| **Payment gateway** (Razorpay / Setu Payment) | Margin money collection, EMI reminders/collection where applicable | Razorpay has the most mature India-specific payments developer experience |
+- **Client-side storage:** IndexedDB (via a wrapper like Dexie.js) holds the canonical local copy of in-progress form state — KYN inputs, cash-flow estimation answers (§2.3), DPR draft fields. The user can complete an entire session offline.
+- **Background sync:** the PWA registers a background sync task (Service Worker Background Sync API, with a polling fallback for browsers without support) that pushes queued writes to the backend as soon as connectivity resumes, without requiring the user to reopen the app or manually retry.
+- **Conflict resolution:** since DPR drafts and KYN inputs are single-user, single-owner records, conflicts are resolved with last-write-wins keyed on a client-generated timestamp — no CRDT complexity needed at this data-ownership scale. Redis holds short-lived sync-state metadata (last-synced-at per record) to make idempotent replay safe if a sync retries after a partial failure.
+- **Voice-note offline queue:** integrates with §4's async voice pipeline — an unsent voice note is just another IndexedDB-queued item with a binary blob, synced via the same background-sync mechanism.
+- **Explicit sync status UI:** given the low-literacy constraint, sync state is shown with simple, unambiguous icons/labels ("Saved on this phone" vs "Sent"), not a technical "pending/synced" badge.
 
 ---
 
-## 8. Security & Compliance Notes
+## 7. Phased Implementation Plan
 
-- **DPDP Act 2023** compliance: explicit consent capture for data collection, right-to-erasure support, data localization (satisfied by choosing `ap-south-1`).
-- Financial and KYC data encrypted at rest (RDS encryption, S3 SSE) and in transit (TLS everywhere, enforced at the API Gateway).
-- Separate the **Rules Engine** module's test suite from the LLM layer's — the calculator needs deterministic unit tests with fixed inputs/outputs (this is a regulatory/audit surface, not just a code-quality one).
-- Role-based access control from day one (farmer/vendor/DIC-official/admin roles) — DIC officials will need read access to aggregate, anonymized data, not individual user financials.
+**Phase 1 — MVP (single-state pilot):**
+- KYN Feasibility Engine (text-first; Bhashini live voice optional, batch voice-note fallback available from day one — §4 is not a "later" feature, it's required at launch given the target network conditions)
+- Deterministic Scheme Engine, fully unit-tested, with versioned `scheme_rules`
+- Manual cash-flow estimation workflow (§2.3) — no AA integration yet
+- DPR Generator (template-driven, PDF output)
+- Compliance/Licensing checklist (read-only, DigiLocker-verified where available)
+- Local-first PWA with IndexedDB + background sync from day one (retrofitting offline-first later is materially more expensive than building it in from the start)
+- Hard LGD-partitioned pgvector retrieval from day one (§5.1) — this is a correctness property, not an optimization, so it is not deferred
 
----
+**Phase 2:**
+- Live full-duplex Bhashini voice as the primary (not sole) input path, hybrid fallback already in place from Phase 1
+- Optional Account Aggregator enrichment for cash-flow estimation, clearly flagged as optional in the DPR
+- Farmer/Vendor directory (read-only, geospatial lookup)
+- IVR/SMS tier for feature-phone users
 
-## 9. Suggested "Best-in-Market, Don't-Overcomplicate" Toolset
-
-| Need | Recommended tool | Why this and not the fancier alternative |
-|---|---|---|
-| Backend framework | FastAPI | See §3 |
-| Frontend | Next.js | Skip a separate Node/Express BFF layer initially — Next.js API routes can proxy where needed |
-| DB | Postgres + PostGIS | One database does relational + geospatial + (via pgvector) vector search — avoids running 3 different databases |
-| Auth | Keycloak (self-hosted) or Cognito | Skip building your own auth/JWT system |
-| Background jobs | Celery + Redis | Skip Kafka/RabbitMQ until you have genuine high-throughput event streaming needs (e.g., real-time supply-chain order matching at scale) |
-| LLM orchestration | Direct Claude API calls + a thin custom RAG layer (pgvector + LangChain *only if* the retrieval logic gets complex) | Don't reach for a heavy agent framework for what is fundamentally "retrieve context → prompt → format output" |
-| Document generation | `python-docx` / `WeasyPrint` (HTML→PDF) for DPRs | Skip a paid DPR-generation SaaS — your templates are well-defined and static |
-| Monitoring | Sentry + Grafana Cloud (free tier) | Skip a full Datadog/New Relic contract until team/infra size justifies the cost |
-| Infra | Terraform + AWS ECS Fargate | Skip Kubernetes until you have more than a handful of services genuinely needing independent scaling |
-
----
-
-## 10. Phased Rollout
-
-1. **MVP (single state pilot):** KYN feasibility engine + Financial Calculator/Scheme Router + basic multilingual chat (text-first, Bhashini text NMT only) + License checklist. Modular monolith, single Postgres instance, no Celery yet (synchronous is fine at low volume).
-2. **Phase 2:** Voice (Bhashini ASR/TTS full pipeline), Cash Flow + Inventory modules, DPR auto-generation, Account Aggregator integration for loans.
-3. **Phase 3 (national scale):** Supply Chain via ONDC, Farmers/Vendors directory with geospatial search at scale, extract high-load modules (LLM/RAG layer, Supply Chain matching) into independently-scaled services, introduce OpenSearch if directory search volume demands it.
+**Phase 3 — scale-out:**
+- Extract the LLM/RAG layer into an independently-scaled service if load justifies it
+- Expand district-level knowledge base coverage to close state-level-fallback gaps identified in Phase 1–2 usage data
+- Revisit Inventory/Cash-Flow/Supply-Chain **only if** post-launch data shows a validated demand signal from users who have already successfully launched via this platform — at that point it is a distinct, opt-in product for existing businesses, not a core-mandate feature bundled into onboarding
 
 ---
 
-*This document assumes the feature list maps directly onto the two modules described in the uploaded research (Feasibility Engine, Financial Calculator/Scheme Router), with Cash Flow, Inventory, License, Farmers/Vendors, Supply Chain, and Loan treated as adjacent operational modules built on the same platform.*
+*This design treats `research.md` as the source of truth for scope: the platform's job ends at "the entrepreneur has a viable business idea, a structured loan application, and a filed DPR." Anything past that boundary (running the business day-to-day) is deliberately out of scope for the core mandate and is deferred to a future, separately-justified product decision.*

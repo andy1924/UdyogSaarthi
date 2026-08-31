@@ -57,6 +57,7 @@ export function Slider({
         value={value}
         aria-invalid={error ? true : undefined}
         aria-describedby={[hintId, errorId].filter(Boolean).join(" ") || undefined}
+        aria-valuetext={displayValue ?? undefined}
         className={[
           "w-full h-2 appearance-none cursor-pointer rounded-full",
           "bg-[var(--color-ledger)]",

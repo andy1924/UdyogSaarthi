@@ -89,8 +89,16 @@ All primitives use only token vars + Tailwind — no ad-hoc hex.
 
 ---
 
+## PWA
+
+- `public/manifest.json`: `name "UdyogSaarthi"`, `short_name "Saarthi"`, `display "standalone"`, `background_color "#FFFCF6"` (paper), `theme_color "#0F2A44"` (ink) — uses token palette, no ad-hoc hex.
+- `next-pwa` → `public` dest, `register:true`, `skipWaiting:true`, disabled in dev, document fallback `/offline`.
+- `/offline` fallback page: "You are offline — your work is queued" with live Dexie `SaarthiDB` counts (feasibility/finance/DPR/directory) — local-first queue survives reload.
+- `globals.css` has `@media (prefers-reduced-motion:reduce) { * { animation:none } }` for stamp/ledger pulse.
+
 ## File Map
 
 - Tokens: `frontend/src/lib/design-tokens/tokens.ts` (source) + `tokens.css` (CSS vars)
 - Globals: `frontend/src/app/globals.css` imports `tokens.css` + `@theme inline`
 - Layout: `frontend/src/app/layout.tsx` loads Tiro/Inter/Fragment Mono, sets `lang="en"`, wraps `tokens.css`
+- PWA: `public/manifest.json`, `src/app/offline/page.tsx`, `next.config.ts` (withPWA + withNextIntl)

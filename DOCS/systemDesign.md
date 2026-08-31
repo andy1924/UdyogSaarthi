@@ -210,6 +210,7 @@ The `scheme_rules`, and the calculator functions in §2.2, live in a schema with
 - Revisit Inventory/Cash-Flow/Supply-Chain **only if** post-launch data shows a validated demand signal from users who have already successfully launched via this platform — at that point it is a distinct, opt-in product for existing businesses, not a core-mandate feature bundled into onboarding
 
 ## 8. Directory Structure
+```
 UdyogSaarthi/
 ├── backend/                          # FastAPI
 │   ├── app/
@@ -287,6 +288,7 @@ UdyogSaarthi/
 │   ├── systemDesign.md
 │   └── research.md
 └── .github/workflows/                # CI: lint, test, build, deploy
+```
 
 ---
 

@@ -16,6 +16,7 @@ function ComplianceInner() {
 
   React.useEffect(() => {
     if (queryCat) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setResolved(queryCat);
       return;
     }
@@ -40,10 +41,6 @@ function ComplianceInner() {
     return () => {
       cancelled = true;
     };
-  }, [queryCat]);
-
-  React.useEffect(() => {
-    if (queryCat) setResolved(queryCat);
   }, [queryCat]);
 
   const category = resolved;

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -15,7 +16,9 @@ class SchemeRulesOut(BaseModel):
 
 
 class SchemeCalculateIn(BaseModel):
-    margin: float = Field(..., ge=5000, le=5_000_000, description="Margin capital in INR (5000-50L)")
+    margin: float = Field(
+        ..., ge=5000, le=5_000_000, description="Margin capital in INR (5000-50L)"
+    )
     business_category: str | None = None
 
 

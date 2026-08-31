@@ -5,8 +5,20 @@ import math
 # Versioned rules — mirrors frontend schemeRules + research.md §5.2
 # Mirrors: frontend/src/lib/scheme/rules.ts
 SCHEME_RULES = {
-    "micro": {"cap": 125_000, "rate": 0.065, "tenure_y": 3, "moratorium_m": 3, "label": "Micro Finance Scheme"},
-    "term": {"cap": 4_500_000, "rate": 0.08, "tenure_y": 7, "moratorium_m": 6, "label": "Term Loan Scheme"},
+    "micro": {
+        "cap": 125_000,
+        "rate": 0.065,
+        "tenure_y": 3,
+        "moratorium_m": 3,
+        "label": "Micro Finance Scheme",
+    },
+    "term": {
+        "cap": 4_500_000,
+        "rate": 0.08,
+        "tenure_y": 7,
+        "moratorium_m": 6,
+        "label": "Term Loan Scheme",
+    },
 }
 RULE_VERSION = "v2024-11"
 EFFECTIVE_FROM = "2024-11-01"
@@ -67,22 +79,26 @@ def generate_eqi_schedule(loan: float, rate: float, tenure_y: int, moratorium_m:
                 interest = 0
             emi_adj = round(principal + interest, 2)
             balance = 0
-            schedule.append({
-                "quarter": q_num,
-                "principal": principal,
-                "interest": interest,
-                "emi": emi_adj,
-                "balance": 0,
-                "due_label": f"Q{q_num}",
-            })
+            schedule.append(
+                {
+                    "quarter": q_num,
+                    "principal": principal,
+                    "interest": interest,
+                    "emi": emi_adj,
+                    "balance": 0,
+                    "due_label": f"Q{q_num}",
+                }
+            )
         else:
             balance = round(balance - principal, 2)
-            schedule.append({
-                "quarter": q_num,
-                "principal": principal,
-                "interest": interest,
-                "emi": emi,
-                "balance": max(balance, 0),
-                "due_label": f"Q{q_num}",
-            })
+            schedule.append(
+                {
+                    "quarter": q_num,
+                    "principal": principal,
+                    "interest": interest,
+                    "emi": emi,
+                    "balance": max(balance, 0),
+                    "due_label": f"Q{q_num}",
+                }
+            )
     return schedule, emi

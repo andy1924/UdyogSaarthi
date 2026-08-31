@@ -36,7 +36,7 @@ export async function nearbyProfiles(
   const r = Math.max(0, Math.min(radiusM, 10000));
 
   // Filter by category if supplied (case-insensitive exact)
-  let candidates = category
+  const candidates = category
     ? POOL.filter((p) => p.category.toLowerCase() === category.trim().toLowerCase())
     : [...POOL];
 

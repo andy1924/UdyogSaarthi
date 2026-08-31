@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+
 class NearbyProfile(BaseModel):
     id: str
     name: str
@@ -7,6 +8,7 @@ class NearbyProfile(BaseModel):
     distance_m: int
     lat: float
     lon: float
+
 
 class DirectoryOut(BaseModel):
     query: dict

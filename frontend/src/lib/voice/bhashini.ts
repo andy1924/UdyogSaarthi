@@ -25,10 +25,12 @@ const DEMO_TRANSCRIPTS: Record<string, string> = {
 const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 export const mockBhashini: BhashiniAdapter = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async asrLive(_chunk: Blob): Promise<string> {
     await delay(320);
     return DEMO_TRANSCRIPTS.en;
   },
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async asrBatch(_url: string): Promise<string> {
     await delay(420);
     return DEMO_TRANSCRIPTS.en;

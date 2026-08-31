@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * a11y placeholder — runs with Jest/Vitest if present, otherwise no-op.
  * Checks Sarkaar Ledger a11y contracts without requiring axe-core at build.

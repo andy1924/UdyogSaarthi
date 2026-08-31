@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from typing import Literal
+
 from pydantic import BaseModel, Field
-from app.schemas.scheme import SchemeCalculateOut
+
 from app.schemas.feasibility import FeasibilityOut
+from app.schemas.scheme import SchemeCalculateOut
 
 
 class DPRGenerateIn(BaseModel):

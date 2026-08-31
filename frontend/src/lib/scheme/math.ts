@@ -149,7 +149,7 @@ export function generateEQI(
     } else {
       // For last repayment quarter, force balance to 0
       const isLast = q === tenureQ;
-      let interest = toPaise(balance * r);
+      const interest = toPaise(balance * r);
       let principal: number;
       let total: number;
 

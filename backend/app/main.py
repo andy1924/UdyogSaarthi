@@ -16,10 +16,17 @@ from app.routers.scheme import router as scheme_router
 app = FastAPI(
     title="UdyogSaarthi API",
     version="0.1.0",
-    description="Deterministic scheme math + KYN feasibility + DPR + compliance/directory (mocked LGD/OSM, auditable rules v2024-11)",
+    description=(
+        "Deterministic scheme math + KYN feasibility + DPR + "
+        "compliance/directory (mocked LGD/OSM, auditable rules v2024-11)"
+    ),
 )
 app.add_middleware(
-    CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"]
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 app.include_router(scheme_router)
 app.include_router(feasibility_router)
@@ -43,9 +50,13 @@ async def healthcheck() -> dict[str, str]:
 
     async def _redis():
         try:
+
             def _ping():
                 c = Redis.from_url(
-                    settings.redis_url, decode_responses=True, socket_connect_timeout=0.6, socket_timeout=0.6
+                    settings.redis_url,
+                    decode_responses=True,
+                    socket_connect_timeout=0.6,
+                    socket_timeout=0.6,
                 )
                 c.ping()
                 c.close()

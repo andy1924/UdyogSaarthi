@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
 class FeasibilityIn(BaseModel):
-    location_text: str = Field(..., description="Free text: block/district e.g. 'Hilsa, Nalanda, Bihar'")
-    business_category: str = Field(..., description="e.g. dairy, retail, electronics, agro-processing")
+    location_text: str = Field(
+        ..., description="Free text: block/district e.g. 'Hilsa, Nalanda, Bihar'"
+    )
+    business_category: str = Field(
+        ..., description="e.g. dairy, retail, electronics, agro-processing"
+    )
     lat: float | None = Field(None, ge=-90, le=90)
     lon: float | None = Field(None, ge=-180, le=180)
     radius_m: int = Field(5000, ge=1000, le=10000, description="Overpass radius")

@@ -49,6 +49,7 @@ export default function DirectoryPage() {
 
   // Initial search on mount with Hilsa preset
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void doSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

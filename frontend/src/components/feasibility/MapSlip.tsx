@@ -25,6 +25,8 @@ export function MapSlip({ lgd, lat, lon, pois, radiusM }: MapSlipProps) {
   const yScale = H / (spanDeg * 2);
   const scale = Math.min(xScale, yScale);
 
+  // toXY projection kept for future geo use — not in radial fallback
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const toXY = React.useCallback(
     (pLat: number, pLon: number) => {
       const dx = (pLon - lon) * 111000 * Math.cos((lat * Math.PI) / 180);

@@ -22,6 +22,7 @@ function toNum(s: string): number {
   return Number.isFinite(n) && n >= 0 ? n : 0;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function deriveSplit(a: CashflowAnswers, _loan: number): CashflowSplit {
   const equipment = toNum(a.equipment);
   const setup = toNum(a.setup);

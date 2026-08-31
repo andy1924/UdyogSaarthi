@@ -43,13 +43,7 @@ export function OfflineBadge() {
     };
   }, [queued]);
 
-  // Also watch navigator.onLine polling for queued state changes
-  useEffect(() => {
-    const onLine = typeof navigator !== "undefined" ? navigator.onLine : true;
-    if (!onLine) setStatus("offline");
-    else if (queued > 0) setStatus("queued");
-    else setStatus("online");
-  }, [queued]);
+
 
   const label = status === "offline" ? "Offline" : status === "queued" ? "Queued" : "Online";
 

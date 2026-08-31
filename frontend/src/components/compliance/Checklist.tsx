@@ -22,6 +22,7 @@ export function Checklist({ licenses }: ChecklistProps) {
 
   // Sync when licenses prop changes (category switch)
   React.useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStatusMap((prev) => {
       const next: Record<string, ChecklistStatus> = {};
       licenses.forEach((l) => {

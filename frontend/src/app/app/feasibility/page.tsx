@@ -95,6 +95,8 @@ export default function FeasibilityPage() {
   const [lgd, setLgd] = React.useState<LGDCode | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [poi, setPoi] = React.useState<POIResult | null>(null);
+  // queriedShop kept for contract parity — eslint-disable line for unused
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [queriedShop] = React.useState(SHOP_TYPE);
 
   // derived score

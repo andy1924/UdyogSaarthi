@@ -1,0 +1,23 @@
+from __future__ import annotations
+
+from typing import Literal
+from pydantic import BaseModel, Field
+from app.schemas.scheme import SchemeCalculateOut
+from app.schemas.feasibility import FeasibilityOut
+
+
+class DPRGenerateIn(BaseModel):
+    feasibility: FeasibilityOut
+    scheme: SchemeCalculateOut
+    capex_opex: dict | None = Field(None, description="{capex, opex, notes}")
+    verified: Literal["self-reported", "aa-verified"] = "self-reported"
+    applicant_name: str = "Applicant"
+    business_name: str | None = None
+
+
+class DPRGenerateOut(BaseModel):
+    dpr_id: str
+    pdf_url: str
+    status: Literal["ready", "queued"] = "ready"
+    data: dict
+    verified: str

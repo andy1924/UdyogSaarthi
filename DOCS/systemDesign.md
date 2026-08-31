@@ -290,6 +290,7 @@ UdyogSaarthi/
 └── .github/workflows/                # CI: lint, test, build, deploy
 ```
 
+
 ---
 
 *This design treats `research.md` as the source of truth for scope: the platform's job ends at "the entrepreneur has a viable business idea, a structured loan application, and a filed DPR." Anything past that boundary (running the business day-to-day) is deliberately out of scope for the core mandate and is deferred to a future, separately-justified product decision.*

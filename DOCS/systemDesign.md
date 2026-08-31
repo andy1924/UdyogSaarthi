@@ -36,8 +36,8 @@ Farmers/Vendors directory and License checklist remain in scope as **thin, read-
 │ API GATEWAY (Kong / AWS API Gateway) — auth, rate limit, locale routing │
 └───────────────┬──────────────────────────────────────────────────────┬─┘
                 │                                                        │
-┌───────────────▼───────────────┐   ┌──────────────────────────────────▼─┐
-│ BACKEND — FastAPI (async)      │   │ ASYNC WORKERS — Celery + Redis     │
+┌───────────────▼───────────────┐     ┌──────────────────────────────────▼─┐
+│ BACKEND — FastAPI (async)      │    │ ASYNC WORKERS — Celery + Redis     │
 │ Modular monolith:               │   │  • Voice-note ASR/NMT batch queue  │
 │  • KYN Feasibility Engine       │   │  • DPR document rendering          │
 │  • Deterministic Scheme Engine  │   │  • Bhashini live-stream fallback   │
@@ -47,21 +47,21 @@ Farmers/Vendors directory and License checklist remain in scope as **thin, read-
 │  • Compliance/Licensing         │   ┌──────────────────────────────────▼─┐
 │  • Farmer/Vendor directory      │   │ LLM / RAG LAYER                    │
 │    (read-only profile lookup)   │   │ Claude API + pgvector, HARD        │
-└───────────────┬──────────────────┘   │ partitioned by LGD block/district  │
-                │                       │ code (§5). Verbalization only —   │
-                │                       │ never computes numbers.            │
+└───────────────┬──────────────────┘  │ partitioned by LGD block/district  │
+                │                     | code (§5). Verbalization only —    │
+                │                     │ never computes numbers.            │
 ┌───────────────▼───────────────────────┴─────────────────────────────────┐
 │ DATA LAYER                                                               │
 │ PostgreSQL 16 + PostGIS + pgvector (single instance, schema-per-module)  │
-│ Redis (cache, session, Celery broker, offline-sync conflict resolution) │
+│ Redis (cache, session, Celery broker, offline-sync conflict resolution)  │
 │ S3-compatible object store (voice notes, DPR PDFs, KYC/license docs)     │
 └──────────────────────────────────────────────────────────────────────────┘
                 │
-┌───────────────▼──────────────────────────────────────────────────────────┐
-│ EXTERNAL INTEGRATIONS                                                     │
-│ Bhashini (ASR/NMT/TTS, live + batch) · LGD API · OSM Overpass ·           │
-│ DigiLocker (KYC/license) · GSTN (where applicable) · JanSamarth ·         │
-│ Account Aggregator (Setu/Sahamati) — OPTIONAL enrichment, not a gate      │
+┌───────────────▼────────────────────────────────────────────────────────┐
+│ EXTERNAL INTEGRATIONS                                                  │
+│ Bhashini (ASR/NMT/TTS, live + batch) · LGD API · OSM Overpass ·        │
+│ DigiLocker (KYC/license) · GSTN (where applicable) · JanSamarth ·      │
+│ Account Aggregator (Setu/Sahamati) — OPTIONAL enrichment, not a gate   │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -208,6 +208,85 @@ The `scheme_rules`, and the calculator functions in §2.2, live in a schema with
 - Extract the LLM/RAG layer into an independently-scaled service if load justifies it
 - Expand district-level knowledge base coverage to close state-level-fallback gaps identified in Phase 1–2 usage data
 - Revisit Inventory/Cash-Flow/Supply-Chain **only if** post-launch data shows a validated demand signal from users who have already successfully launched via this platform — at that point it is a distinct, opt-in product for existing businesses, not a core-mandate feature bundled into onboarding
+
+## 8. Directory Structure
+UdyogSaarthi/
+├── backend/                          # FastAPI
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── core/
+│   │   │   ├── config.py             # env/settings (pydantic-settings)
+│   │   │   ├── security.py           # auth/JWT
+│   │   │   └── database.py           # async SQLAlchemy engine/session
+│   │   ├── api/v1/
+│   │   │   ├── router.py
+│   │   │   └── endpoints/
+│   │   │       ├── auth.py
+│   │   │       ├── feasibility.py
+│   │   │       ├── scheme_engine.py
+│   │   │       ├── cashflow.py
+│   │   │       ├── dpr.py
+│   │   │       ├── compliance.py
+│   │   │       └── voice.py
+│   │   ├── modules/                  # domain logic, isolated per module boundary
+│   │   │   ├── identity/
+│   │   │   ├── geo/                  # LGD data, PostGIS helpers, Overpass client
+│   │   │   ├── feasibility/
+│   │   │   │   ├── service.py
+│   │   │   │   ├── overpass_client.py
+│   │   │   │   └── lgd_client.py
+│   │   │   ├── scheme_engine/        # PURE deterministic — no LLM import allowed
+│   │   │   │   ├── calculator.py     # compute_tpc, route_scheme, eqi_schedule
+│   │   │   │   ├── rules_repository.py
+│   │   │   │   └── tests/
+│   │   │   ├── cashflow_estimation/
+│   │   │   ├── dpr_generator/
+│   │   │   │   ├── service.py
+│   │   │   │   └── templates/dpr_template.html
+│   │   │   ├── compliance/
+│   │   │   │   └── digilocker_client.py
+│   │   │   ├── voice/
+│   │   │   │   ├── bhashini_client.py
+│   │   │   │   ├── stream_handler.py
+│   │   │   │   └── batch_processor.py
+│   │   │   └── rag/                  # separate schema/service from scheme_engine
+│   │   │       ├── embeddings.py
+│   │   │       ├── retriever.py      # hard LGD-partition filter lives here
+│   │   │       └── llm_client.py
+│   │   ├── db/
+│   │   │   ├── base.py
+│   │   │   └── migrations/           # alembic
+│   │   ├── workers/
+│   │   │   ├── celery_app.py
+│   │   │   └── tasks/
+│   │   │       ├── voice_batch.py
+│   │   │       └── dpr_render.py
+│   │   └── schemas/                  # shared pydantic models
+│   ├── tests/
+│   ├── alembic.ini
+│   ├── pyproject.toml
+│   └── Dockerfile
+│
+├── frontend/                         # Next.js PWA
+│   ├── src/
+│   │   ├── app/                      # routes
+│   │   ├── components/
+│   │   ├── lib/
+│   │   │   ├── api-client/           # typed client generated from OpenAPI spec
+│   │   │   └── offline/              # IndexedDB (Dexie), background-sync queue
+│   │   ├── locales/                  # next-i18next strings
+│   │   └── public/manifest.json      # PWA manifest
+│   ├── next.config.js
+│   └── package.json
+│
+├── mobile/                           # React Native — Phase 2, empty for now
+├── infra/
+│   ├── terraform/
+│   └── docker-compose.yml            # local Postgres+PostGIS, Redis
+├── docs/
+│   ├── systemDesign.md
+│   └── research.md
+└── .github/workflows/                # CI: lint, test, build, deploy
 
 ---
 

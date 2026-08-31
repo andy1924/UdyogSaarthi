@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from redis import Redis
 from sqlalchemy import text
 
-from app.core.database import AsyncSessionLocal
 from app.core.config import settings
-from redis import Redis
+from app.core.database import AsyncSessionLocal
 
 app = FastAPI(title="UdyogSaarthi API", version="0.1.0")
 

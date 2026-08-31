@@ -16,6 +16,11 @@ const STEPS: Step[] = [
   { label: "DPR", href: "/app/dpr", k: "4" },
 ];
 
+const AUX: Step[] = [
+  { label: "Compliance", href: "/app/compliance", k: "C" },
+  { label: "Directory", href: "/app/directory", k: "D" },
+];
+
 function isActive(pathname: string, href: string): boolean {
   if (href === "/app") return pathname === "/app";
   return pathname === href || pathname.startsWith(href + "/");
@@ -101,6 +106,44 @@ export function AppRail() {
             </Link>
           );
         })}
+      </div>
+
+      {/* Aux links — desktop only so mobile bottom rail keeps 4 steps; thin read-only modules */}
+      <div className="hidden w-full lg:mt-4 lg:block lg:border-t lg:border-dashed lg:border-[var(--color-ledger)] lg:pt-4">
+        <p className="px-3 font-mono text-xs font-semibold uppercase tracking-widest text-[var(--color-muted)]">
+          More
+        </p>
+        <div className="mt-2 flex flex-col gap-1">
+          {AUX.map((s) => {
+            const active = isActive(pathname, s.href);
+            return (
+              <Link
+                key={s.href}
+                href={s.href}
+                aria-current={active ? "page" : undefined}
+                className={[
+                  "flex min-h-[44px] items-center gap-3 rounded-[var(--radius-card)] px-3 py-2.5 text-left transition-colors",
+                  active
+                    ? "bg-[var(--color-ink)] text-[var(--color-wheat)]"
+                    : "text-[var(--color-ink)] hover:bg-[var(--color-ledger)]/40",
+                ].join(" ")}
+              >
+                <span
+                  className={[
+                    "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold leading-none",
+                    active
+                      ? "border-[var(--color-wheat)] bg-[var(--color-wheat)] text-[var(--color-ink)]"
+                      : "border-[var(--color-ledger)] bg-white text-[var(--color-ink)]",
+                  ].join(" ")}
+                  aria-hidden
+                >
+                  {s.k}
+                </span>
+                <span className="text-sm font-medium">{s.label}</span>
+              </Link>
+            );
+          })}
+        </div>
       </div>
 
       {/* Desktop ledger footnote */}

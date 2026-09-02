@@ -51,7 +51,7 @@ The present version is a backend-first MVP and is designed to support scheme cal
 ### C. Feasibility scoring engine
 - Added in backend/app/routers/feasibility.py and backend/app/services/geo_service.py
 - Supports parsing of business category, location text, radius, population, and coordinates
-- Builds mock LGD resolution for selected locations
+- Resolves real LGD codes via Data.gov.in and performs Mappls reverse geocoding
 - Generates density score and verdict based on competitive intensity
 - Classifies zones as:
   - saturated
@@ -120,6 +120,12 @@ The present version is a backend-first MVP and is designed to support scheme cal
   - Redis connectivity
 - This gives a quick operational status for the app
 
+### M. Geospatial Verification System
+- Added in backend/app/services/geo_service.py
+- Mappls Reverse Geocoding to resolve (lat, lon) to state, district, and block levels
+- Live LGD Resolution using Data.gov.in CKAN API to fetch official Local Government Directory codes
+- Enforces data integrity by replacing mock LGD implementations with verified government data
+
 ---
 
 ## 3. Current limitations
@@ -128,10 +134,10 @@ The present version is a backend-first MVP and is designed to support scheme cal
 - The frontend folder exists in the repository history and design docs, but it is currently not part of the active build scope
 - This means there is no working UI currently implemented in the active project state
 
-### B. LGD and OSM data are still mocked or partial
-- Actual official LGD resolution is not yet fully integrated
-- Geo analysis depends on fallback scenarios and deterministic mock behavior
-- This reduces real-world trust for live field operations
+### B. Geographic fallbacks and partial data
+- While official LGD resolution and Mappls reverse geocoding are now integrated, the system still heavily relies on OSM fallbacks for POI density when Mappls limits are reached or unavailable.
+- Geo analysis depends on graceful degradation if external providers (Mappls, Data.gov.in) time out.
+- This ensures high availability but means some results may lack real-world authoritative backing during service outages.
 
 ### C. External API integration is optional and fail-safe only
 - Mappls, OpenAI, DigiLocker, and other integrations are treated as optional
@@ -166,8 +172,8 @@ The present version is a backend-first MVP and is designed to support scheme cal
 
 Current status: backend MVP is functional and demonstrates the core idea of UdyogSaarthi: scheme math + feasibility logic + DPR generation + compliance checks.
 
-The system is useful as a technical prototype and validation layer, but it still needs:
-- real-integrated government data sources
+The system is useful as a technical prototype and validation layer, and has begun integrating real government data sources (like LGD API). However, it still needs:
+- additional real-integrated government data sources (e.g., identity and licensing verifications)
 - production-grade authentication and audit systems
 - stronger deployment and migration setup
 - complete operational workflow from field officer to final approval

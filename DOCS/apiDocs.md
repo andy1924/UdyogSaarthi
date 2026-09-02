@@ -147,9 +147,12 @@ POST /api/feasibility/score
 ### Input rules
 - `location_text`: required, free text location for matching or fallback resolution
 - `business_category`: required, e.g. `dairy`, `retail`, `food`, `electronics`
-- `lat` and `lon`: optional, but helpful if available from the user’s place selection
+- `lat` and `lon`: optional, but helpful if available from the user’s place selection (will be used for Mappls reverse-geocoding)
 - `radius_m`: optional; default 5000, range 1000 to 10000
 - `population`: optional, used to normalize density score
+
+### Potential Errors
+- **502 Bad Gateway**: Returned with detail `"Authoritative location data unavailable"` if Mappls reverse geocoding or Data.gov.in LGD resolution fails/times out, or if OSM POI lookup fails. The frontend should prompt the user to try again or verify their location.
 
 ### Example response
 ```json
@@ -379,9 +382,9 @@ POST /api/dpr/render
 - Treat all external services as optional and gracefully handle missing or failed responses.
 
 ### Important caveats
-- This is still a prototype backend, not a fully production-grade government workflow.
-- Some modules are deterministic/mock implementations rather than live government data sources.
-- The backend is designed to degrade gracefully, which is good for reliability but not for final official verification.
+- This is still a prototype backend, but it integrates real Data.gov.in LGD codes and Mappls reverse geocoding for geospatial verification.
+- Some modules (like the nearby directory) are deterministic/mock implementations rather than live government data sources.
+- The backend is designed to degrade gracefully where possible (e.g. AI SWOT), but core verification endpoints like `/api/feasibility/score` will strictly return a 502 error if authoritative geo data cannot be fetched.
 
 ---
 

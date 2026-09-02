@@ -8,10 +8,12 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+import app.models.audit  # noqa: F401 — register AuditLog with Base.metadata
+import app.models.directory  # noqa: F401 — register BusinessProfile with Base.metadata
+import app.models.dpr  # noqa: F401 — register DPRRecord with Base.metadata
+import app.models.user  # noqa: F401 — register User with Base.metadata
 from app.core.config import settings
 from db.base import Base
-
-import app.models.dpr  # noqa: F401 — register DPRRecord with Base.metadata
 
 config = context.config
 

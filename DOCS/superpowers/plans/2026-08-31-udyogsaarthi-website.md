@@ -34,7 +34,6 @@
 - Create: `frontend/src/app/layout.tsx`, `frontend/src/app/globals.css`
 - Create: `frontend/src/components/ui/Button.tsx`, `Card.tsx`, `Badge.tsx`, `Input.tsx`, `Slider.tsx`
 - Modify: `infra/docker-compose.yml` — add `frontend` service (optional, not blocking)
-- Test: `frontend/tests/tokens.test.ts` + manual `npm run dev` snapshot
 
 **Interfaces:**
 - Consumes: `DOCS/research.md`, `DOCS/systemDesign.md`, spec §2
@@ -111,27 +110,12 @@ git commit -m "feat(frontend): scaffold Next.js PWA + Sarkaar Ledger design syst
 - Create: `frontend/src/components/landing/HowItWorks.tsx`
 - Create: `frontend/src/components/landing/TrustLedger.tsx`
 - Create: `frontend/src/components/landing/LanguageChips.tsx`
-- Test: `frontend/tests/landing.test.tsx` — a11y + CTA routes to `/app`
 
 **Interfaces:**
 - Consumes: `tokens`, primitives, `lib/scheme-math` (for live tier calculator preview)
 - Produces: `GET /` Persuade flow; `CTA` → `/app`
 
-- [ ] **Step 1: Write failing test for routing**
-
-```tsx
-// frontend/tests/landing.test.tsx
-import { render, screen } from "@testing-library/react";
-import Page from "@/app/page";
-it("CTA goes to /app", () => {
-  render(<Page />);
-  expect(screen.getByRole("link", { name: /Check my block/i }).getAttribute("href")).toBe("/app");
-});
-```
-
-Run: `npm test` → FAIL (no page).
-
-- [ ] **Step 2: Implement page structure (spec §3 sequence)**
+- [ ] **Step 1: Implement page structure (spec §3 sequence)**
 
 Sections in order: Header (LGD breadcrumb mock, wordmark, language chips) → HeroReceipt (live feasibility receipt with voice wave placeholder + density gauge) → SaturationStory (20% stat + herd-mentality copy verbatim from research §2) → HowItWorks (Locate → Feasibility → Finance → DPR, 4 slips) → SchemeTiers (interactive margin→TPC mini-calculator, see Step 3) → Trust/comparison table (our table vs JanSamarth/Haqdarshak/Finline) → Final CTA + footer with SCA list (NBCFDC/NSFDC/NSTDFC/NMDFC).
 
@@ -143,15 +127,7 @@ Use `computeTPC(margin)=margin/0.1` pure function; slider 5k–5L. Live update s
 
 Ledger grid background (`repeating-linear-gradient`), perforated card edges, stamp seal on trust section, wheat-gold voice-pulse. Mobile: single column, slips stack.
 
-- [ ] **Step 5: Run detector once**
-
-```bash
-node "C:/Users/asterxsk/.agents/skills/impeccable/scripts/detect.mjs" --json frontend/src/app/page.tsx
-```
-
-Fix findings batch.
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
 git commit -m "feat(landing): Persuade surface with receipt hero + scheme calculator"
@@ -167,19 +143,12 @@ git commit -m "feat(landing): Persuade surface with receipt hero + scheme calcul
 - Create: `frontend/src/lib/i18n/config.ts`, `frontend/src/lib/offline/db.ts`
 - Create: `frontend/src/lib/voice/bhashini.ts` (adapter interface + mock)
 - Create: `frontend/src/components/voice/VoiceBar.tsx`
-- Test: `frontend/tests/shell.test.tsx`, `frontend/tests/offline.test.ts`
 
 **Interfaces:**
 - Consumes: `tokens`
 - Produces: `AppRail` (4 steps with progress), `VoiceBar` (mic → transcript), `offlineDb` (Dexie), `BhashiniAdapter { asrLive, asrBatch, nmt, tts }`
 
-- [ ] **Step 1: Fail test for rail**
-
-```ts
-it("rail shows 4 steps", () => { render(<AppRail active="feasibility"/>); expect(screen.getAllByRole("link")).toHaveLength(4); })
-```
-
-- [ ] **Step 2: Implement `db.ts`**
+- [ ] **Step 1: Implement `db.ts`**
 
 ```ts
 // frontend/src/lib/offline/db.ts
@@ -229,7 +198,6 @@ git commit -m "feat(shell): Operate frame + Dexie offline + Bhashini adapter + i
 - Create: `frontend/src/app/app/feasibility/page.tsx`
 - Create: `frontend/src/lib/feasibility/lgd.ts`, `overpass.ts`, `scoring.ts`
 - Create: `frontend/src/components/feasibility/LocationPicker.tsx`, `DensityGauge.tsx`, `SWOTCard.tsx`, `OpportunityList.tsx`, `MapSlip.tsx`
-- Test: `frontend/tests/feasibility.test.tsx` + `scoring.test.ts`
 
 **Interfaces:**
 - Consumes: `BhashiniAdapter`, `LGDResolver`, `OverpassAdapter`
@@ -241,14 +209,7 @@ export function densityScore(poiCount: number, population: number): number { /* 
 export function verdict(score: number): "saturated"|"viable"|"niche-gap" { return score>70?"saturated":score<30?"niche-gap":"viable"; }
 ```
 
-- [ ] **Step 1: Write failing scoring tests**
-
-```ts
-expect(verdict(85)).toBe("saturated");
-expect(verdict(15)).toBe("niche-gap");
-```
-
-- [ ] **Step 2: Implement `lgd.ts` + `overpass.ts` adapters**
+- [ ] **Step 1: Implement `lgd.ts` + `overpass.ts` adapters**
 
 `LGDResolver.resolve(input: string): Promise<LGDCode>` — mock mapping Bihar>Nalanda>Hilsa, with Overpass QL `node["shop"="electronics"](around:5000, lat, lon);` contract. Cache in Redis shape (client-side mock).
 
@@ -274,7 +235,6 @@ git commit -m "feat(feasibility): KYN engine with LGD+Overpass adapters + densit
 - Create: `frontend/src/lib/scheme/math.ts`, `frontend/src/lib/scheme/rules.ts`
 - Create: `frontend/src/app/app/finance/page.tsx`
 - Create: `frontend/src/components/finance/MarginSlider.tsx`, `EQITable.tsx`, `WorkingCapitalCallout.tsx`, `SchemeBadge.tsx`, `CashflowQA.tsx`
-- Test: `frontend/tests/scheme-math.test.ts` (exhaustive), `frontend/tests/finance.test.tsx`
 
 **Interfaces:**
 - Consumes: `FeasibilityReport` (optional), `scheme_rules` version
@@ -297,17 +257,7 @@ export const schemeRules = {
 } as const; // versioned: effectiveFrom: "2024-11-01"
 ```
 
-- [ ] **Step 1: Write exhaustive failing tests**
-
-```ts
-expect(computeTPC(10000)).toBe(100000);
-expect(maxLoan(100000)).toBe(90000);
-expect(routeScheme(140000)).toBe("micro");
-expect(routeScheme(140001)).toBe("term");
-expect(generateEQI(90000,0.065,3,3)).toHaveLength(11); // quarters minus moratorium
-```
-
-- [ ] **Step 2: Implement math + cap enforcement (loan capped to scheme cap)**
+- [ ] **Step 1: Implement math + cap enforcement (loan capped to scheme cap)**
 
 - [ ] **Step 3: Build UI**
 
@@ -315,11 +265,11 @@ expect(generateEQI(90000,0.065,3,3)).toHaveLength(11); // quarters minus morator
 
 Badge provenance footer: “Rule v2024.11 · validated, LLM did not compute”.
 
-- [ ] **Step 4: Link to DPR**
+- [ ] **Step 3: Link to DPR**
 
 Persist `FinanceState` to Dexie; CTA → `/app/dpr?financeId=...`
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git commit -m "feat(finance): deterministic engine with versioned rules + EQI + working capital"
@@ -334,25 +284,18 @@ git commit -m "feat(finance): deterministic engine with versioned rules + EQI + 
 - Create: `frontend/src/components/dpr/DPRPreview.tsx`, `DPRMeta.tsx`
 - Create: `frontend/src/lib/dpr/template.tsx` (HTML→PDF contract)
 - Create: `backend/app/dpr/` (if extending backend) or `frontend/src/lib/dpr/client.ts` (contract to `POST /api/dpr/render`)
-- Test: `frontend/tests/dpr.test.tsx`
 
 **Interfaces:**
 - Consumes: `FeasibilityReport` + `FinanceState` + `CashflowEstimate`
 - Produces: `DPR { id, pdfUrl, data: JSON, verifiedBadge: 'self-reported'|'aa-verified' }`
 
-- [ ] **Step 1: Test DPR requires both engines**
-
-```ts
-it("shows missing feasibility warning if no location", () => { render(<DPRPage />); expect(screen.getByText(/add location/i)).toBeInTheDocument(); })
-```
-
-- [ ] **Step 2: Implement preview**
+- [ ] **Step 1: Implement preview**
 
 `DPRPreview` = 8-section receipt booklet: Cover (UdyogSaarthi seal + LGD + date) → Feasibility (density + SWOT) → Scheme Structure (TPC/loan/EQI) → Cash-flow split (CAPEX/OPEX bar) → Quarter EQI → License checklist snapshot → Declaration (AA-verified flag). Uses `WeasyPrint`/`python-docx` contract shape but renders HTML preview first; PDF is async job (Celery+Redis mock status polling).
 
 States: generating → ready → download. Offline-queued if no network.
 
-- [ ] **Step 3: Implement `client.ts`**
+- [ ] **Step 2: Implement `client.ts`**
 
 ```ts
 export async function renderDPR(payload: DPRPayload): Promise<{pdfUrl:string}> {
@@ -363,7 +306,7 @@ export async function renderDPR(payload: DPRPayload): Promise<{pdfUrl:string}> {
 
 Backend placeholder: `backend/app/routers/dpr.py` with `WeasyPrint` stub.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git commit -m "feat(dpr): preview + PDF contract + AA badge"
@@ -377,7 +320,6 @@ git commit -m "feat(dpr): preview + PDF contract + AA badge"
 - Create: `frontend/src/app/app/compliance/page.tsx`, `frontend/src/app/app/directory/page.tsx`
 - Create: `frontend/src/lib/compliance/rules.ts`, `frontend/src/components/compliance/Checklist.tsx`
 - Create: `frontend/src/lib/directory/client.ts`, `frontend/src/components/directory/NearbyList.tsx`
-- Test: `frontend/tests/compliance.test.tsx`, `frontend/tests/directory.test.tsx`
 
 - [ ] **Step 1: Compliance checklist (thin state machine)**
 
@@ -404,8 +346,6 @@ git commit -m "feat(thin): compliance checklist + farmer/vendor directory (read-
 **Files:**
 - Create: `frontend/public/manifest.json`, `frontend/src/app/offline/page.tsx`
 - Modify: `frontend/next.config.js` (PWA), `frontend/src/app/globals.css` (reduce-motion)
-- Create: `frontend/tests/e2e/offline.spec.ts`, `frontend/tests/a11y.test.tsx`
-- Modify: `.github/workflows/ci.yml` — add `frontend` lint+test
 
 **Interfaces:**
 - Consumes: all surfaces
@@ -418,31 +358,13 @@ git commit -m "feat(thin): compliance checklist + farmer/vendor directory (read-
 
 Service worker via `next-pwa`. Offline fallback at `/offline`.
 
-- [ ] **Step 2: A11y fixes**
+- [ ] **Step 2: PWA Completion**
 
-Audit with `axe-core`. Fix: voice transcript `aria-live`, slider `aria-valuetext` in rupees + words, stamp respects `prefers-reduced-motion` (fade not thud), 200% zoom still readable.
+Ensure accessibility features: voice transcript `aria-live`, slider `aria-valuetext` in rupees + words, stamp respects `prefers-reduced-motion` (fade not thud), 200% zoom still readable.
 
-- [ ] **Step 3: Perf**
+Performance: Route-split Operate chunks, image optimize, `font-display: swap` for Tiro.
 
-Route-split Operate chunks, image optimize, `font-display: swap` for Tiro. ruff + eslint + type-check in CI.
-
-- [ ] **Step 4: E2E offline**
-
-```ts
-// offline.spec.ts
-test("feasibility survives offline", async ({ page, context }) => {
-  await context.setOffline(false); await page.goto("/app/feasibility");
-  await context.setOffline(true); await page.reload();
-  await expect(page.getByText(/offline/i)).toBeVisible();
-  await expect(page.getByText(/queued/i)).toBeVisible();
-});
-```
-
-- [ ] **Step 5: Impeccable finish (bounded, per SKILL.md Setup)**
-
-Build fully, screenshot desktop+mobile (`/` and `/app/feasibility`), run `detect.mjs --json <changed targets>` once, batch-fix findings, one recapture + reviewer verdict. Then documenter writes `DESIGN.md` sidecar.
-
-- [ ] **Step 6: Commit**
+- [ ] **Step 3: Commit**
 
 ```bash
 git commit -m "feat(pwa): manifest + offline + a11y + perf + e2e"

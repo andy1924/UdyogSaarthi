@@ -1,373 +1,200 @@
-# UdyogSaarthi — Project Update & Status (2026-09-02)
+# UdyogSaarthi Project Update
 
-## Overview
+## 1. Quick project view
 
-UdyogSaarthi is a government-grade fintech platform designed to help first-time rural micro-entrepreneurs make two critical decisions **before** money moves: **business viability** and **loan structuring**. The platform replaces predatory DPR (Detailed Project Report) middlemen with deterministic scheme math and hyper-local feasibility analysis.
+The project is currently focused on the backend engine for a rural entrepreneurship support platform. The main folders are:
 
-**Current State:** MVP backend API with 5 core modules; frontend PWA scaffold with design system complete; local-first offline architecture designed; production infrastructure ready (Docker, PostgreSQL+PostGIS, Redis).
+- backend/app
+  - core: configuration, database setup, shared logic
+  - routers: API route modules for scheme, feasibility, DPR, compliance, and directory
+  - schemas: request/response models
+  - services: geo, KYC, AI SWOT, and PDF generation logic
+  - models: database ORM models
+- backend/db: database and migrations setup
+- backend/tests: basic backend verification
+- docs: product, design, research, and project update notes
+- infra: Docker and deployment-related configuration
+- mobile: mobile app area planned for later work
+- frontend: currently removed/deleted from active scope, so frontend development is not active right now
 
----
-
-## ✅ Implemented Functionalities
-
-### 1. **Scheme Finance Calculator** (`/api/scheme/*`)
-**Module:** `backend/app/routers/scheme.py`
-
-#### Features:
-- **Versioned Scheme Rules** (`GET /api/scheme/rules`)
-  - Micro Finance Scheme: ₹1.25L cap, 6.5% p.a., 3-year tenure, 3-month moratorium
-  - Term Loan Scheme: ₹45L cap, 8% p.a., 7-year tenure, 6-month moratorium
-  - Rule version `v2024-11` (effective 2024-11-01) with audit trail
-
-- **Deterministic Loan Calculation** (`POST /api/scheme/calculate`)
-  - Input: Margin money (entrepreneur's cash)
-  - Processing:
-    - Computes Total Project Cost (TPC) = margin / 10%
-    - Routes to Micro (≤₹1.4L) or Term (>₹1.4L) scheme automatically
-    - Caps loan to scheme maximum
-  - Output:
-    - Maximum loan amount (90% of TPC)
-    - Tier assignment (micro/term)
-    - Working capital buffer (25% of loan)
-    - **Equal Quarterly Installment (EQI) Schedule** with:
-      - Quarter-by-quarter principal, interest, EMI, balance
-      - Moratorium quarters (no payment)
-      - Precision to ₹ (no LLM arithmetic)
-
-#### Limitations:
-- ⚠️ No dynamic interest rate adjustment (fixed per scheme)
-- ⚠️ No prepayment penalty configuration
-- ⚠️ No subsidy/guarantee eligibility calculation (state-level PMMY/MUDRA mapping not implemented)
-- ⚠️ No credit score validation (offline-capable; requires optional AA integration)
-- ⚠️ No multi-loan portfolio tracking
+The present version is a backend-first MVP and is designed to support scheme calculation, feasibility checks, business compliance lookup, and DPR generation.
 
 ---
 
-### 2. **Feasibility Analysis Engine** (`/api/feasibility/*`)
-**Module:** `backend/app/routers/feasibility.py`
+## 2. Functionalities added so far
 
-#### Features:
-- **Location Resolution** (LGD + Mock OSM)
-  - Text-to-coordinate resolution (Bihar-centric mock data: Hilsa, Nalanda blocks)
-  - Deterministic hash-based fallback for unmapped locations
-  - Returns: State, district, block, GP, LGD code, lat/lon
+### A. FastAPI application bootstrapping
+- A FastAPI app is initialized in backend/app/main.py
+- CORS is enabled for API access
+- Health endpoint is available at /health
+- Routes are registered for:
+  - scheme
+  - feasibility
+  - DPR
+  - compliance
+  - directory
 
-- **Business Category POI Density Analysis** (`POST /api/feasibility/score`)
-  - Input: Location text, business category (dairy/retail/food/electronics), radius (1–50 km), population
-  - Mock POI count (simulates OSM Overpass query): weighted by category saturation
-    - Electronics/dairy: higher saturation bias (reflects rural market reality)
-    - Retail: baseline
-  - Density score (0–100): combines POI count + population dampening
-  - Verdict: **saturated** (>70), **viable** (30–70), **niche-gap** (<30)
+### B. Scheme calculation engine
+- Added in backend/app/core/scheme.py and backend/app/routers/scheme.py
+- Supports deterministic scheme rules for:
+  - Micro finance scheme
+  - Term loan scheme
+- Includes:
+  - TPC computation
+  - raw loan calculation
+  - capped loan calculation
+  - scheme routing by project cost threshold
+  - working capital buffer estimation
+  - quarterly EMI/EQI schedule generation
+- Rule versioning is implemented with v2024-11 metadata
 
-- **SWOT Template** per verdict:
-  - Saturated: "High competition" + "Price war risk" with 3 pivot opportunities (agro-processing, cold storage, repair hub)
-  - Viable: "Local demand" + "Need awareness" + "First-mover gap"
-  - Niche-gap: "Need awareness" + "Input cost volatility"
+### C. Feasibility scoring engine
+- Added in backend/app/routers/feasibility.py and backend/app/services/geo_service.py
+- Supports parsing of business category, location text, radius, population, and coordinates
+- Builds mock LGD resolution for selected locations
+- Generates density score and verdict based on competitive intensity
+- Classifies zones as:
+  - saturated
+  - viable
+  - niche-gap
+- Produces an auditable Overpass-style query string for later geo validation
 
-- **Overpass Query Generation** (auditable OSM query string)
-  - Returns the exact `node["shop"="..."]` query used (reproducible for DIC/SCA review)
+### D. Geo and provider fallback logic
+- The system supports a provider chain for location analysis:
+  - Mappls nearby search if configured
+  - OSM Overpass fallback when Mappls is unavailable
+- This is designed so feasibility checks can degrade gracefully instead of failing outright
 
-#### Limitations:
-- ⚠️ **Mock LGD data only:** Hardcoded 2 locations (Hilsa, Nalanda); deterministic hash for others — NOT real LGD database
-- ⚠️ **Mock POI counts:** Simulated with MD5 hash + category bias, not live OSM Overpass API
-- ⚠️ **No real population data:** Ignored in calculations; placeholder field only
-- ⚠️ **No competitor pricing:** SWOT is template-based, not market-scraped
-- ⚠️ **No demand-supply matching:** Verdict is density-only; does not consider seasonal crops, migration, or input costs
-- ⚠️ **No real-time routing:** Distance to supplier/market not computed
-- ⚠️ **No competitor financial health:** Does not flag NPA-prone categories
+### E. DPR generation flow
+- Added in backend/app/routers/dpr.py
+- Creates DPR IDs and collects structured data for a project report
+- Assembles sections including:
+  - applicant and business info
+  - feasibility data
+  - scheme data
+  - CAPEX/OPEX data
+  - verification status
+  - licensing/compliance references
+- Uses PDF generation service and stores DPR entries in the database model
 
----
+### F. PDF rendering service
+- Added in backend/app/services/pdf_service.py
+- Supports generating DPR PDFs using Jinja2 templates and WeasyPrint
+- Runs PDF generation in a background-safe thread to avoid blocking the event loop
 
-### 3. **DPR Document Generation** (`/api/dpr/*`)
-**Module:** `backend/app/routers/dpr.py`
+### G. AI SWOT fallback service
+- Added in backend/app/services/dpr_ai_service.py
+- Tries to generate structured SWOT analysis using OpenAI API
+- If the key is missing or the request fails, it falls back to a deterministic static SWOT
+- This ensures DPR generation does not break on service unavailability
 
-#### Features:
-- **DPR Orchestration** (`POST /api/dpr/render`)
-  - Input: Applicant name, business name, feasibility output, scheme output, CAPEX/OPEX breakdown, verification flag
-  - Processing:
-    - Generates unique DPR ID (`DPR-XXXXXXXX`)
-    - Assembles 7-section document skeleton:
-      1. Cover (branding, date, DIC stamp)
-      2. Feasibility (POI density, SWOT, verdict)
-      3. Scheme Structure (loan tier, EMI, tenure)
-      4. CAPEX/OPEX (applicant-provided breakdown)
-      5. EQI Schedule (quarterly installments)
-      6. License Checklist (compliance)
-      7. Declaration (signature block)
-    - Returns JSON payload ready for PDF rendering
+### H. KYC verification service
+- Added in backend/app/services/kyc_service.py
+- Tries to call external identity verification endpoints
+- Returns structured KYC status and degrades safely when the service is unavailable
 
-- **DPR Retrieval** (`GET /api/dpr/{dpr_id}`)
-  - Status check; mock PDF URL endpoint
+### I. Compliance checklist module
+- Added in backend/app/routers/compliance.py
+- Returns license requirements by business type
+- Examples include:
+  - dairy
+  - food
+  - retail
+  - electronics
+- Default fallback rules are also defined for unrecognized categories
 
-#### Limitations:
-- ⚠️ **No PDF generation:** Mock URL only; WeasyPrint + S3 enqueue deferred (requires Celery integration)
-- ⚠️ **No digital signature:** Signature block is placeholder; no PKI/e-sign gateway (e-Mudra, NIC e-Sig not integrated)
-- ⚠️ **No DPR versioning:** Cannot track amendments or re-applies; single snapshot only
-- ⚠️ **No bank pre-fill:** DPR is not auto-submitted to NaBFL / SBI PMS
-- ⚠️ **No OCR validation:** CAPEX/OPEX not validated against quotations; applicant text is taken as-is
-- ⚠️ **No financial ratio analysis:** DPR does not compute Debt Service Coverage Ratio (DSCR), working capital adequacy, or IRR
-- ⚠️ **No collateral valuation:** Land/asset verification not included
+### J. Directory lookup module
+- Added in backend/app/routers/directory.py
+- Generates nearby business profiles from a location and radius
+- Can optionally filter by category
+- Includes a PostGIS-style SQL statement for future real database use
 
----
+### K. Database and ORM setup
+- Added in backend/app/models and backend/app/core/database.py
+- DPR records are modeled for persistence
+- Database access patterns are prepared for PostgreSQL and async usage
 
-### 4. **Compliance & License Checklist** (`/api/compliance/*`)
-**Module:** `backend/app/routers/compliance.py`
-
-#### Features:
-- **Category-Specific License Rules** (`GET /api/compliance/licenses`)
-  - Input: Business category (dairy, retail, food, electronics, or default)
-  - Output: Ordered checklist of required licenses:
-    - **Dairy:** Udyam, FSSAI, Trade Licence
-    - **Food:** Udyam, FSSAI, Trade Licence
-    - **Retail:** Udyam, Trade Licence, GST (if applicable)
-    - **Electronics:** Udyam, Trade Licence
-    - **Default:** Udyam + Trade Licence (fallback)
-  - Each item includes: ID, label, brief description
-
-#### Limitations:
-- ⚠️ **Hardcoded rules:** Only 4 categories defined; new categories default to generic 2-license list
-- ⚠️ **No location-specific compliance:** Does not vary by state, district, or municipal corporation rules
-- ⚠️ **No turnover/scale thresholds:** GST exemption not calculated (hardcoded "if applicable" text)
-- ⚠️ **No license application flow:** No guidance on forms, docs, fees, timelines
-- ⚠️ **No compliance tracking:** Cannot record which licenses are applied, approved, or pending
-- ⚠️ **No pollution/environment checks:** No SPCB/DPCC requirements for food/dairy
-- ⚠️ **No labor law compliance:** No building permit, fire safety, or factory license flags
-
----
-
-### 5. **Directory & Peer Lookup** (`/api/directory/*`)
-**Module:** `backend/app/routers/directory.py`
-
-#### Features:
-- **Nearby Profiles Discovery** (`GET /api/directory/nearby`)
-  - Input: Lat/lon, radius (1–50 km), optional category filter
-  - Output: 2–5 profiles of similar nearby businesses (mock deterministic)
-    - Each profile: name, category, distance, coordinates
-    - Profiles are generated deterministically (same query = same results)
-    - Sorted by distance
-  - SQL scaffold for real PostGIS query (commented, future-ready)
-
-#### Limitations:
-- ⚠️ **Mock data only:** Business names and locations are deterministic hash-generated, not real peer businesses
-- ⚠️ **No real database:** Does not query actual PostgreSQL/PostGIS; profiles are in-memory computed
-- ⚠️ **No peer financial data:** Cannot show profitability, turnover, NPA status of similar businesses
-- ⚠️ **No peer contact info:** No WhatsApp/mobile for peer mentorship
-- ⚠️ **No peer lending network:** No peer-to-peer fund access or guarantee groups
-- ⚠️ **No success/failure metrics:** Does not show survival rate of similar businesses in area
-- ⚠️ **No supply chain mapping:** Cannot identify shared suppliers or bulk-buy opportunities
+### L. Health and environment monitoring
+- Health endpoint checks:
+  - database connectivity
+  - Redis connectivity
+- This gives a quick operational status for the app
 
 ---
 
-### 6. **Health Check & Infrastructure** 
-**Module:** `backend/app/main.py`
+## 3. Current limitations
 
-#### Features:
-- **Composite Health Endpoint** (`GET /health`)
-  - Checks database connectivity (PostgreSQL via AsyncSessionLocal)
-  - Checks Redis connectivity (timeout-safe, mocked in-memory for local dev)
-  - Returns status: "ok" (both up), "degraded" (partial), with component-level flags
-  - Total timeout: 1.6s
+### A. Frontend is not active right now
+- The frontend folder exists in the repository history and design docs, but it is currently not part of the active build scope
+- This means there is no working UI currently implemented in the active project state
 
-- **CORS Middleware**
-  - Allow all origins (`*`), credentials, methods, headers (dev-friendly; restricted in prod)
+### B. LGD and OSM data are still mocked or partial
+- Actual official LGD resolution is not yet fully integrated
+- Geo analysis depends on fallback scenarios and deterministic mock behavior
+- This reduces real-world trust for live field operations
 
-- **API Metadata**
-  - Title: "UdyogSaarthi API"
-  - Version: 0.1.0
-  - Description: Deterministic scheme math, KYN feasibility, DPR, compliance (mocked LGD/OSM, auditable rules v2024-11)
+### C. External API integration is optional and fail-safe only
+- Mappls, OpenAI, DigiLocker, and other integrations are treated as optional
+- If they fail, the app generally continues with fallback logic instead of blocking the flow
+- This makes the product more resilient, but less production-authoritative
 
-#### Limitations:
-- ⚠️ **No authentication:** No JWT, API key, or OAuth; all endpoints public
-- ⚠️ **No rate limiting:** No request throttling; susceptible to brute-force or DoS
-- ⚠️ **No audit logging:** No request/response log to database for compliance review
-- ⚠️ **No request signing:** No HMAC/signature validation for DIC kiosk deployment
-- ⚠️ **No graceful shutdown:** No drainage of in-flight requests on deployment
+### D. Database persistence is not yet fully production-ready
+- ORM and model structure exists, but the project still needs stronger migration and deployment validation
+- Real production database setup and data hygiene are still pending
 
----
+### E. No authentication or role management
+- The current API is open and does not enforce user login, admin access, or role-based permissions
+- This is not suitable for live government or banking-grade deployment yet
 
-## 🏗️ Architecture & Dependencies
+### F. No audit trail / compliance-proof logs
+- There is no full request logging or evidence ledger that tracks who generated which DPR and when
+- This is important for auditability in formal public-sector workflows
 
-### Backend Stack
-- **Framework:** FastAPI 0.104+
-- **ASGI:** Uvicorn
-- **Database:** PostgreSQL + PostGIS (configured; not yet populated)
-- **Cache:** Redis (health-checked; mock local for dev)
-- **ORM:** SQLAlchemy 2.0 (AsyncSession)
-- **Validation:** Pydantic v2
-- **Migrations:** Alembic (scaffolded; not yet versioned)
+### G. No full end-to-end field officer workflow yet
+- The system supports calculations and report generation, but the full operational cycle for SCA, DIC, or bank review is still incomplete
 
-### Frontend (Scaffolded, Not Yet Implemented)
-- **Framework:** Next.js 14+ (App Router)
-- **Styling:** Tailwind CSS + design tokens (hex → CSS vars)
-- **UI Primitives:** Radix UI + custom receipt-slip components
-- **State:** Dexie (IndexedDB) for offline-first queue
-- **PWA:** next-pwa (manifest, SW, offline fallback)
-- **Design:** Vernacular-inspired (Devanagari serif, wheat/vermilion palette, receipt-slip cards)
+### H. No real production deployment validation
+- Docker setup and environment configuration are present, but there is no full production verification run yet
+- Runtime health is known only in local development conditions
 
-### Infrastructure
-- **Containerization:** Docker + docker-compose (db, cache, api services defined)
-- **Deployment:** Ready for k8s or Railway; not yet live
+### I. No real business-data verification layer
+- Competitor density, location viability, and compliance requirements are still rule-based or approximate, not validated against full official datasets
 
 ---
 
-## 📊 Data Schemas (Implemented)
+## 4. Project status summary
 
-| Schema | Fields | Purpose |
-|--------|--------|---------|
-| `SchemeCalculateIn` | `margin: float` | Entrepreneur's cash contribution |
-| `SchemeCalculateOut` | `margin, tpc, max_loan_raw, max_loan_capped, tier, rules, working_capital_buffer, eqi_schedule[], eqi_amount` | Loan structure |
-| `FeasibilityIn` | `location_text, business_category, lat/lon, radius_m, population` | Market analysis input |
-| `FeasibilityOut` | `lgd, business_category, poi_count, density_score, verdict, swot, opportunities[], overpass_ql` | Viability signal |
-| `DPRGenerateIn` | `applicant_name, business_name, feasibility, scheme, capex_opex, verified` | DPR assembly input |
-| `DPRGenerateOut` | `dpr_id, pdf_url, status, data, verified` | DPR document snapshot |
-| `ComplianceOut` | `business_category, licenses[]` | License checklist |
-| `DirectoryOut` | `query, count, profiles[], sql` | Peer lookup result |
+Current status: backend MVP is functional and demonstrates the core idea of UdyogSaarthi: scheme math + feasibility logic + DPR generation + compliance checks.
 
----
+The system is useful as a technical prototype and validation layer, but it still needs:
+- real-integrated government data sources
+- production-grade authentication and audit systems
+- stronger deployment and migration setup
+- complete operational workflow from field officer to final approval
 
-## 🚨 Critical Gaps & Next Steps
-
-### Tier 1: MVP Blocking Issues
-1. **No real LGD/OSM integration**
-   - All feasibility data is mocked; real gov.in LGD API + Overpass integration required
-   - Impact: DIC field officers cannot trust location/POI data
-
-2. **No PDF generation**
-   - DPR is JSON only; WeasyPrint + S3 enqueue must be implemented
-   - Impact: No printable/signable document for applicant
-
-3. **No database population**
-   - PostgreSQL + Redis running, but no schema migrations applied
-   - Impact: Cannot persist DPRs or user state
-
-4. **No authentication/authorization**
-   - Public endpoints; no role-based access (DIC officer vs. applicant vs. auditor)
-   - Impact: Security risk for prod; cannot audit who generated which DPR
-
-### Tier 2: UX/Business Logic
-5. **No field officer workflow**
-   - DIC/SCA user flow, approval flags, AA-verification integration not implemented
-   - Impact: Cannot deploy to district offices yet
-
-6. **No loan approval gateway**
-   - DPR does not flow to NaBFL/SBI backend; no approval/rejection tracking
-   - Impact: Applicant must manually take DPR to bank; defeats middleman-elimination goal
-
-7. **No vernacular support**
-   - API returns English only; no Hindi/Marathi/Bengali response templates
-   - Impact: Rural entrepreneurs cannot use without translation
-
-8. **No offline sync**
-   - Frontend PWA skeleton exists, but no backend `/sync` endpoint for IndexedDB ↔ server reconciliation
-   - Impact: Cannot queue DPRs on 2G and replay later
-
-### Tier 3: Compliance & Audit
-9. **No compliance audit trail**
-   - No request logging, no rule-version annotations on DPRs, no amendment history
-   - Impact: SCA audits cannot verify scheme correctness retrospectively
-
-10. **No financial ratio computation**
-    - DPR lacks DSCR, working capital adequacy, collateral valuation
-    - Impact: Banks reject as incomplete; applicants over-borrow
+This project is best described as a working prototype with core backend logic already built, while remaining intentionally limited in production readiness.
 
 ---
 
-## 📈 Known Mock Behaviors
+## 5. Key files in the current project
 
-| Component | Mock Behavior | Production Replacement |
-|-----------|---------------|------------------------|
-| LGD Resolver | Hardcoded Bihar blocks; hash fallback | `lms.gov.in` LGD API |
-| POI Counts | MD5-hash deterministic; category bias | OSM Overpass API `node["shop"=...]` |
-| Peer Directory | Deterministic name list + distance hash | PostgreSQL + PostGIS real queries |
-| DPR PDF | Mock URL `/mock/{dpr_id}.pdf` | WeasyPrint + S3 enqueue via Celery |
-| Redis | Health-checked; not actually used | Real Redis cache for session/DPR queue |
-| Email/SMS | Not implemented | Twilio + SendGrid for notifications |
-| Digital Signature | Placeholder | e-Sign gateway (e-Mudra/NIC) |
-
----
-
-## 🎯 Success Criteria (Current State)
-
-| Metric | Status | Evidence |
-|--------|--------|----------|
-| Scheme math deterministic (no LLM) | ✅ | EQI schedule `math.ceil` + `Decimal` precision |
-| Feasibility verdict in <500ms | ✅ | Hash-based; no I/O |
-| DPR JSON complete (7 sections) | ✅ | `DPRGenerateOut` includes all schema fields |
-| Health check <2s | ✅ | `@app.get("/health")` with 1.6s timeout |
-| CORS configured (dev) | ✅ | `CORSMiddleware` allow `*` |
-| API docs auto-generated | ✅ | Swagger `/docs` + ReDoc `/redoc` |
-| Offline-capable architecture | ⚠️ | Dexie schema drafted; no `/sync` endpoint |
-| Production Docker ready | ⚠️ | `Dockerfile` + `docker-compose.yml` present; not tested |
+- backend/app/main.py
+- backend/app/core/scheme.py
+- backend/app/routers/scheme.py
+- backend/app/routers/feasibility.py
+- backend/app/routers/dpr.py
+- backend/app/routers/compliance.py
+- backend/app/routers/directory.py
+- backend/app/services/geo_service.py
+- backend/app/services/pdf_service.py
+- backend/app/services/kyc_service.py
+- backend/app/services/dpr_ai_service.py
+- PRODUCT.md
+- DESIGN.md
+- docs/systemDesign.md
+- docs/research.md
+- docs/update.md
 
 ---
 
-## 🔄 Deployment Readiness
-
-- **Local Development:** ✅ Works via `uvicorn main:app --reload`
-- **Docker Compose:** ⚠️ Services defined; no health-check integration tested
-- **Environment Config:** ⚠️ `.env` via `pydantic.BaseSettings`; secrets not yet managed
-- **Database Migrations:** ⚠️ Alembic scaffolded; no versioned schema yet
-- **CI/CD:** ❌ No GitHub Actions, no automated tests, no linting
-
----
-
-## 📝 Testing & Quality
-
-- **Unit Tests:** 1 health check test (`tests/test_health.py`)
-- **Integration Tests:** None
-- **Load Tests:** None
-- **Security Tests:** None
-- **Coverage:** Not measured
-
----
-
-## 🎓 Documentation
-
-- ✅ `PRODUCT.md` — Product truth, scheme rules, design language
-- ✅ `DESIGN.md` — Visual system, typography, accessibility, PWA manifest
-- ✅ `docs/systemDesign.md` — Module boundaries, data layer, offline queue
-- ✅ `docs/research.md` — Scheme math derivation, failure modes, NPA targets
-- ✅ `docs/superpowers/` — Product vision roadmap (Phase 1: web, Phase 2: mobile, Phase 3: IVR/SMS)
-- ⚠️ API documentation — Auto-generated Swagger only; no usage guide for field officers
-- ❌ Deployment guide — Not written
-- ❌ Troubleshooting guide — Not written
-
----
-
-## 🚀 Quick Start (For Contributors)
-
-```bash
-# Backend
-cd backend
-source .venv/bin/activate
-pip install -r pyproject.toml
-cd app && python -m uvicorn main:app --reload
-
-# Frontend (Phase 2)
-cd frontend
-npm install
-npm run dev
-
-# Docker
-docker-compose up -d
-```
-
-**API Base:** `http://localhost:8000`  
-**Docs:** `http://localhost:8000/docs`
-
----
-
-## 📞 Support & Feedback
-
-All functionalities are mocked for feasibility demo. For prod deployment, engage with:
-- **Gov.in APIs:** LGD portal team, OSM India community
-- **Banking:** NaBFL, SBI PMS integration
-- **Security:** DSCI compliance for rural fintech
-- **Accessibility:** IAMAI guidelines for rural digital
-
----
-
-**Last Updated:** 2026-09-02  
-**Version:** 0.1.0-alpha  
-**Maintainers:** SIH26 UdyogSaarthi team
+Last updated: 2026-09-02

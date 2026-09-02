@@ -8,10 +8,9 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
+import app.models.dpr  # noqa: F401 — register DPRRecord with Base.metadata
 from app.core.config import settings
 from db.base import Base
-
-import app.models.dpr  # noqa: F401 — register DPRRecord with Base.metadata
 
 config = context.config
 

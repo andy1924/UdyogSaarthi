@@ -79,7 +79,8 @@ Analyse this micro-enterprise loan proposal and produce a SWOT analysis.
 Instructions:
 - Strengths must reference the specific business type and location.
 - Weaknesses must address realistic operational risks for rural India.
-- Opportunities must suggest practical pivots (e.g., cold storage, agro-processing, allied services).
+- Opportunities must suggest practical pivots
+  (e.g., cold storage, agro-processing, allied services).
 - Threats must reference local competition data and market dynamics.
 - Advisory summary must be 2 sentences of actionable advice for the branch manager.
 """
@@ -177,5 +178,9 @@ async def generate_swot(
     except Exception as exc:
         # Catch *all* errors (auth, timeout, rate-limit, validation) to
         # guarantee the DPR endpoint never fails due to AI unavailability.
-        logger.warning("OpenAI call failed (%s: %s) — using static fallback", type(exc).__name__, exc)
+        logger.warning(
+            "OpenAI call failed (%s: %s) — using static fallback",
+            type(exc).__name__,
+            exc,
+        )
         return _static_fallback(business_category, poi_count, verdict, radius_m)

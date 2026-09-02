@@ -34,6 +34,8 @@ The project is currently focused on the **Backend MVP**.
 
 ## 🚀 Getting Started
 
+> 💡 **Quickstart with Docker:** For a one-command containerized setup (PostGIS + Redis + FastAPI), see our [**Developer Docker Quickstart Guide**](docs/QUICKSTART.md).
+
 ### Prerequisites
 - Python 3.11 or higher
 - PostgreSQL (or PostGIS) running locally on port `5432`
@@ -99,6 +101,7 @@ pytest
 ---
 
 ## 📖 Documentation
+- [**Developer Docker Quickstart**](docs/QUICKSTART.md)
 - [**API Documentation**](docs/apiDocs.md)
 - [**Frontend Specification**](docs/frontend_spec.md)
 - [**Project Status Updates**](docs/update.md)

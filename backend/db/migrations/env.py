@@ -8,10 +8,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-import app.models.audit  # noqa: F401 — register AuditLog with Base.metadata
-import app.models.directory  # noqa: F401 — register BusinessProfile with Base.metadata
-import app.models.dpr  # noqa: F401 — register DPRRecord with Base.metadata
-import app.models.user  # noqa: F401 — register User with Base.metadata
+import app.models  # noqa: F401 — import every model so tables register with Base.metadata
 from app.core.config import settings
 from db.base import Base
 
@@ -25,6 +22,12 @@ config.set_main_option("sqlalchemy.url", settings.database_url)
 target_metadata = Base.metadata
 
 
+def include_object(object_, name, type_, reflected, compare_to):
+    if type_ == "table" and reflected and compare_to is None:
+        return False
+    return True
+
+
 def run_migrations_offline() -> None:
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -32,6 +35,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         compare_type=True,
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -43,6 +47,7 @@ def do_run_migrations(connection: Connection) -> None:
         connection=connection,
         target_metadata=target_metadata,
         compare_type=True,
+        include_object=include_object,
     )
 
     with context.begin_transaction():

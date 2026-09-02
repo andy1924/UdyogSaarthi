@@ -4,507 +4,1007 @@
 <meta charset="UTF-8">
 <title>DPR — {{ dpr_id }}</title>
 <style>
-  /* ── Page & Print ────────────────────────────────────── */
+  /* =========================================================
+     NSFDC DPR — GOVERNMENT DOCUMENT STYLE
+     Neutral / Monochrome / Print-first
+     ========================================================= */
+  /* ── Page & Print ─────────────────────────────────────── */
   @page {
     size: A4;
-    margin: 15mm 18mm 20mm 18mm;
+    margin: 16mm 18mm 20mm 18mm;
     @bottom-center {
       content: "Page " counter(page) " of " counter(pages);
       font-size: 8pt;
-      color: #666;
+      color: #666666;
       font-family: "Noto Sans", Arial, sans-serif;
     }
     @bottom-right {
       content: "{{ dpr_id }}";
       font-size: 7pt;
-      color: #999;
+      color: #888888;
       font-family: "Noto Sans", Arial, sans-serif;
     }
   }
-
   /* ── Base Typography ─────────────────────────────────── */
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
   body {
     font-family: "Noto Sans", "Segoe UI", Arial, sans-serif;
     font-size: 10pt;
     line-height: 1.5;
-    color: #1a1a1a;
+    color: #222222;
+    background: #ffffff;
   }
-
-  h1 { font-size: 16pt; font-weight: 700; margin-bottom: 4pt; }
+  h1 {
+    font-size: 18pt;
+    font-weight: 700;
+    color: #1f1f1f;
+    margin-bottom: 5pt;
+  }
   h2 {
     font-size: 12pt;
     font-weight: 700;
-    color: #003366;
-    border-bottom: 2pt solid #003366;
-    padding-bottom: 3pt;
+    color: #222222;
+    border-bottom: 1pt solid #555555;
+    padding-bottom: 4pt;
     margin: 18pt 0 10pt 0;
     page-break-after: avoid;
   }
-  h3 { font-size: 10pt; font-weight: 600; margin: 10pt 0 4pt 0; }
-  p { margin-bottom: 6pt; }
-
-  /* ── Tables ──────────────────────────────────────────── */
+  h3 {
+    font-size: 10pt;
+    font-weight: 700;
+    color: #333333;
+    margin: 10pt 0 4pt 0;
+  }
+  p {
+    margin-bottom: 6pt;
+  }
+  /* ── Government Header ───────────────────────────────── */
+  .govt-bar {
+    border-top: 3pt solid #333333;
+    border-bottom: 1pt solid #999999;
+    padding: 7pt 0;
+    margin-bottom: 14pt;
+  }
+  .govt-bar-inner {
+    display: table;
+    width: 100%;
+  }
+  .govt-title {
+    display: table-cell;
+    vertical-align: middle;
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6pt;
+    color: #333333;
+  }
+  .govt-subtitle {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: right;
+    font-size: 8pt;
+    color: #666666;
+  }
+  /* ── Tables ───────────────────────────────────────────── */
   table {
     width: 100%;
     border-collapse: collapse;
     margin: 8pt 0 12pt 0;
     font-size: 9pt;
   }
-  th, td {
-    border: 0.5pt solid #999;
-    padding: 5pt 8pt;
+  th,
+  td {
+    border: 0.5pt solid #999999;
+    padding: 5pt 7pt;
     text-align: left;
     vertical-align: top;
   }
   th {
-    background: #003366;
-    color: #fff;
-    font-weight: 600;
+    background: #e7e7e7;
+    color: #222222;
+    font-weight: 700;
     font-size: 8.5pt;
     text-transform: uppercase;
-    letter-spacing: 0.3pt;
+    letter-spacing: 0.25pt;
   }
-  tr:nth-child(even) td { background: #f4f6f8; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
-
-  /* ── Cover Section ───────────────────────────────────── */
+  tr:nth-child(even) td {
+    background: #f8f8f8;
+  }
+  td.num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  td.label {
+    font-weight: 600;
+    color: #333333;
+    width: 40%;
+  }
+  /* ── Cover ────────────────────────────────────────────── */
   .cover {
     text-align: center;
-    padding: 40pt 20pt 30pt 20pt;
+    padding: 34pt 20pt 25pt 20pt;
     page-break-after: always;
   }
-  .cover .govt-header {
-    font-size: 9pt;
-    color: #555;
+  .cover-header {
+    border-top: 3pt solid #333333;
+    border-bottom: 1pt solid #999999;
+    padding: 10pt 0;
+    margin-bottom: 42pt;
+  }
+  .cover-header .line-1 {
+    font-size: 10pt;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1pt;
-    margin-bottom: 20pt;
+    letter-spacing: 0.8pt;
+  }
+  .cover-header .line-2 {
+    font-size: 9pt;
+    color: #555555;
+    margin-top: 3pt;
   }
   .cover h1 {
-    font-size: 22pt;
-    color: #003366;
-    margin-bottom: 6pt;
+    font-size: 23pt;
+    font-weight: 700;
+    color: #222222;
+    margin-bottom: 8pt;
+  }
+  .cover .document-type {
+    font-size: 11pt;
+    color: #555555;
+    text-transform: uppercase;
+    letter-spacing: 1pt;
   }
   .cover .dpr-id {
-    font-size: 14pt;
-    font-weight: 600;
-    color: #b35900;
-    margin: 12pt 0;
-    letter-spacing: 0.5pt;
+    font-size: 12pt;
+    font-weight: 700;
+    color: #333333;
+    margin: 18pt 0 25pt 0;
+    letter-spacing: 0.6pt;
+  }
+  .cover .scheme-box {
+    border: 1pt solid #777777;
+    background: #f5f5f5;
+    padding: 10pt 14pt;
+    margin: 20pt auto;
+    width: 78%;
+    font-size: 9.5pt;
+  }
+  .cover .scheme-box .scheme-title {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4pt;
+    margin-bottom: 3pt;
   }
   .cover .meta-table {
-    width: 70%;
-    margin: 24pt auto 0 auto;
-    font-size: 10pt;
+    width: 76%;
+    margin: 28pt auto 0 auto;
+    font-size: 9.5pt;
   }
   .cover .meta-table td {
     border: none;
-    padding: 4pt 10pt;
+    padding: 4pt 8pt;
   }
   .cover .meta-table td:first-child {
     font-weight: 600;
-    color: #333;
+    color: #444444;
     text-align: right;
-    width: 40%;
+    width: 42%;
   }
-  .cover .meta-table td:last-child { text-align: left; }
-
+  .cover .meta-table td:last-child {
+    text-align: left;
+  }
+  .cover-footer {
+    margin-top: 45pt;
+    font-size: 8pt;
+    color: #777777;
+  }
+  /* ── Section Numbering ───────────────────────────────── */
+  .section-number {
+    font-weight: 700;
+    margin-right: 4pt;
+  }
+  /* ── Scheme Highlight ────────────────────────────────── */
+  .scheme-summary {
+    border: 1pt solid #888888;
+    background: #f6f6f6;
+    padding: 10pt 12pt;
+    margin: 10pt 0 14pt 0;
+    page-break-inside: avoid;
+  }
+  .scheme-summary-title {
+    font-size: 10pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4pt;
+    color: #333333;
+    margin-bottom: 6pt;
+  }
   /* ── Verdict Badge ───────────────────────────────────── */
   .verdict-badge {
     display: inline-block;
-    padding: 3pt 12pt;
-    border-radius: 3pt;
+    padding: 2pt 8pt;
+    border: 0.75pt solid #777777;
     font-weight: 700;
-    font-size: 9pt;
+    font-size: 8pt;
     text-transform: uppercase;
-    letter-spacing: 0.5pt;
+    letter-spacing: 0.4pt;
+    background: #f4f4f4;
+    color: #333333;
   }
-  .verdict-saturated { background: #fee2e2; color: #991b1b; border: 1pt solid #fca5a5; }
-  .verdict-viable { background: #dcfce7; color: #166534; border: 1pt solid #86efac; }
-  .verdict-niche-gap { background: #dbeafe; color: #1e40af; border: 1pt solid #93c5fd; }
-
-  /* ── SWOT Grid ───────────────────────────────────────── */
+  .verdict-saturated {
+    background: #eeeeee;
+    color: #333333;
+    border-color: #777777;
+  }
+  .verdict-viable {
+    background: #f4f4f4;
+    color: #222222;
+    border-color: #555555;
+  }
+  .verdict-niche-gap {
+    background: #fafafa;
+    color: #333333;
+    border-color: #888888;
+  }
+  /* ── SWOT Grid ────────────────────────────────────────── */
   .swot-grid {
     display: table;
     width: 100%;
     margin: 8pt 0;
   }
-  .swot-row { display: table-row; }
+  .swot-row {
+    display: table-row;
+  }
   .swot-cell {
     display: table-cell;
     width: 50%;
     padding: 8pt;
     vertical-align: top;
-    border: 0.5pt solid #ccc;
+    border: 0.5pt solid #aaaaaa;
   }
   .swot-cell h3 {
-    margin: 0 0 4pt 0;
+    margin: 0 0 5pt 0;
     font-size: 9pt;
     text-transform: uppercase;
     letter-spacing: 0.5pt;
+    color: #333333;
   }
-  .swot-cell ul { margin: 0; padding-left: 14pt; font-size: 9pt; }
-  .swot-cell li { margin-bottom: 2pt; }
-  .swot-s h3 { color: #166534; }
-  .swot-w h3 { color: #991b1b; }
-  .swot-o h3 { color: #1e40af; }
-  .swot-t h3 { color: #b45309; }
-
-  /* ── Advisory ────────────────────────────────────────── */
+  .swot-cell ul {
+    margin: 0;
+    padding-left: 14pt;
+    font-size: 9pt;
+  }
+  .swot-cell li {
+    margin-bottom: 2pt;
+  }
+  /* ── Advisory ─────────────────────────────────────────── */
   .advisory {
-    background: #fffbeb;
-    border-left: 3pt solid #f59e0b;
+    background: #f6f6f6;
+    border-left: 2pt solid #555555;
     padding: 8pt 12pt;
     margin: 10pt 0;
     font-size: 9.5pt;
-    font-style: italic;
   }
-
-  /* ── Compliance Checklist ─────────────────────────────── */
+  .advisory strong {
+    color: #222222;
+  }
+  /* ── Compliance Checklist ────────────────────────────── */
   .checklist-item {
     margin: 4pt 0;
     font-size: 9.5pt;
   }
-  .check-mark { color: #166534; font-weight: 700; margin-right: 4pt; }
-
-  /* ── Verification Seal ───────────────────────────────── */
+  .check-mark {
+    color: #333333;
+    font-weight: 700;
+    margin-right: 4pt;
+  }
+  /* ── Verification Block ──────────────────────────────── */
   .verification-block {
-    border: 1.5pt solid #003366;
-    padding: 12pt 16pt;
+    border: 1pt solid #777777;
+    padding: 12pt 15pt;
     margin: 16pt 0;
     page-break-inside: avoid;
   }
   .verification-block .seal-header {
     font-weight: 700;
-    color: #003366;
+    color: #333333;
     font-size: 10pt;
-    margin-bottom: 6pt;
+    margin-bottom: 7pt;
     text-transform: uppercase;
+    letter-spacing: 0.4pt;
+    border-bottom: 0.5pt solid #aaaaaa;
+    padding-bottom: 4pt;
   }
+  /* ── Declaration ──────────────────────────────────────── */
+  .declaration {
+    border: 0.75pt solid #999999;
+    background: #fafafa;
+    padding: 12pt 14pt;
+    margin-top: 15pt;
+    text-align: justify;
+  }
+  /* ── Signature ────────────────────────────────────────── */
   .signature-line {
     margin-top: 30pt;
-    border-top: 0.5pt solid #333;
-    width: 50%;
+    border-top: 0.5pt solid #333333;
+    width: 72%;
     padding-top: 4pt;
     font-size: 8.5pt;
-    color: #555;
+    color: #555555;
   }
-
-  /* ── Utility ─────────────────────────────────────────── */
-  .section { page-break-inside: avoid; }
-  .page-break { page-break-before: always; }
-  .text-muted { color: #666; font-size: 8.5pt; }
-  .text-right { text-align: right; }
-  .mb-sm { margin-bottom: 6pt; }
-  .inr { font-family: "Noto Sans", Arial, sans-serif; }
+  /* ── Utility ──────────────────────────────────────────── */
+  .section {
+    page-break-inside: avoid;
+  }
+  .page-break {
+    page-break-before: always;
+  }
+  .text-muted {
+    color: #666666;
+    font-size: 8.5pt;
+  }
+  .text-right {
+    text-align: right;
+  }
+  .text-center {
+    text-align: center;
+  }
+  .mb-sm {
+    margin-bottom: 6pt;
+  }
+  .inr {
+    font-family: "Noto Sans", Arial, sans-serif;
+  }
+  .total-row td {
+    font-weight: 700;
+    background: #e9e9e9 !important;
+    border-top: 1pt solid #555555;
+  }
+  .subtle-row td {
+    background: #f5f5f5 !important;
+  }
+  .official-note {
+    font-size: 8pt;
+    color: #666666;
+    border-top: 0.5pt solid #cccccc;
+    padding-top: 5pt;
+    margin-top: 8pt;
+  }
 </style>
 </head>
 <body>
-
-<!-- ═══════════════════ SECTION 1: COVER ═══════════════════ -->
+<!-- =========================================================
+     SECTION 1: COVER
+     ========================================================= -->
 <div class="cover">
-  <div class="govt-header">
-    Government of India · Ministry of MSME<br>
-    District Industries Centre (DIC)
+  <div class="cover-header">
+    <div class="line-1">
+      Government of India
+    </div>
+<div class="line-2">
+  National Scheduled Castes Finance &amp; Development Corporation
+</div>
   </div>
-
-  <h1>Detailed Project Report</h1>
-  <div class="dpr-id">{{ dpr_id }}</div>
-
+  <div class="document-type">
+    Detailed Project Report
+  </div>
+  <h1>{{ data.business | default("Proposed Enterprise") }}</h1>
+  <div class="dpr-id">
+    DPR ID: {{ dpr_id }}
+  </div>
+  <div class="scheme-box">
+    <div class="scheme-title">
+      NSFDC Financing
+    </div>
+{% if data.scheme %}
+  {{ data.scheme.tier | default("Applicable Financing Scheme") | title }}
+{% else %}
+  Applicable NSFDC Financing Scheme
+{% endif %}
+  </div>
   <table class="meta-table">
-    <tr><td>Applicant</td><td>{{ data.applicant | default("—") }}</td></tr>
-    <tr><td>Business</td><td>{{ data.business | default("—") }}</td></tr>
-    <tr>
-      <td>Location</td>
-      <td>
-        {% if data.location %}
-          {{ data.location.block | default("") }},
-          {{ data.location.district | default("") }},
-          {{ data.location.state | default("") }}
-        {% else %}
-          —
-        {% endif %}
-      </td>
-    </tr>
-    <tr><td>LGD Code</td><td>{{ data.location.code | default("—") if data.location else "—" }}</td></tr>
-    <tr><td>Generated On</td><td>{{ generated_at }}</td></tr>
-    <tr>
-      <td>Verification</td>
-      <td>
-        {% if data.verified == "aa-verified" %}
-          ✅ Aadhaar Verified (DigiLocker)
-        {% else %}
-          ⚠ Self-Reported
-        {% endif %}
-      </td>
-    </tr>
-  </table>
-</div>
-
-<!-- ═══════════════════ SECTION 2: FEASIBILITY ═══════════════════ -->
-<h2>2. Feasibility &amp; Market Viability</h2>
-<div class="section">
-  {% set feas = data.feasibility %}
-  {% if feas %}
-  <table>
-    <tr><th style="width:40%">Parameter</th><th>Value</th></tr>
-    <tr><td>Business Category</td><td>{{ feas.business_category | default("—") | title }}</td></tr>
-    <tr>
-      <td>Market Verdict</td>
-      <td>
-        {% set v = feas.verdict | default("viable") %}
-        <span class="verdict-badge verdict-{{ v }}">{{ v | upper }}</span>
-      </td>
-    </tr>
-    <tr><td>Competitor POI Count</td><td>{{ feas.poi_count | default(0) }} outlets within radius</td></tr>
-    <tr><td>Density Score</td><td>{{ feas.density_score | default(0) }} / 100</td></tr>
-    <tr><td>Search Radius</td><td>{{ "%.1f" | format((feas.overpass_ql | default("5000") | string).split("around:")[1].split(",")[0] | float / 1000) if "around:" in (feas.overpass_ql | default("")) else "5.0" }} km</td></tr>
-    <tr>
-      <td>Coordinates</td>
-      <td>
-        {% if feas.lgd %}
-          {{ "%.4f" | format(feas.lgd.lat | default(0)) }}°N,
-          {{ "%.4f" | format(feas.lgd.lon | default(0)) }}°E
-        {% else %}
-          —
-        {% endif %}
-      </td>
-    </tr>
-  </table>
-  {% else %}
-  <p class="text-muted">Feasibility data not available.</p>
-  {% endif %}
-</div>
-
-<!-- ═══════════════════ SECTION 3: SWOT ANALYSIS ═══════════════════ -->
-<h2>3. SWOT Analysis &amp; Pivot Advisory</h2>
-<div class="section">
-  {% set swot = data.swot %}
-  {% if swot %}
-  <div class="swot-grid">
-    <div class="swot-row">
-      <div class="swot-cell swot-s">
-        <h3>Strengths</h3>
-        <ul>
-          {% for s in swot.strengths | default([]) %}
-          <li>{{ s }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-      <div class="swot-cell swot-w">
-        <h3>Weaknesses</h3>
-        <ul>
-          {% for w in swot.weaknesses | default([]) %}
-          <li>{{ w }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-    <div class="swot-row">
-      <div class="swot-cell swot-o">
-        <h3>Opportunities</h3>
-        <ul>
-          {% for o in swot.opportunities | default([]) %}
-          <li>{{ o }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-      <div class="swot-cell swot-t">
-        <h3>Threats</h3>
-        <ul>
-          {% for t in swot.threats | default([]) %}
-          <li>{{ t }}</li>
-          {% endfor %}
-        </ul>
-      </div>
-    </div>
-  </div>
-
-  {% if swot.advisory_summary %}
-  <div class="advisory">
-    <strong>DIC Officer Advisory:</strong> {{ swot.advisory_summary }}
-  </div>
-  {% endif %}
-  {% else %}
-  <p class="text-muted">SWOT analysis not available.</p>
-  {% endif %}
-</div>
-
-<!-- ═══════════════════ SECTION 4: SCHEME & EQI ═══════════════════ -->
-<div class="page-break"></div>
-<h2>4. Scheme Structure &amp; EQI Schedule</h2>
-<div class="section">
-  {% set scheme = data.scheme %}
-  {% if scheme %}
-  <table>
-    <tr><th style="width:45%">Parameter</th><th>Value</th></tr>
-    <tr><td>Loan Tier</td><td>{{ scheme.tier | default("—") | upper }}</td></tr>
-    <tr><td>Total Project Cost (TPC)</td><td class="num inr">₹{{ "{:,.0f}".format(scheme.tpc | default(0)) }}</td></tr>
-    <tr><td>Margin Money</td><td class="num inr">₹{{ "{:,.0f}".format(scheme.margin | default(0)) }}</td></tr>
-    <tr><td>Maximum Loan (Raw)</td><td class="num inr">₹{{ "{:,.0f}".format(scheme.max_loan_raw | default(0)) }}</td></tr>
-    <tr><td>Maximum Loan (Capped)</td><td class="num inr">₹{{ "{:,.0f}".format(scheme.max_loan_capped | default(0)) }}</td></tr>
-    <tr><td>Working Capital Buffer</td><td class="num inr">₹{{ "{:,.0f}".format(scheme.working_capital_buffer | default(0)) }}</td></tr>
-    {% if scheme.rules %}
-    <tr><td>Interest Rate</td><td>{{ scheme.rules.rate | default(0) }}% p.a.</td></tr>
-    <tr><td>Tenure</td><td>{{ scheme.rules.tenure_years | default(0) }} years</td></tr>
-    <tr><td>Moratorium</td><td>{{ scheme.rules.moratorium_months | default(0) }} months</td></tr>
-    <tr><td>Scheme Version</td><td>{{ scheme.rules.version | default("—") }} (effective {{ scheme.rules.effective_from | default("—") }})</td></tr>
+<tr>
+  <td>Applicant</td>
+  <td>{{ data.applicant | default("—") }}</td>
+</tr>
+<tr>
+  <td>Business Activity</td>
+  <td>{{ data.business | default("—") }}</td>
+</tr>
+<tr>
+  <td>Project Location</td>
+  <td>
+    {% if data.location %}
+      {{ data.location.block | default("") }},
+      {{ data.location.district | default("") }},
+      {{ data.location.state | default("") }}
+    {% else %}
+      —
     {% endif %}
+  </td>
+</tr>
+<tr>
+  <td>LGD Code</td>
+  <td>
+    {{ data.location.code | default("—") if data.location else "—" }}
+  </td>
+</tr>
+<tr>
+  <td>Total Project Cost</td>
+  <td>
+    {% if data.scheme %}
+      ₹{{ "{:,.0f}".format(data.scheme.tpc | default(0)) }}
+    {% else %}
+      —
+    {% endif %}
+  </td>
+</tr>
+<tr>
+  <td>Loan Requested</td>
+  <td>
+    {% if data.scheme %}
+      ₹{{ "{:,.0f}".format(data.scheme.max_loan_capped | default(0)) }}
+    {% else %}
+      —
+    {% endif %}
+  </td>
+</tr>
+<tr>
+  <td>Generated On</td>
+  <td>{{ generated_at }}</td>
+</tr>
   </table>
-
-  {% if scheme.eqi_schedule %}
-  <h3>Quarterly Equated Instalment (EQI) Schedule</h3>
-  <table>
-    <tr>
-      <th>Qtr</th>
-      <th>Due</th>
-      <th>Principal (₹)</th>
-      <th>Interest (₹)</th>
-      <th>EMI (₹)</th>
-      <th>Balance (₹)</th>
-    </tr>
-    {% for q in scheme.eqi_schedule %}
-    <tr>
-      <td>{{ q.quarter }}</td>
-      <td>{{ q.due_label | default("—") }}</td>
-      <td class="num">{{ "{:,.0f}".format(q.principal | default(0)) }}</td>
-      <td class="num">{{ "{:,.0f}".format(q.interest | default(0)) }}</td>
-      <td class="num">{{ "{:,.0f}".format(q.emi | default(0)) }}</td>
-      <td class="num">{{ "{:,.0f}".format(q.balance | default(0)) }}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% endif %}
-  {% else %}
-  <p class="text-muted">Scheme data not available.</p>
-  {% endif %}
+  <div class="cover-footer">
+    Prepared for project appraisal and financing consideration<br>
+    Subject to verification and sanction by the competent authority
+  </div>
 </div>
-
-<!-- ═══════════════════ SECTION 5: CAPEX / OPEX ═══════════════════ -->
-<h2>5. CAPEX / OPEX Budget Breakdown</h2>
+<!-- =========================================================
+     SECTION 2: FEASIBILITY & MARKET VIABILITY
+     ========================================================= -->
+<h2>
+  <span class="section-number">2.</span>
+  Feasibility &amp; Market Viability
+</h2>
 <div class="section">
-  {% set co = data.capex_opex %}
-  {% if co %}
-  <table>
-    <tr><th style="width:50%">Item</th><th>Amount (₹)</th></tr>
-    {% for key, val in co.items() %}
-      {% if key != "notes" %}
-      <tr>
-        <td>{{ key | replace("_", " ") | title }}</td>
-        <td class="num inr">
-          {% if val is number %}
-            {{ "{:,.0f}".format(val) }}
-          {% else %}
-            {{ val | default("—") }}
-          {% endif %}
-        </td>
-      </tr>
-      {% endif %}
-    {% endfor %}
-  </table>
-  {% if co.notes %}
-  <p class="text-muted"><strong>Notes:</strong> {{ co.notes }}</p>
-  {% endif %}
-  {% else %}
-  <p class="text-muted">CAPEX/OPEX data not provided by applicant.</p>
-  {% endif %}
-</div>
 
-<!-- ═══════════════════ SECTION 6: COMPLIANCE ═══════════════════ -->
-<h2>6. Compliance &amp; Mandatory Licenses</h2>
+{% set feas = data.feasibility %}
+
+{% if feas %}
+
+  <table>
+<tr>
+  <th style="width:40%">Parameter</th>
+  <th>Assessment</th>
+</tr>
+<tr>
+  <td class="label">Business Category</td>
+  <td>
+    {{ feas.business_category | default("—") | title }}
+  </td>
+</tr>
+<tr>
+  <td class="label">Market Verdict</td>
+  <td>
+    {% set v = feas.verdict | default("viable") %}
+    <span class="verdict-badge verdict-{{ v }}">
+      {{ v | replace("-", " ") | upper }}
+    </span>
+  </td>
+</tr>
+<tr>
+  <td class="label">Competitor POI Count</td>
+  <td>
+    {{ feas.poi_count | default(0) }} outlets within assessment radius
+  </td>
+</tr>
+<tr>
+  <td class="label">Density Score</td>
+  <td>
+    {{ feas.density_score | default(0) }} / 100
+  </td>
+</tr>
+<tr>
+  <td class="label">Search Radius</td>
+  <td>
+    {{ "%.1f" | format(
+      (feas.overpass_ql | default("5000") | string)
+      .split("around:")[1]
+      .split(",")[0]
+      | float / 1000
+    ) if "around:" in (feas.overpass_ql | default("")) else "5.0" }} km
+  </td>
+</tr>
+<tr>
+  <td class="label">Coordinates</td>
+  <td>
+    {% if feas.lgd %}
+      {{ "%.4f" | format(feas.lgd.lat | default(0)) }}°N,
+      {{ "%.4f" | format(feas.lgd.lon | default(0)) }}°E
+    {% else %}
+      —
+    {% endif %}
+  </td>
+</tr>
+  </table>
+
+{% else %}
+
+  <p class="text-muted">
+    Feasibility and market assessment data not available.
+  </p>
+
+{% endif %}
+
+</div>
+<!-- =========================================================
+     SECTION 3: SWOT ANALYSIS
+     ========================================================= -->
+<h2>
+  <span class="section-number">3.</span>
+  SWOT Analysis &amp; Project Advisory
+</h2>
 <div class="section">
-  {% set licenses = data.get("licenses", []) if data.get is defined else [] %}
-  {% if licenses %}
-  <table>
-    <tr><th>License</th><th>Description</th><th>Required</th></tr>
-    {% for lic in licenses %}
-    <tr>
-      <td><strong>{{ lic.label | default(lic.id | default("—")) }}</strong></td>
-      <td>{{ lic.desc | default("—") }}</td>
-      <td>
-        {% if lic.required | default(true) %}
-          <span class="check-mark">✔</span> Required
-        {% else %}
-          Optional
-        {% endif %}
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% else %}
-  {# Fallback: render standard compliance items from known business categories #}
-  <table>
-    <tr><th>License</th><th>Description</th><th>Status</th></tr>
-    <tr><td><strong>Udyam Registration</strong></td><td>MSME registration via udyamregistration.gov.in</td><td><span class="check-mark">✔</span> Required</td></tr>
-    <tr><td><strong>Trade Licence</strong></td><td>Panchayat / Municipal trade licence</td><td><span class="check-mark">✔</span> Required</td></tr>
-    <tr><td><strong>FSSAI Licence</strong></td><td>Food safety licence (if food/dairy)</td><td><span class="check-mark">✔</span> If applicable</td></tr>
-    <tr><td><strong>GST Registration</strong></td><td>If turnover exceeds threshold</td><td>Conditional</td></tr>
-  </table>
-  {% endif %}
-</div>
 
-<!-- ═══════════════════ SECTION 7: DECLARATION ═══════════════════ -->
+{% set swot = data.swot %}
+
+{% if swot %}
+
+  <div class="swot-grid">
+<div class="swot-row">
+  <div class="swot-cell">
+    <h3>Strengths</h3>
+    <ul>
+      {% for s in swot.strengths | default([]) %}
+      <li>{{ s }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="swot-cell">
+    <h3>Weaknesses</h3>
+    <ul>
+      {% for w in swot.weaknesses | default([]) %}
+      <li>{{ w }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+<div class="swot-row">
+  <div class="swot-cell">
+    <h3>Opportunities</h3>
+    <ul>
+      {% for o in swot.opportunities | default([]) %}
+      <li>{{ o }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  <div class="swot-cell">
+    <h3>Threats</h3>
+    <ul>
+      {% for t in swot.threats | default([]) %}
+      <li>{{ t }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+  </div>
+
+{% if swot.advisory_summary %}
+
+  <div class="advisory">
+    <strong>Project Advisory:</strong>
+    {{ swot.advisory_summary }}
+  </div>
+
+{% endif %}
+
+{% else %}
+
+  <p class="text-muted">
+    SWOT analysis not available.
+  </p>
+
+{% endif %}
+
+</div>
+<!-- =========================================================
+     SECTION 4: NSFDC SCHEME STRUCTURE
+     ========================================================= -->
 <div class="page-break"></div>
-<h2>7. Declaration &amp; Verification</h2>
+<h2>
+  <span class="section-number">4.</span>
+  NSFDC Scheme Structure &amp; Financing Schedule
+</h2>
+<div class="section">
+
+{% set scheme = data.scheme %}
+
+{% if scheme %}
+
+  <div class="scheme-summary">
+<div class="scheme-summary-title">
+  Applicable Financing Structure
+</div>
+<div>
+  <strong>Scheme:</strong>
+  {{ scheme.tier | default("—") | title }}
+</div>
+{% if scheme.rules %}
+<div>
+  <strong>Interest Rate:</strong>
+  {{ scheme.rules.rate | default(0) }}% per annum
+</div>
+<div>
+  <strong>Repayment Period:</strong>
+  {{ scheme.rules.tenure_years | default(0) }} years
+</div>
+<div>
+  <strong>Moratorium:</strong>
+  {{ scheme.rules.moratorium_months | default(0) }} months
+</div>
+{% endif %}
+  </div>
+  <table>
+<tr>
+  <th style="width:45%">Parameter</th>
+  <th>Amount / Particular</th>
+</tr>
+<tr>
+  <td class="label">Loan Tier</td>
+  <td>
+    {{ scheme.tier | default("—") | upper }}
+  </td>
+</tr>
+<tr>
+  <td class="label">Total Project Cost</td>
+  <td class="num inr">
+    ₹{{ "{:,.0f}".format(scheme.tpc | default(0)) }}
+  </td>
+</tr>
+<tr>
+  <td class="label">Beneficiary Contribution / Margin</td>
+  <td class="num inr">
+    ₹{{ "{:,.0f}".format(scheme.margin | default(0)) }}
+  </td>
+</tr>
+<tr>
+  <td class="label">Loan Requirement Before Cap</td>
+  <td class="num inr">
+    ₹{{ "{:,.0f}".format(scheme.max_loan_raw | default(0)) }}
+  </td>
+</tr>
+<tr>
+  <td class="label">Loan Amount Considered</td>
+  <td class="num inr">
+    ₹{{ "{:,.0f}".format(scheme.max_loan_capped | default(0)) }}
+  </td>
+</tr>
+<tr>
+  <td class="label">Working Capital Provision</td>
+  <td class="num inr">
+    ₹{{ "{:,.0f}".format(scheme.working_capital_buffer | default(0)) }}
+  </td>
+</tr>
+{% if scheme.rules %}
+<tr>
+  <td class="label">Interest Rate</td>
+  <td>
+    {{ scheme.rules.rate | default(0) }}% p.a.
+  </td>
+</tr>
+<tr>
+  <td class="label">Repayment Tenure</td>
+  <td>
+    {{ scheme.rules.tenure_years | default(0) }} years
+  </td>
+</tr>
+<tr>
+  <td class="label">Moratorium Period</td>
+  <td>
+    {{ scheme.rules.moratorium_months | default(0) }} months
+  </td>
+</tr>
+<tr>
+  <td class="label">Scheme Version</td>
+  <td>
+    {{ scheme.rules.version | default("—") }}
+    {% if scheme.rules.effective_from %}
+      — Effective from {{ scheme.rules.effective_from }}
+    {% endif %}
+  </td>
+</tr>
+{% endif %}
+  </table>
+
+{% if scheme.eqi_schedule %}
+
+  <h3>
+    Quarterly Equated Instalment (EQI) Schedule
+  </h3>
+  <table>
+<tr>
+  <th>Quarter</th>
+  <th>Due</th>
+  <th>Principal (₹)</th>
+  <th>Interest (₹)</th>
+  <th>Instalment (₹)</th>
+  <th>Balance (₹)</th>
+</tr>
+{% for q in scheme.eqi_schedule %}
+<tr>
+  <td>{{ q.quarter }}</td>
+  <td>{{ q.due_label | default("—") }}</td>
+  <td class="num">
+    {{ "{:,.0f}".format(q.principal | default(0)) }}
+  </td>
+  <td class="num">
+    {{ "{:,.0f}".format(q.interest | default(0)) }}
+  </td>
+  <td class="num">
+    {{ "{:,.0f}".format(q.emi | default(0)) }}
+  </td>
+  <td class="num">
+    {{ "{:,.0f}".format(q.balance | default(0)) }}
+  </td>
+</tr>
+{% endfor %}
+  </table>
+  <p class="official-note">
+    Repayment schedule shown above is an indicative financial projection
+    and remains subject to final sanction terms issued by the competent
+    financing/channelising agency.
+  </p>
+
+{% endif %}
+
+{% else %}
+
+  <p class="text-muted">
+    Scheme and financing data not available.
+  </p>
+
+{% endif %}
+
+</div>
+<!-- =========================================================
+     SECTION 5: PROJECT COST
+     ========================================================= -->
+<h2>
+  <span class="section-number">5.</span>
+  Project Cost — CAPEX / OPEX
+</h2>
+<div class="section">
+
+{% set co = data.capex_opex %}
+
+{% if co %}
+
+  <table>
+<tr>
+  <th style="width:55%">Particular</th>
+  <th>Amount (₹)</th>
+</tr>
+{% for key, val in co.items() %}
+  {% if key != "notes" %}
+  <tr>
+    <td>
+      {{ key | replace("_", " ") | title }}
+    </td>
+    <td class="num inr">
+      {% if val is number %}
+        {{ "{:,.0f}".format(val) }}
+      {% else %}
+        {{ val | default("—") }}
+      {% endif %}
+    </td>
+  </tr>
+  {% endif %}
+{% endfor %}
+  </table>
+
+{% if co.notes %}
+
+  <p class="text-muted">
+    <strong>Notes:</strong> {{ co.notes }}
+  </p>
+
+{% endif %}
+
+{% else %}
+
+  <p class="text-muted">
+    CAPEX/OPEX data not provided by applicant.
+  </p>
+
+{% endif %}
+
+</div>
+<!-- =========================================================
+     SECTION 6: COMPLIANCE
+     ========================================================= -->
+<h2>
+  <span class="section-number">6.</span>
+  Statutory Compliance &amp; Licences
+</h2>
+<div class="section">
+
+{% set licenses = data.get("licenses", []) if data.get is defined else [] %}
+
+{% if licenses %}
+
+  <table>
+<tr>
+  <th>Registration / Licence</th>
+  <th>Description</th>
+  <th>Status / Applicability</th>
+</tr>
+{% for lic in licenses %}
+<tr>
+  <td>
+    <strong>
+      {{ lic.label | default(lic.id | default("—")) }}
+    </strong>
+  </td>
+  <td>
+    {{ lic.desc | default("—") }}
+  </td>
+  <td>
+    {% if lic.required | default(true) %}
+      <span class="check-mark">✔</span>
+      Required
+    {% else %}
+      Not mandatory
+    {% endif %}
+  </td>
+</tr>
+{% endfor %}
+  </table>
+
+{% else %}
+
+  <table>
+<tr>
+  <th>Registration / Licence</th>
+  <th>Applicability</th>
+  <th>Status</th>
+</tr>
+<tr>
+  <td><strong>Udyam Registration</strong></td>
+  <td>MSME registration, where applicable</td>
+  <td>Applicable / To be verified</td>
+</tr>
+<tr>
+  <td><strong>Local Trade Licence</strong></td>
+  <td>Municipal / Panchayat requirements</td>
+  <td>As applicable</td>
+</tr>
+<tr>
+  <td><strong>FSSAI Registration / Licence</strong></td>
+  <td>Food-related activities</td>
+  <td>As applicable</td>
+</tr>
+<tr>
+  <td><strong>GST Registration</strong></td>
+  <td>Subject to applicable GST provisions</td>
+  <td>Conditional</td>
+</tr>
+  </table>
+
+{% endif %}
+
+  <p class="official-note">
+    Statutory registrations and licences shall be obtained as applicable
+    to the proposed activity and jurisdiction. Final verification shall
+    be undertaken by the competent authority.
+  </p>
+</div>
+<!-- =========================================================
+     SECTION 7: DECLARATION & VERIFICATION
+     ========================================================= -->
+<div class="page-break"></div>
+<h2>
+  <span class="section-number">7.</span>
+  Declaration &amp; Verification
+</h2>
 <div class="section">
   <div class="verification-block">
-    <div class="seal-header">Identity Verification Status</div>
-    {% set kyc = data.kyc %}
-    {% if kyc and kyc.verified %}
-    <table>
-      <tr><th style="width:35%">Field</th><th>Value</th></tr>
-      <tr><td>Verification Method</td><td>DigiLocker (API Setu Sandbox)</td></tr>
-      <tr><td>DigiLocker ID</td><td>{{ kyc.digilocker_id | default("—") }}</td></tr>
-      <tr><td>Name (as per Aadhaar)</td><td>{{ kyc.name | default("—") }}</td></tr>
-      <tr><td>Date of Birth</td><td>{{ kyc.dob | default("—") }}</td></tr>
-      <tr><td>Gender</td><td>{{ kyc.gender | default("—") }}</td></tr>
-      <tr><td>eAadhaar Linked</td><td>{{ "Yes ✅" if kyc.eaadhaar_linked else "No" }}</td></tr>
-    </table>
-    {% else %}
-    <p>
-      <strong>⚠ Self-Reported Identity</strong> — Applicant identity has not been
-      independently verified via DigiLocker. Manual verification by DIC field
-      officer is recommended before loan sanction.
-    </p>
-    {% if kyc and kyc.error %}
-    <p class="text-muted">Note: {{ kyc.error }}</p>
-    {% endif %}
-    {% endif %}
+<div class="seal-header">
+  Identity Verification Status
+</div>
+{% set kyc = data.kyc %}
+{% if kyc and kyc.verified %}
+<table>
+  <tr>
+    <th style="width:35%">Field</th>
+    <th>Verification Result</th>
+  </tr>
+  <tr>
+    <td>Verification Method</td>
+    <td>DigiLocker / Authorized Digital Verification</td>
+  </tr>
+  <tr>
+    <td>DigiLocker Reference</td>
+    <td>{{ kyc.digilocker_id | default("—") }}</td>
+  </tr>
+  <tr>
+    <td>Name</td>
+    <td>{{ kyc.name | default("—") }}</td>
+  </tr>
+  <tr>
+    <td>Date of Birth</td>
+    <td>{{ kyc.dob | default("—") }}</td>
+  </tr>
+  <tr>
+    <td>Gender</td>
+    <td>{{ kyc.gender | default("—") }}</td>
+  </tr>
+  <tr>
+    <td>e-Aadhaar Linked</td>
+    <td>
+      {{ "Yes" if kyc.eaadhaar_linked else "No" }}
+    </td>
+  </tr>
+</table>
+{% else %}
+<p>
+  <strong>Self-Reported Identity</strong> — Applicant identity has not
+  been independently verified through an authorized digital verification
+  service. Manual verification by the competent officer is recommended
+  before loan sanction.
+</p>
+{% if kyc and kyc.error %}
+<p class="text-muted">
+  Note: {{ kyc.error }}
+</p>
+{% endif %}
+{% endif %}
   </div>
-
-  <p style="margin-top: 16pt;">
-    I, <strong>{{ data.applicant | default("the undersigned") }}</strong>, hereby declare
-    that the information furnished above is true, complete and correct to the best of my
-    knowledge and belief. I understand that in the event of my information being found
-    false or incorrect at any stage, my application shall be liable for rejection and
-    recovery proceedings as per applicable Government of India rules.
-  </p>
-
+  <div class="declaration">
+I, <strong>{{ data.applicant | default("the undersigned") }}</strong>,
+hereby declare that the information furnished in this Detailed Project
+Report is true, complete and correct to the best of my knowledge and
+belief.
+I understand that submission of this DPR does not constitute an
+assurance of loan sanction and that the proposal shall remain subject
+to verification, appraisal, eligibility conditions and approval by the
+competent authority / financing or channelising agency.
+I undertake to provide supporting documents and clarifications wherever
+required.
+  </div>
   <div style="margin-top: 40pt;">
-    <div style="display: table; width: 100%;">
-      <div style="display: table-cell; width: 50%;">
-        <div class="signature-line">
-          Signature of Applicant<br>
-          <strong>{{ data.applicant | default("—") }}</strong><br>
-          Date: _______________
-        </div>
-      </div>
-      <div style="display: table-cell; width: 50%; text-align: right;">
-        <div class="signature-line" style="margin-left: auto;">
-          Signature of DIC Officer<br>
-          Name: _______________<br>
-          Designation: _______________
-        </div>
-      </div>
+<div style="display: table; width: 100%;">
+  <div style="display: table-cell; width: 50%;">
+    <div class="signature-line">
+      Signature of Applicant<br>
+      <strong>
+        {{ data.applicant | default("—") }}
+      </strong><br>
+      Date: __________________
     </div>
   </div>
-
-  <p class="text-muted" style="margin-top: 24pt; text-align: center;">
-    This document was generated by UdyogSaarthi — Government-grade DPR Engine v1.0<br>
-    Document ID: {{ dpr_id }} · Generated: {{ generated_at }}
+  <div style="display: table-cell; width: 50%; text-align: right;">
+    <div
+      class="signature-line"
+      style="margin-left: auto;"
+    >
+      Signature of Competent Officer<br>
+      Name: __________________<br>
+      Designation: __________________
+    </div>
+  </div>
+</div>
+  </div>
+  <p
+    class="text-muted"
+    style="margin-top: 28pt; text-align: center;"
+  >
+Generated through UdyogSaarthi — DPR Generation System<br>
+Document ID: {{ dpr_id }} · Generated: {{ generated_at }}
   </p>
 </div>
-
 </body>
 </html>

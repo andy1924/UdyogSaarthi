@@ -25,19 +25,19 @@ Farmers/Vendors directory and License checklist remain in scope as **thin, read-
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│ CLIENTS                                                                 │
+│ CLIENTS                                                                │
 │  • Next.js PWA — LOCAL-FIRST (IndexedDB-backed, background sync)       │
-│  • React Native (Android-first), same local-first data layer            │
-│  • IVR/SMS fallback (feature phones) via Bhashini + telephony gateway   │
+│  • React Native (Android-first), same local-first data layer           │
+│  • IVR/SMS fallback (feature phones) via Bhashini + telephony gateway  │
 └───────────────┬──────────────────────────────────────────────────────┬─┘
-                │ REST (OpenAPI) — resilient, retry-safe                │
-                │ Async voice-note upload (chunked, resumable)          │
+                │ REST (OpenAPI) — resilient, retry-safe               │
+                │ Async voice-note upload (chunked, resumable)         │
 ┌───────────────▼──────────────────────────────────────────────────────▼─┐
 │ API GATEWAY (Kong / AWS API Gateway) — auth, rate limit, locale routing │
 └───────────────┬──────────────────────────────────────────────────────┬─┘
-                │                                                        │
-┌───────────────▼───────────────┐     ┌──────────────────────────────────▼─┐
-│ BACKEND — FastAPI (async)      │    │ ASYNC WORKERS — Celery + Redis     │
+                │                                                      │
+┌───────────────▼─────────────────┐   ┌────────────────────────────────▼───┐
+│ BACKEND — FastAPI (async)       │   │ ASYNC WORKERS — Celery + Redis     │
 │ Modular monolith:               │   │  • Voice-note ASR/NMT batch queue  │
 │  • KYN Feasibility Engine       │   │  • DPR document rendering          │
 │  • Deterministic Scheme Engine  │   │  • Bhashini live-stream fallback   │
@@ -47,10 +47,10 @@ Farmers/Vendors directory and License checklist remain in scope as **thin, read-
 │  • Compliance/Licensing         │   ┌──────────────────────────────────▼─┐
 │  • Farmer/Vendor directory      │   │ LLM / RAG LAYER                    │
 │    (read-only profile lookup)   │   │ Claude API + pgvector, HARD        │
-└───────────────┬──────────────────┘  │ partitioned by LGD block/district  │
+└───────────────┬─────────────────┘   │ partitioned by LGD block/district  │
                 │                     | code (§5). Verbalization only —    │
                 │                     │ never computes numbers.            │
-┌───────────────▼───────────────────────┴─────────────────────────────────┐
+┌───────────────▼───────────────────────┴──────────────────────────────────┐
 │ DATA LAYER                                                               │
 │ PostgreSQL 16 + PostGIS + pgvector (single instance, schema-per-module)  │
 │ Redis (cache, session, Celery broker, offline-sync conflict resolution)  │

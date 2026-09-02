@@ -7,6 +7,7 @@ from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
+from app.routers.auth import router as auth_router
 from app.routers.compliance import router as compliance_router
 from app.routers.directory import router as directory_router
 from app.routers.dpr import router as dpr_router
@@ -28,6 +29,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(auth_router)
 app.include_router(scheme_router)
 app.include_router(feasibility_router)
 app.include_router(dpr_router)

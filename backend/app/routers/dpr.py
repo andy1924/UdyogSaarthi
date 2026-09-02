@@ -12,13 +12,15 @@ import logging
 import uuid
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
+from app.core.security import get_current_user, log_audit_action
 from app.models.dpr import DPRRecord
+from app.models.user import User
 from app.schemas.dpr import DPRGenerateIn, DPRGenerateOut
 from app.services.dpr_ai_service import generate_swot
 from app.services.kyc_service import verify_applicant
@@ -34,10 +36,28 @@ router = APIRouter(prefix="/api/dpr", tags=["dpr"])
 
 @router.post("/render", response_model=DPRGenerateOut)
 async def render(
+    request: Request,
     inp: DPRGenerateIn,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> DPRGenerateOut:
     dpr_id = f"DPR-{uuid.uuid4().hex[:8].upper()}"
+    payload_snapshot = {
+        "business_name": inp.business_name,
+        "applicant_name": inp.applicant_name,
+        "feasibility": inp.feasibility.model_dump() if inp.feasibility else None,
+        "scheme": inp.scheme.model_dump() if inp.scheme else None,
+        "capex_opex": inp.capex_opex,
+        "verified": inp.verified,
+    }
+    await log_audit_action(
+        db_session=db,
+        user=user,
+        action="GENERATE_DPR",
+        payload={"request": payload_snapshot, "dpr_id": dpr_id},
+        ip=request.client.host if request.client else None,
+        endpoint=request.url.path,
+    )
 
     # ── Derive values from input ─────────────────────────────────
     business_name = inp.business_name or inp.feasibility.business_category
@@ -119,13 +139,32 @@ async def render(
     # ── Build response ───────────────────────────────────────────
     pdf_url = f"/api/dpr/{dpr_id}/download" if pdf_path else f"/mock/{dpr_id}.pdf"
 
-    return DPRGenerateOut(
+    response = DPRGenerateOut(
         dpr_id=dpr_id,
         pdf_url=pdf_url,
         status="ready",
         data=data,
         verified=verified,
     )
+
+    await log_audit_action(
+        db_session=db,
+        user=user,
+        action="DPR_RENDERED",
+        payload={
+            "request": payload_snapshot,
+            "response": {
+                "dpr_id": response.dpr_id,
+                "pdf_url": response.pdf_url,
+                "status": response.status,
+                "verified": response.verified,
+            },
+        },
+        ip=request.client.host if request.client else None,
+        endpoint=request.url.path,
+    )
+
+    return response
 
 
 # ── GET /api/dpr/{dpr_id} ────────────────────────────────────────────

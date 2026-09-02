@@ -1,89 +1,97 @@
-"""
-Feasibility router — Stage 1 (live geo integration).
-
-Replaces the deterministic MD5-hash mock with live Mappls / Overpass queries
-via ``app.services.geo_service``.  Mock LGD resolution is retained until a
-live LGD Directory API is integrated (Stage 2).
-"""
+"""Feasibility router with strict live geospatial validation."""
 
 from __future__ import annotations
 
-import hashlib
+from fastapi import APIRouter, Depends, HTTPException
 
-from fastapi import APIRouter
-
+from app.core.security import get_current_user
+from app.models.user import User
 from app.schemas.feasibility import FeasibilityIn, FeasibilityOut, LGDCode
 from app.services.geo_service import (
+    GeoUnavailableError,
     compute_density_score,
     compute_verdict,
     get_poi_count_and_query,
+    resolve_lgd_live,
+    reverse_geocode,
 )
 
 router = APIRouter(prefix="/api/feasibility", tags=["feasibility"])
 
-# ── Mock LGD resolver (unchanged until Stage 2) ─────────────────────
 
-MOCK_LGD = {
-    "hilsa": LGDCode(
-        state="Bihar",
-        district="Nalanda",
-        block="Hilsa",
-        gp="Hilsa",
-        code="BR-NA-HI-001",
-        lat=25.32,
-        lon=85.28,
-    ),
-    "nalanda": LGDCode(
-        state="Bihar",
-        district="Nalanda",
-        block="Nalanda",
-        gp=None,
-        code="BR-NA-NA-001",
-        lat=25.13,
-        lon=85.44,
-    ),
-}
+async def _resolve_lgd_for_input(inp: FeasibilityIn) -> LGDCode:
+    state: str | None = None
+    district: str | None = None
+    block: str | None = None
 
+    if inp.location_text and inp.location_text.strip():
+        parts = [part.strip() for part in inp.location_text.split(",") if part.strip()]
+        if len(parts) >= 3:
+            block, district, state = parts[0], parts[1], parts[2]
+        elif len(parts) == 2:
+            district, state = parts[0], parts[1]
+        elif len(parts) == 1:
+            block = parts[0]
 
-def resolve_lgd(text: str, lat: float | None = None, lon: float | None = None) -> LGDCode:
-    key = text.lower()
-    for k, v in MOCK_LGD.items():
-        if k in key:
-            return v
-    # hash to deterministic Bihar-ish lat/lon offset
-    h = int(hashlib.md5(text.encode()).hexdigest()[:6], 16)
+    if inp.lat is not None and inp.lon is not None:
+        geo = await reverse_geocode(inp.lat, inp.lon)
+        if geo:
+            state = geo.get("state") or state
+            district = geo.get("district") or district
+            block = geo.get("block") or block
+
+    if not state or not district:
+        raise HTTPException(
+            status_code=502,
+            detail="Authoritative location data unavailable",
+        )
+
+    lgd = await resolve_lgd_live(district=district, block=block or "", state=state)
+    if lgd is None:
+        raise HTTPException(
+            status_code=502,
+            detail="Authoritative location data unavailable",
+        )
+
+    b_part = (block or district)[:2].upper()
+    code = lgd.get("lgd_code") or f"{state[:2].upper()}-{district[:2].upper()}-{b_part}"
     return LGDCode(
-        state="Bihar",
-        district="Nalanda",
-        block=text.split(",")[0].strip().title()[:20],
+        state=lgd["state"],
+        district=lgd["district"],
+        block=lgd["block"],
         gp=None,
-        code=f"BR-XX-{h % 999:03d}",
-        lat=25.0 + (h % 100) / 200,
-        lon=85.0 + (h % 100) / 200,
+        code=code,
+        lat=inp.lat if inp.lat is not None else 0.0,
+        lon=inp.lon if inp.lon is not None else 0.0,
     )
-
-
-# ── Endpoint ─────────────────────────────────────────────────────────
 
 
 @router.post("/score", response_model=FeasibilityOut)
-async def score(inp: FeasibilityIn) -> FeasibilityOut:
-    lgd = resolve_lgd(inp.location_text, inp.lat, inp.lon)
-    lat = inp.lat or lgd.lat
-    lon = inp.lon or lgd.lon
+async def score(
+    inp: FeasibilityIn,
+    user: User = Depends(get_current_user),
+) -> FeasibilityOut:
+    _ = user
+    lgd = await _resolve_lgd_for_input(inp)
+    lat = inp.lat if inp.lat is not None else lgd.lat
+    lon = inp.lon if inp.lon is not None else lgd.lon
 
-    # ── Live geo lookup ──────────────────────────────────────────
-    poi_count, overpass_ql = await get_poi_count_and_query(
-        category=inp.business_category,
-        lat=lat,
-        lon=lon,
-        radius_m=inp.radius_m,
-    )
+    try:
+        poi_count, overpass_ql = await get_poi_count_and_query(
+            category=inp.business_category,
+            lat=lat,
+            lon=lon,
+            radius_m=inp.radius_m,
+        )
+    except GeoUnavailableError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="Authoritative location data unavailable",
+        ) from exc
 
     ds = compute_density_score(poi_count, inp.population)
     vd = compute_verdict(ds)
 
-    # ── SWOT & opportunities (deterministic rules) ───────────────
     swot = {
         "strength": (
             "Local demand for daily-need category"

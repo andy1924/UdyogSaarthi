@@ -5,7 +5,7 @@ class NearbyProfile(BaseModel):
     id: str
     name: str
     category: str
-    distance_m: int
+    distance_m: float
     lat: float
     lon: float
 

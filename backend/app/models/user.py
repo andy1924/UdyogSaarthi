@@ -37,6 +37,7 @@ class User(Base):
         nullable=False,
         default=UserRole.APPLICANT.value,
         index=True,
+        comment="applicant | dic_officer | sca_auditor",
     )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(

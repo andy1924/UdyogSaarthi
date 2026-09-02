@@ -7,7 +7,7 @@ from uuid import UUID, uuid4
 if TYPE_CHECKING:
     from app.models.user import User
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, desc, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -25,7 +25,7 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
     __table_args__ = (
         # Chronological descending index for paginated audit log queries.
-        Index("ix_audit_logs_timestamp_desc", "timestamp", postgresql_using="btree"),
+        Index("ix_audit_logs_timestamp_desc", desc("timestamp"), postgresql_using="btree"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)

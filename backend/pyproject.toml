@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "udyogsaarthi"
-version = "0.1.0"
+version = "0.3.0"
 description = "UdyogSaarthi FastAPI backend"
 requires-python = ">=3.11"
 dependencies = [
@@ -13,7 +13,8 @@ dependencies = [
     "sqlalchemy[asyncio]>=2.0.30",
     "asyncpg>=0.29.0",
     "geoalchemy2>=0.14.0",
-    "redis>=5.0.0",
+    # redis[asyncio] ships the async client used by cache_service.py
+    "redis[asyncio]>=5.0.0",
     "pydantic-settings>=2.2.1",
     "python-jose[cryptography]>=3.3.0",
     "passlib[bcrypt]>=1.7.4",
@@ -23,6 +24,15 @@ dependencies = [
     "openai>=1.40.0",
     "jinja2>=3.1.0",
     "weasyprint>=62.0",
+    # ── Advanced features (v0.3.0) ────────────────────────────────
+    # Celery + Redis broker for background PDF/AI/geo tasks
+    "celery[redis]>=5.3.0",
+    # Explicit async result backend support
+    "celery[auth]>=5.3.0",
+    # DPR lifecycle state machine
+    "transitions>=0.9.0",
+    # Vector store for RAG compliance engine
+    "chromadb>=0.5.0",
 ]
 
 [project.optional-dependencies]

@@ -1,0 +1,68 @@
+# ============================================================
+# UdyogSaarthi — Local development docker-compose override
+# ============================================================
+# Apply on top of docker-compose.yml:
+#   docker compose -f infra/docker-compose.yml \
+#                  -f infra/docker-compose.override.yml up
+#
+# This file is intentionally NOT committed to production
+# environments. It:
+#   - Re-enables --reload for live code reloading.
+#   - Bind-mounts the backend source so changes take effect
+#     without rebuilding the image.
+#   - Relaxes resource limits for local machines.
+#   - Uses a plain text SECRET_KEY (dev only).
+# ============================================================
+
+services:
+  api:
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/udyogsaarthi
+      REDIS_URL: redis://localhost:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      SECRET_KEY: dev-only-secret-key-do-not-use-in-production
+    volumes:
+      - ../backend:/app
+    # Override the production entrypoint with dev-friendly reload mode.
+    entrypoint: >
+      sh -c "
+        echo '[dev] Running Alembic migrations...'
+        alembic upgrade head &&
+        echo '[dev] Starting dev server with --reload...'
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+    # Remove resource limits locally.
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+
+  # Dev Celery worker — mounts source code for live task reload
+  worker:
+    environment:
+      APP_ENV: development
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/udyogsaarthi
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      SECRET_KEY: dev-only-secret-key-do-not-use-in-production
+    volumes:
+      - ../backend:/app
+      - ../backend/chromadb_store:/app/chromadb_store
+    entrypoint: >
+      sh -c "
+        echo '[dev-worker] Starting Celery worker with --pool=solo for debuggability...'
+        exec celery -A app.worker.celery_app worker \
+          -Q pdf,ai,default \
+          --pool=solo \
+          --loglevel=debug
+      "
+    deploy:
+      resources:
+        limits:
+          cpus: "4.0"
+          memory: 4G
+

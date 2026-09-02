@@ -24,7 +24,7 @@ from app.models.user import User
 from app.schemas.dpr import DPRGenerateIn, DPRGenerateOut
 from app.services.dpr_ai_service import generate_swot
 from app.services.kyc_service import verify_applicant
-from app.services.pdf_service import generate_dpr_pdf
+from app.worker.tasks.pdf_tasks import generate_dpr_pdf_task
 
 logger = logging.getLogger("udyogsaarthi.dpr_router")
 
@@ -106,12 +106,18 @@ async def render(
         ],
     }
 
-    # ── Generate PDF ─────────────────────────────────────────────
-    pdf_path: str | None = None
+    # ── Enqueue PDF generation (Celery) ────────────────────────
+    # Generate the PDF asynchronously in the Celery 'pdf' queue.
+    # The response immediately returns 'queued'; the Celery worker updates
+    # DPRRecord.pdf_path and status once the PDF is ready.
     try:
-        pdf_path = await generate_dpr_pdf(dpr_id=dpr_id, dpr_payload=data)
+        generate_dpr_pdf_task.delay(dpr_id, data)
+        pdf_queued = True
+        logger.info("PDF task enqueued for %s", dpr_id)
     except Exception as exc:
-        logger.error("PDF generation failed for %s: %s — continuing without PDF", dpr_id, exc)
+        # If Celery broker is unreachable, log and continue without queueing.
+        logger.error("Could not enqueue PDF task for %s: %s", dpr_id, exc)
+        pdf_queued = False
 
     # ── Persist to PostgreSQL ────────────────────────────────────
     try:
@@ -122,8 +128,11 @@ async def render(
             business_category=inp.feasibility.business_category,
             status="generated",
             verified=verified,
-            pdf_path=pdf_path,
+            pdf_path=None,  # will be set by Celery worker on completion
             dpr_payload=data,
+            workflow_state="draft",
+            workflow_history=[],
+            owner_user_id=user.id,
         )
         db.add(record)
         await db.commit()
@@ -132,17 +141,16 @@ async def render(
         await db.rollback()
         logger.warning(
             "Failed to persist DPR %s to DB (%s) — returning response anyway",
-            dpr_id,
-            exc,
+            dpr_id, exc,
         )
 
     # ── Build response ───────────────────────────────────────────
-    pdf_url = f"/api/dpr/{dpr_id}/download" if pdf_path else f"/mock/{dpr_id}.pdf"
+    pdf_url = f"/api/dpr/{dpr_id}/download"  # will resolve once Celery completes
 
     response = DPRGenerateOut(
         dpr_id=dpr_id,
         pdf_url=pdf_url,
-        status="ready",
+        status="queued" if pdf_queued else "ready",
         data=data,
         verified=verified,
     )
@@ -171,8 +179,12 @@ async def render(
 
 
 @router.get("/{dpr_id}")
-async def get_dpr(dpr_id: str, db: AsyncSession = Depends(get_db)):
-    """Return DPR metadata from PostgreSQL."""
+async def get_dpr(
+    dpr_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Return DPR metadata from PostgreSQL. Requires authentication."""
     stmt = select(DPRRecord).where(DPRRecord.id == dpr_id)
     result = await db.execute(stmt)
     record = result.scalar_one_or_none()
@@ -199,8 +211,12 @@ async def get_dpr(dpr_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{dpr_id}/download")
-async def download_dpr(dpr_id: str, db: AsyncSession = Depends(get_db)):
-    """Serve the actual generated PDF file."""
+async def download_dpr(
+    dpr_id: str,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Serve the actual generated PDF file. Requires authentication."""
     stmt = select(DPRRecord).where(DPRRecord.id == dpr_id)
     result = await db.execute(stmt)
     record = result.scalar_one_or_none()

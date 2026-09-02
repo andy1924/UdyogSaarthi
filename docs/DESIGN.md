@@ -1,5 +1,7 @@
 # UdyogSaarthi — Design System
 
+> **Implementation note (2026-09-02):** This is the planned frontend design system. The active repository does not currently contain the referenced frontend implementation; backend prototype status is tracked in [update.md](update.md).
+
 ## World: Sarkaar Ledger, Human Saarthi
 
 **Thesis:** Government-grade trust (the ledger) fused with a human guide (the Saarthi) — not a bank, not a startup, a companion who holds the paper while you speak.

@@ -67,6 +67,15 @@ async def get_current_user(
 
 
 class RequireRole:
+    """Dependency callable that enforces RBAC on a route.
+
+    Usage::
+
+        @router.get("/admin")
+        async def admin(user: User = Depends(RequireRole(["dic_officer", "sca_auditor"]))):
+            ...
+    """
+
     def __init__(self, allowed_roles: Iterable[str]):
         self.allowed_roles = set(allowed_roles)
 
@@ -79,6 +88,26 @@ class RequireRole:
         return user
 
 
+# ── Convenience RBAC singletons ───────────────────────────────────────────────
+# Use these directly as FastAPI dependencies instead of constructing RequireRole
+# inline — keeps route declarations readable and enforces consistency.
+
+#: Any authenticated user (applicant, dic_officer, or sca_auditor)
+require_authenticated = RequireRole(["applicant", "dic_officer", "sca_auditor"])
+
+#: Applicants only
+require_applicant = RequireRole(["applicant"])
+
+#: Field officers (DIC) and bank reviewers (SCA) — back-office staff
+require_any_staff = RequireRole(["dic_officer", "sca_auditor"])
+
+#: DIC field officers only
+require_dic_officer = RequireRole(["dic_officer"])
+
+#: SCA bank reviewers only (read audit logs, etc.)
+require_sca_auditor = RequireRole(["sca_auditor"])
+
+
 async def log_audit_action(
     db_session: AsyncSession,
     user: User | None,
@@ -87,16 +116,20 @@ async def log_audit_action(
     ip: str | None,
     endpoint: str | None = None,
 ) -> None:
-    payload = payload.copy() if isinstance(payload, dict) else {}
-    endpoint = endpoint or payload.get("endpoint") or "unknown"
-    payload["endpoint"] = endpoint
+    """Write an immutable audit row.
 
-    if user is None:
-        raise ValueError("Audit log requires an authenticated user")
+    ``user`` may be ``None`` when called from the AuditMiddleware for
+    unauthenticated requests — in that case ``user_id`` is stored as NULL.
+    When called from an authenticated route handler, ``user`` must be provided.
+    """
+    payload = payload.copy() if isinstance(payload, dict) else {}
+    _ep_from_payload = payload.get("endpoint") if isinstance(payload.get("endpoint"), str) else None
+    endpoint = endpoint or _ep_from_payload or "unknown"
+    payload["endpoint"] = endpoint
 
     db_session.add(
         AuditLog(
-            user_id=user.id,
+            user_id=user.id if user is not None else None,
             action=action,
             endpoint=endpoint,
             payload_snapshot=payload,

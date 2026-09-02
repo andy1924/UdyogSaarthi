@@ -1,12 +1,34 @@
+# ============================================================
+# UdyogSaarthi — Production docker-compose
+# ============================================================
+# Usage:
+#   Production:  docker compose -f infra/docker-compose.yml up -d
+#   Development: docker compose -f infra/docker-compose.yml \
+#                               -f infra/docker-compose.override.yml up
+# ============================================================
+
+secrets:
+  db_password:
+    # In production, replace with: external: true
+    # and manage via Docker Swarm secrets or a secret manager.
+    file: ./secrets/db_password.txt
+  app_secret_key:
+    file: ./secrets/app_secret_key.txt
+
 services:
+  # ── PostgreSQL (PostGIS) ─────────────────────────────────────────────────
   db:
     image: postgis/postgis:16-3.4
     platform: linux/amd64
     container_name: udyogsaarthi-db
+    restart: unless-stopped
     environment:
       POSTGRES_DB: udyogsaarthi
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      # Read password from Docker secret — never hardcode in compose.
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets:
+      - db_password
     ports:
       - "5432:5432"
     volumes:
@@ -16,13 +38,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
 
+  # ── Redis ────────────────────────────────────────────────────────────────
   redis:
     image: redis:7-alpine
     container_name: udyogsaarthi-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes"]
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
     volumes:
       - redis_data:/data
     healthcheck:
@@ -30,12 +60,21 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
 
+  # ── FastAPI application ───────────────────────────────────────────────────
   api:
     build:
       context: ..
       dockerfile: backend/Dockerfile
+      target: runtime
     container_name: udyogsaarthi-api
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -44,13 +83,93 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/udyogsaarthi
       REDIS_URL: redis://redis:6379/0
-      APP_ENV: development
+      APP_ENV: production
+      # Pool tuning — tune for your workload.
+      DB_POOL_SIZE: "10"
+      DB_MAX_OVERFLOW: "20"
+      DB_POOL_TIMEOUT: "30"
+      DB_POOL_RECYCLE: "1800"
+    secrets:
+      - app_secret_key
     ports:
       - "8000:8000"
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
-      - ../backend:/app
+      - dpr_output:/app/generated_dprs
+    # Run Alembic migrations before starting uvicorn.
+    # This is safe for single-instance deployments; for multi-replica deployments
+    # run migrations as a separate init container or CI step.
+    entrypoint: >
+      sh -c "
+        SECRET_KEY=$$(cat /run/secrets/app_secret_key)
+        export SECRET_KEY
+        echo '[startup] Running Alembic migrations...'
+        alembic upgrade head &&
+        echo '[startup] Migrations complete. Starting server...'
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+      "
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+
+  # ── Celery worker — multi-queue ───────────────────────────────────────────
+  # The worker container shares the same image as the API (built from the same
+  # Dockerfile) but starts Celery instead of uvicorn.
+  # Three queues are handled by this one worker. For production scale-out,
+  # split into separate per-queue worker services (see comments in celery_app.py).
+  worker:
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
+      target: runtime
+    container_name: udyogsaarthi-worker
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/udyogsaarthi
+      REDIS_URL: redis://redis:6379/0
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      APP_ENV: production
+      DB_POOL_SIZE: "4"
+      DB_MAX_OVERFLOW: "8"
+    secrets:
+      - app_secret_key
+    volumes:
+      - dpr_output:/app/generated_dprs
+      - chromadb_store:/app/chromadb_store
+    entrypoint: >
+      sh -c "
+        SECRET_KEY=$$(cat /run/secrets/app_secret_key)
+        export SECRET_KEY
+        echo '[worker] Starting Celery worker...'
+        exec celery -A app.worker.celery_app worker \
+          -Q pdf,ai,default \
+          -c 4 \
+          --loglevel=info \
+          --without-heartbeat \
+          --without-gossip
+      "
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
 
 volumes:
   postgres_data:
   redis_data:
+  dpr_output:
+  chromadb_store:
+

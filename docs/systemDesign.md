@@ -1,5 +1,7 @@
 # System Design
 
+> **Scope note (2026-09-02):** This document is the target architecture and product design. The current implementation is a backend prototype; several client, voice, storage, identity, and provider layers below remain planned. See [update.md](update.md) for the implemented scope.
+
 **Mandate (per `research.md`):** Rural micro-enterprise failure is a knowledge problem, not a capital problem. The platform's job is to fix two decisions before money moves — *what business to start* and *how to structure the loan* — for a low-literacy, low-connectivity, voice-first user base. Every module in this document is justified against that mandate; nothing else is in scope for v1.
 
 ---

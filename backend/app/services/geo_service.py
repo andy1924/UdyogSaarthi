@@ -1,12 +1,15 @@
 """
-Async geospatial service for UdyogSaarthi Feasibility Engine — Stage 1.
+Async geospatial service — Stage 2 (with Redis provider caching).
 
-Provider chain:
-  1. Mappls Nearby Search (primary, 4 s timeout)
-  2. OSM Overpass API   (fallback, 5 s timeout)
+Provider chain with cache:
+  1. Redis cache (TTL-controlled)     → immediate hit
+  2. Mappls primary API               → 4 s timeout
+  3. OSM Overpass fallback            → 5 s timeout
 
-Every call returns an auditable Overpass QL string so DIC field officers can
-independently verify the query against public infrastructure.
+Caching strategy:
+  reverse_geocode     → 24 h  (location admin-boundary rarely changes)
+  resolve_lgd_live    → 7 d   (government LGD codes are stable)
+  get_poi_count       → 1 h   (OSM contributor data can update daily)
 """
 
 from __future__ import annotations
@@ -17,6 +20,7 @@ from typing import Any
 import httpx
 
 from app.core.config import settings
+from app.services.cache_service import cache
 
 logger = logging.getLogger("udyogsaarthi.geo_service")
 
@@ -43,7 +47,7 @@ _OSM_TAGS: dict[str, str] = {
 # ── Mappls Nearby Search ─────────────────────────────────────────────
 
 _MAPPLS_NEARBY_URL = "https://atlas.mappls.com/api/places/nearby/json"
-_MAPPLS_TIMEOUT = 4.0  # seconds
+_MAPPLS_TIMEOUT = 4.0
 
 
 async def _query_mappls(
@@ -52,15 +56,10 @@ async def _query_mappls(
     category: str,
     radius_m: int,
 ) -> int | None:
-    """
-    Query Mappls Nearby Search API.
-
-    Returns the number of POIs found, or ``None`` when the call should be
-    treated as failed (missing key, HTTP error, timeout, unexpected payload).
-    """
+    """Query Mappls Nearby Search API. Returns POI count or None."""
     api_key = settings.mappls_rest_key
     if not api_key:
-        logger.debug("MAPPLS_REST_KEY is not configured — skipping Mappls provider")
+        logger.debug("MAPPLS_REST_KEY not configured — skipping Mappls provider")
         return None
 
     keyword = _MAPPLS_KEYWORDS.get(category.lower())
@@ -82,13 +81,11 @@ async def _query_mappls(
         if resp.status_code != 200:
             logger.warning(
                 "Mappls returned HTTP %d for category=%s — falling back",
-                resp.status_code,
-                category,
+                resp.status_code, category,
             )
             return None
 
         data = resp.json()
-        # Mappls returns a list of suggested locations; count entries.
         if isinstance(data, dict) and "suggestedLocations" in data:
             return len(data["suggestedLocations"])
         if isinstance(data, list):
@@ -103,7 +100,7 @@ async def _query_mappls(
 
 # ── OSM Overpass API ─────────────────────────────────────────────────
 
-_OVERPASS_TIMEOUT = 5.0  # seconds
+_OVERPASS_TIMEOUT = 5.0
 
 
 def build_overpass_ql(
@@ -112,14 +109,8 @@ def build_overpass_ql(
     lon: float,
     radius_m: int,
 ) -> str:
-    """
-    Build an auditable Overpass QL query string.
-
-    Falls back to a generic ``shop=<category>`` tag when the category is
-    unknown so the query is still syntactically valid.
-    """
+    """Build an auditable Overpass QL query string."""
     osm_tag = _OSM_TAGS.get(category.lower(), f"shop={category.lower()}")
-    # Tag may be in "key=value" form — split for Overpass syntax.
     return (
         f"[out:json][timeout:5];\n"
         f'node[{osm_tag}](around:{radius_m},{lat},{lon});\n'
@@ -127,16 +118,9 @@ def build_overpass_ql(
     )
 
 
-async def _query_overpass(
-    overpass_ql: str,
-) -> int | None:
-    """
-    Execute an Overpass QL query and return the element count.
-
-    Returns ``None`` on any transport / parsing failure.
-    """
+async def _query_overpass(overpass_ql: str) -> int | None:
+    """Execute Overpass QL, return element count or None on failure."""
     url = settings.overpass_api_url
-
     try:
         async with httpx.AsyncClient(timeout=_OVERPASS_TIMEOUT) as client:
             resp = await client.post(url, data={"data": overpass_ql})
@@ -146,11 +130,9 @@ async def _query_overpass(
             return None
 
         data = resp.json()
-        # "out count;" returns tags with a "total" key inside the first element.
         elements = data.get("elements", [])
         if elements and "tags" in elements[0]:
             return int(elements[0]["tags"].get("total", 0))
-        # Fallback: count elements directly (when query uses "out body").
         return len(elements)
 
     except (httpx.TimeoutException, httpx.HTTPError) as exc:
@@ -163,19 +145,12 @@ async def _query_overpass(
 
 # ── Density & Verdict ────────────────────────────────────────────────
 
-_DEFAULT_POPULATION = 50_000  # sensible baseline when population is unknown
+_DEFAULT_POPULATION = 50_000
 
 
 def compute_density_score(poi_count: int, population: int | None) -> int:
-    """
-    Compute a saturation score ∈ [0, 100].
-
-    Formula: ``min(100, (poi_count / effective_pop) * normalisation_factor)``
-    where the normalisation factor is tuned so that 1 POI per 1 000 people
-    ≈ score 50 (indicating moderate saturation).
-    """
+    """Compute saturation score in [0, 100]."""
     effective_pop = population if population and population > 0 else _DEFAULT_POPULATION
-    # 1 POI per 1 000 people → score ~50
     raw = (poi_count / effective_pop) * 50_000
     return int(max(0, min(100, raw)))
 
@@ -189,19 +164,29 @@ def compute_verdict(density_score: int) -> str:
     return "viable"
 
 
-# ── Mappls Reverse Geocoding ─────────────────────────────────────
+# ── Mappls Reverse Geocoding (with Redis cache) ───────────────────────
 
-_MAPPLS_REVGEO_TIMEOUT = 4.0  # seconds
+_MAPPLS_REVGEO_TIMEOUT = 4.0
 
 
 async def reverse_geocode(lat: float, lon: float) -> dict[str, str] | None:
-    """
-    Resolve *(lat, lon)* to a structured address using Mappls v1 REST API.
+    """Resolve (lat, lon) to state/district/block with Redis caching.
 
-    Returns a dict with keys ``state``, ``district``, ``block`` (area-level
-    approximation), or ``None`` on any failure (missing key, timeout, HTTP
-    error, or unexpected payload).
+    Cache key: ``udyog:{v}:revgeo:{lat:.3f}:{lon:.3f}``  TTL: 24h
+
+    Provider chain:
+      1. Redis cache  →  Mappls  →  None
     """
+    lat_s = f"{lat:.3f}"
+    lon_s = f"{lon:.3f}"
+
+    # 1. Cache hit
+    cached = await cache.get_json("revgeo", lat_s, lon_s)
+    if cached is not None:
+        logger.debug("Cache HIT revgeo (%s, %s)", lat_s, lon_s)
+        return cached
+
+    # 2. Live Mappls call
     api_key = settings.mappls_rest_key
     if not api_key:
         logger.warning("MAPPLS_REST_KEY not configured — cannot reverse geocode")
@@ -210,53 +195,43 @@ async def reverse_geocode(lat: float, lon: float) -> dict[str, str] | None:
     url = f"{settings.mappls_rev_geocode_url}/{api_key}/rev_geocode"
     params: dict[str, Any] = {"lat": str(lat), "lng": str(lon)}
 
+    result: dict[str, str] | None = None
     try:
         async with httpx.AsyncClient(timeout=_MAPPLS_REVGEO_TIMEOUT) as client:
             resp = await client.get(url, params=params)
 
-        if resp.status_code != 200:
+        if resp.status_code == 200:
+            data = resp.json()
+            results = data.get("results", [])
+            if results:
+                top = results[0]
+                state = top.get("state", "").strip()
+                district = top.get("district", "").strip()
+                block = top.get("area", top.get("subDistrict", "")).strip()
+                if state and district:
+                    result = {"state": state, "district": district, "block": block}
+                    logger.info(
+                        "Reverse geocoded (%.5f, %.5f) → %s, %s, %s",
+                        lat, lon, state, district, block,
+                    )
+        else:
             logger.warning(
-                "Mappls rev-geocode returned HTTP %d for (%.5f, %.5f)",
+                "Mappls rev-geocode HTTP %d for (%.5f, %.5f)",
                 resp.status_code, lat, lon,
             )
-            return None
-
-        data = resp.json()
-        results = data.get("results", [])
-        if not results:
-            logger.warning("Mappls rev-geocode: empty results for (%.5f, %.5f)", lat, lon)
-            return None
-
-        top = results[0]
-        # Mappls v1 fields: state, district, area (sub-district / block proxy)
-        state = top.get("state", "").strip()
-        district = top.get("district", "").strip()
-        # 'area' is the finest admin level available in the v1 rev-geocode response;
-        # it maps roughly to block / tehsil for rural Bihar-class locations.
-        block = top.get("area", top.get("subDistrict", "")).strip()
-
-        if not state or not district:
-            logger.warning(
-                "Mappls rev-geocode: incomplete address for (%.5f, %.5f): %s",
-                lat, lon, top,
-            )
-            return None
-
-        logger.info(
-            "Reverse geocoded (%.5f, %.5f) → %s, %s, %s",
-            lat, lon, state, district, block,
-        )
-        return {"state": state, "district": district, "block": block}
-
     except (httpx.TimeoutException, httpx.HTTPError) as exc:
-        logger.warning("Mappls rev-geocode request failed (%s)", exc)
-        return None
+        logger.warning("Mappls rev-geocode failed (%s)", exc)
+
+    if result is not None:
+        await cache.set_json("revgeo", result, settings.cache_ttl_revgeo, lat_s, lon_s)
+
+    return result
 
 
-# ── Live LGD Resolution via Data.gov.in CKAN API ─────────────────────
+# ── Live LGD Resolution (with Redis cache) ────────────────────────────
 
 _LGD_API_BASE = "https://data.gov.in/api/datastore/resource.json"
-_LGD_TIMEOUT = 6.0  # seconds; government APIs can be slow
+_LGD_TIMEOUT = 6.0
 
 
 async def resolve_lgd_live(
@@ -264,32 +239,25 @@ async def resolve_lgd_live(
     block: str,
     state: str,
 ) -> dict[str, str] | None:
-    """
-    Query the Data.gov.in LGD block dataset for an authoritative LGD record.
+    """Resolve district/block to authoritative LGD code with Redis caching.
 
-    Parameters
-    ----------
-    district:
-        District name as returned by Mappls reverse-geocode.
-    block:
-        Block / tehsil name (may be empty for urban centres).
-    state:
-        State name.
-
-    Returns
-    -------
-    dict with keys ``state``, ``district``, ``block``, ``lgd_code``, or
-    ``None`` when no authoritative record is found.
+    Cache key: ``udyog:{v}:lgd:{state}:{district}:{block}``  TTL: 7 days
     """
+    state_k = state.lower().replace(" ", "_")
+    district_k = district.lower().replace(" ", "_")
+    block_k = (block or "").lower().replace(" ", "_")
+
+    # 1. Cache hit
+    cached = await cache.get_json("lgd", state_k, district_k, block_k)
+    if cached is not None:
+        logger.debug("Cache HIT lgd %s/%s/%s", state_k, district_k, block_k)
+        return cached
+
+    # 2. Live Data.gov.in call
     resource_id = settings.lgd_api_resource_id
     if not resource_id:
-        logger.warning("LGD_API_RESOURCE_ID not configured — cannot resolve LGD")
+        logger.warning("LGD_API_RESOURCE_ID not configured")
         return None
-
-    # Try block-level lookup first; fall back to district-only if block is empty.
-    filters: dict[str, str] = {"district_name": district}
-    if block:
-        filters["block_name"] = block
 
     params: dict[str, Any] = {
         "resource_id": resource_id,
@@ -299,58 +267,51 @@ async def resolve_lgd_live(
     if block:
         params["filters[block_name]"] = block
 
+    result: dict[str, str] | None = None
     try:
         async with httpx.AsyncClient(timeout=_LGD_TIMEOUT) as client:
             resp = await client.get(_LGD_API_BASE, params=params)
 
-        if resp.status_code != 200:
-            logger.warning(
-                "Data.gov.in LGD API returned HTTP %d for district=%r block=%r",
-                resp.status_code, district, block,
-            )
-            return None
-
-        data = resp.json()
-        records = data.get("records", [])
-        if not records:
-            logger.warning(
-                "LGD API: no records for district=%r block=%r state=%r",
-                district, block, state,
-            )
-            return None
-
-        rec = records[0]
-        # Common field names in the Data.gov.in LGD block dataset:
-        #   state_name, district_name, block_name, block_lgd_code
-        lgd_code = (
-            rec.get("block_lgd_code")
-            or rec.get("lgd_code")
-            or rec.get("code", "")
-        )
-        resolved_state = rec.get("state_name", state).strip()
-        resolved_district = rec.get("district_name", district).strip()
-        resolved_block = rec.get("block_name", block).strip()
-
-        logger.info(
-            "LGD resolved: %s / %s / %s → code=%s",
-            resolved_state, resolved_district, resolved_block, lgd_code,
-        )
-        return {
-            "state": resolved_state,
-            "district": resolved_district,
-            "block": resolved_block,
-            "lgd_code": str(lgd_code),
-        }
+        if resp.status_code == 200:
+            data = resp.json()
+            records = data.get("records", [])
+            if records:
+                rec = records[0]
+                lgd_code = (
+                    rec.get("block_lgd_code")
+                    or rec.get("lgd_code")
+                    or rec.get("code", "")
+                )
+                result = {
+                    "state": rec.get("state_name", state).strip(),
+                    "district": rec.get("district_name", district).strip(),
+                    "block": rec.get("block_name", block).strip(),
+                    "lgd_code": str(lgd_code),
+                }
+                logger.info(
+                    "LGD resolved: %s/%s/%s → code=%s",
+                    result["state"], result["district"], result["block"], lgd_code,
+                )
+            else:
+                logger.warning(
+                    "LGD API: no records for district=%r block=%r state=%r",
+                    district, block, state,
+                )
+        else:
+            logger.warning("LGD API HTTP %d for district=%r", resp.status_code, district)
 
     except (httpx.TimeoutException, httpx.HTTPError) as exc:
-        logger.warning("Data.gov.in LGD request failed (%s)", exc)
-        return None
+        logger.warning("LGD request failed (%s)", exc)
     except (KeyError, ValueError, TypeError) as exc:
         logger.warning("LGD response parsing error (%s)", exc)
-        return None
+
+    if result is not None:
+        await cache.set_json("lgd", result, settings.cache_ttl_lgd, state_k, district_k, block_k)
+
+    return result
 
 
-# ── Public entry-point ───────────────────────────────────────────────
+# ── Public entry-point (with Redis cache) ────────────────────────────
 
 
 async def get_poi_count_and_query(
@@ -359,48 +320,52 @@ async def get_poi_count_and_query(
     lon: float,
     radius_m: int,
 ) -> tuple[int, str]:
-    """
-    Resolve the live POI count for *category* around *(lat, lon)*.
+    """Resolve live POI count with Redis cache.
 
-    Returns ``(poi_count, overpass_ql_string)``.  The Overpass QL string is
-    always constructed even when Mappls is the data-source so that the query
-    remains auditable.
+    Cache key: ``udyog:{v}:poi:{category}:{lat:.3f}:{lon:.3f}:{radius_m}``
+    TTL: 1 hour
+
+    Provider chain: Cache → Mappls → Overpass → GeoUnavailableError
     """
     overpass_ql = build_overpass_ql(category, lat, lon, radius_m)
+    lat_s = f"{lat:.3f}"
+    lon_s = f"{lon:.3f}"
+    cat_k = category.lower()
+    rad_k = str(radius_m)
 
-    # Primary: Mappls
+    # 1. Cache hit
+    cached_count = await cache.get_json("poi", cat_k, lat_s, lon_s, rad_k)
+    if cached_count is not None:
+        logger.debug("Cache HIT poi %s @(%s,%s) r=%s", cat_k, lat_s, lon_s, rad_k)
+        return int(cached_count), overpass_ql
+
+    # 2. Mappls primary
     poi_count = await _query_mappls(lat, lon, category, radius_m)
     if poi_count is not None:
         logger.info(
             "Mappls returned %d POIs for %s @(%.4f, %.4f) r=%dm",
-            poi_count,
-            category,
-            lat,
-            lon,
-            radius_m,
+            poi_count, category, lat, lon, radius_m,
         )
+        await cache.set_json("poi", poi_count, settings.cache_ttl_poi, cat_k, lat_s, lon_s, rad_k)
         return poi_count, overpass_ql
 
-    # Fallback: Overpass
+    # 3. Overpass fallback
     poi_count = await _query_overpass(overpass_ql)
     if poi_count is not None:
         logger.info(
             "Overpass returned %d POIs for %s @(%.4f, %.4f) r=%dm",
-            poi_count,
-            category,
-            lat,
-            lon,
-            radius_m,
+            poi_count, category, lat, lon, radius_m,
+        )
+        # Shorter TTL for Overpass fallback data (less authoritative)
+        await cache.set_json(
+            "poi", poi_count, settings.cache_ttl_poi // 2, cat_k, lat_s, lon_s, rad_k
         )
         return poi_count, overpass_ql
 
-    # Both providers failed — raise so callers can surface a strict 502.
+    # 4. Both failed
     logger.error(
-        "Both Mappls and Overpass failed for %s @(%.4f, %.4f). "
-        "Raising GeoUnavailableError.",
-        category,
-        lat,
-        lon,
+        "Both Mappls and Overpass failed for %s @(%.4f, %.4f). Raising GeoUnavailableError.",
+        category, lat, lon,
     )
     raise GeoUnavailableError(
         f"Authoritative POI data unavailable for category={category!r} "

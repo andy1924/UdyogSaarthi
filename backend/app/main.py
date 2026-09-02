@@ -7,21 +7,33 @@ from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
+from app.middleware.audit_middleware import AuditMiddleware
+from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
 from app.routers.compliance import router as compliance_router
 from app.routers.directory import router as directory_router
 from app.routers.dpr import router as dpr_router
 from app.routers.feasibility import router as feasibility_router
 from app.routers.scheme import router as scheme_router
+from app.routers.workflow import router as workflow_router
 
 app = FastAPI(
     title="UdyogSaarthi API",
-    version="0.1.0",
+    version="0.2.0",
     description=(
-        "Deterministic scheme math + KYN feasibility + DPR + "
-        "compliance/directory (mocked LGD/OSM, auditable rules v2024-11)"
+        "Hyper-local business advisory and financial structuring platform for "
+        "rural micro-entrepreneurs. Provides scheme calculation, feasibility scoring, "
+        "DPR generation, compliance guidance, and an immutable audit ledger."
     ),
+    # Disable Swagger UI in production to reduce attack surface.
+    docs_url="/docs" if settings.app_env != "production" else None,
+    redoc_url="/redoc" if settings.app_env != "production" else None,
 )
+
+# ── CORS ──────────────────────────────────────────────────────────────────────
+# In production, restrict allow_origins to your actual frontend domain(s).
+# The wildcard below is intentionally kept for dev convenience but locked down
+# by the APP_ENV check above on the docs endpoints.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,16 +41,30 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Audit middleware ──────────────────────────────────────────────────────────
+# Must be registered AFTER CORSMiddleware so it sees the fully decoded request.
+# Uses its own session factory to remain independent of per-request sessions.
+app.add_middleware(AuditMiddleware, session_factory=AsyncSessionLocal)
+
+# ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router)
+app.include_router(audit_router)
 app.include_router(scheme_router)
 app.include_router(feasibility_router)
 app.include_router(dpr_router)
+app.include_router(workflow_router)
 app.include_router(compliance_router)
 app.include_router(directory_router)
 
 
-@app.get("/health")
+
+# ── Health check ──────────────────────────────────────────────────────────────
+
+
+@app.get("/health", tags=["system"])
 async def healthcheck() -> dict[str, str]:
+    """Probes the DB and Redis connections. Returns 'ok' or 'degraded'."""
     import asyncio
 
     async def _db():

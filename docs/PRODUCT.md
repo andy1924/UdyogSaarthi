@@ -2,6 +2,8 @@
 
 <!-- impeccable:product-schema 1 -->
 
+> **Implementation note (2026-09-02):** This document describes the intended product experience. The current repository implements the backend prototype in `backend/`; the Next.js PWA, React Native app, IVR/SMS layer, offline sync, and vernacular voice layer described below are planned rather than active.
+
 ## Platform
 
 web — Next.js PWA (local-first, IndexedDB + background sync), React Native Phase 2, IVR/SMS fallback. Desktop + mobile (360px–1440px), voice-first, touch-large targets.

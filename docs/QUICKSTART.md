@@ -60,6 +60,7 @@ This will launch:
 - 🗄️ **PostGIS DB (`udyogsaarthi-db`)** on `localhost:5432`
 - ⚡ **Redis (`udyogsaarthi-redis`)** on `localhost:6379`
 - 🚀 **FastAPI Backend (`udyogsaarthi-api`)** on `localhost:8000` (with live code reloading mounted from `./backend`)
+- ⚙️ **Celery Worker (`udyogsaarthi-worker`)** for PDF, AI, and background tasks
 
 ### Step 2: Apply Database Migrations
 Once containers are healthy, run Alembic migrations inside the API container:
@@ -107,6 +108,14 @@ alembic upgrade head
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+### Step 5: Start the Celery Worker
+
+Run this in a second terminal with the backend virtual environment activated. It is required for asynchronous DPR PDF generation:
+
+```bash
+celery -A app.worker.celery_app worker -Q pdf,ai,default --pool=solo --loglevel=info
+```
+
 ---
 
 ## 🔍 Verification & Health Checks
@@ -120,7 +129,7 @@ Once the services are running, verify by accessing:
 Test the health endpoint from CLI:
 ```bash
 curl http://localhost:8000/health
-# Expected Output: {"status":"healthy"}
+# Expected shape: {"status":"ok","database":"up","redis":"up"}
 ```
 
 ---

@@ -1,22 +1,43 @@
-# UdyogSaarthi API Guide for Frontend Developers
+# UdyogSaarthi API Guide
 
-This document gives a short, practical view of the active backend APIs that a frontend app should call. It focuses on the required inputs, important responses, and the way data flows between screens.
+This guide documents the active backend API for the current prototype.
 
-Base URL:
-- Local: http://localhost:8000
-- API docs: http://localhost:8000/docs
+Base URL: `http://localhost:8000`
+Interactive docs: `http://localhost:8000/docs` and `http://localhost:8000/redoc` when `APP_ENV` is not `production`.
 
----
+## Authentication
 
-## 1. Health check
+Protected endpoints require:
 
-### Endpoint
-GET /health
+```http
+Authorization: Bearer <access_token>
+```
 
-### Purpose
-Check whether the backend, database, and Redis are active.
+| Endpoint | applicant | dic_officer | sca_auditor |
+|---|:---:|:---:|:---:|
+| `POST /auth/token` | public | public | public |
+| `POST /auth/register` | public | public | public |
+| `GET /auth/me` | yes | yes | yes |
+| `GET /api/scheme/rules` | public | public | public |
+| `POST /api/scheme/calculate` | public | public | public |
+| `POST /api/feasibility/score` | yes | yes | yes |
+| `GET /api/compliance/licenses` | public | public | public |
+| `GET /api/directory/nearby` | public | public | public |
+| `POST /api/dpr/render` | yes | yes | yes |
+| `GET /api/dpr/{dpr_id}` | yes | yes | yes |
+| `GET /api/dpr/{dpr_id}/download` | yes | yes | yes |
+| `POST /api/dpr/{dpr_id}/transition` | yes, action-dependent | yes, action-dependent | yes, action-dependent |
+| `GET /api/dpr/{dpr_id}/history` | yes | yes | yes |
+| `/api/audit/*` | `403` | yes | yes |
 
-### Example response
+Authentication proves that a user is active. The current prototype does not enforce DPR ownership on DPR read, download, or history endpoints.
+
+## System
+
+### `GET /health`
+
+Checks PostgreSQL and Redis independently.
+
 ```json
 {
   "status": "ok",
@@ -25,21 +46,65 @@ Check whether the backend, database, and Redis are active.
 }
 ```
 
-### Notes for frontend
-- Use this on app startup or for a quick system status indicator.
-- Status may be "degraded" if one dependency is down.
+`status` is `degraded` when either dependency is unavailable. This endpoint is public.
 
----
+## Authentication Endpoints
 
-## 2. Scheme rules
+### `POST /auth/register`
 
-### Endpoint
-GET /api/scheme/rules
+Creates an applicant account. Send JSON:
 
-### Purpose
-Return the versioned government scheme rules that should be displayed in the UI.
+```json
+{
+  "email": "ravi.kumar@example.com",
+  "password": "Secure123",
+  "full_name": "Ravi Kumar",
+  "username": "ravi_dairy"
+}
+```
 
-### Example response
+Password must be at least 8 characters and contain a letter and a digit. `full_name` and `username` are optional. The response is `201 Created`; duplicate email returns `409`.
+
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "email": "ravi.kumar@example.com",
+  "username": "ravi_dairy",
+  "full_name": "Ravi Kumar",
+  "role": "applicant",
+  "is_active": true
+}
+```
+
+### `POST /auth/token`
+
+OAuth2 form request, not JSON:
+
+```text
+username=user@example.com&password=yourpassword
+```
+
+Returns a JWT valid for the configured access-token lifetime, 24 hours by default:
+
+```json
+{
+  "access_token": "eyJhbGci...",
+  "token_type": "bearer"
+}
+```
+
+Invalid credentials return `401`; inactive accounts return `403`.
+
+### `GET /auth/me`
+
+Returns the authenticated user profile using the same shape as registration.
+
+## Scheme Endpoints
+
+### `GET /api/scheme/rules`
+
+Returns versioned rules for the `micro` and `term` tiers. The current rule version is `v2024-11`.
+
 ```json
 [
   {
@@ -50,32 +115,14 @@ Return the versioned government scheme rules that should be displayed in the UI.
     "moratorium_months": 3,
     "effective_from": "2024-11-01",
     "version": "v2024-11"
-  },
-  {
-    "tier": "term",
-    "cap": 4500000,
-    "rate": 0.08,
-    "tenure_years": 7,
-    "moratorium_months": 6,
-    "effective_from": "2024-11-01",
-    "version": "v2024-11"
   }
 ]
 ```
 
-### Frontend usage
-- Show scheme tiers in the finance step.
-- Use the returned `rate`, `tenure_years`, and `moratorium_months` for UI labels.
-- Do not recompute scheme math in the frontend if a backend response is available.
+### `POST /api/scheme/calculate`
 
----
+JSON input:
 
-## 3. Scheme calculation
-
-### Endpoint
-POST /api/scheme/calculate
-
-### Required input
 ```json
 {
   "margin": 250000,
@@ -83,56 +130,14 @@ POST /api/scheme/calculate
 }
 ```
 
-### Input rules
-- `margin`: number, required
-- range: 5000 to 5000000
-- `business_category`: optional string, used mainly for context and future extension
+`margin` is required and must be between `5000` and `5000000`. The response includes `tpc`, `max_loan_raw`, `max_loan_capped`, `tier`, the applied `rules`, `working_capital_buffer`, `eqi_schedule`, and `eqi_amount`.
 
-### Example response
-```json
-{
-  "margin": 250000,
-  "tpc": 2500000,
-  "max_loan_raw": 2250000,
-  "max_loan_capped": 125000,
-  "tier": "micro",
-  "rules": {
-    "tier": "micro",
-    "cap": 125000,
-    "rate": 0.065,
-    "tenure_years": 3,
-    "moratorium_months": 3,
-    "effective_from": "2024-11-01",
-    "version": "v2024-11"
-  },
-  "working_capital_buffer": 31250,
-  "eqi_schedule": [
-    {
-      "quarter": 4,
-      "principal": 1234.56,
-      "interest": 234.56,
-      "emi": 1456.12,
-      "balance": 0,
-      "due_label": "Q4"
-    }
-  ],
-  "eqi_amount": 1456.12
-}
-```
+## Feasibility
 
-### Frontend usage
-- Use this for the loan calculator screen.
-- Show `tpc`, `max_loan_capped`, `tier`, `eqi_amount`, and the payment schedule.
-- Keep the rule version visible near the numbers for audit trust.
+### `POST /api/feasibility/score` 🔒
 
----
+Requires an authenticated user. Provide either `location_text` or both `lat` and `lon`:
 
-## 4. Feasibility scoring
-
-### Endpoint
-POST /api/feasibility/score
-
-### Required input
 ```json
 {
   "location_text": "Hilsa, Nalanda, Bihar",
@@ -144,192 +149,70 @@ POST /api/feasibility/score
 }
 ```
 
-### Input rules
-- `location_text`: required, free text location for matching or fallback resolution
-- `business_category`: required, e.g. `dairy`, `retail`, `food`, `electronics`
-- `lat` and `lon`: optional, but helpful if available from the user’s place selection (will be used for Mappls reverse-geocoding)
-- `radius_m`: optional; default 5000, range 1000 to 10000
-- `population`: optional, used to normalize density score
+`location_text`, `lat`, and `lon` are alternative location anchors; coordinates are optional when the location text is sufficient. `radius_m` defaults to `5000` and is limited to `1000-10000`.
 
-### Potential Errors
-- **502 Bad Gateway**: Returned with detail `"Authoritative location data unavailable"` if Mappls reverse geocoding or Data.gov.in LGD resolution fails/times out, or if OSM POI lookup fails. The frontend should prompt the user to try again or verify their location.
+The response contains `lgd`, `poi_count`, `density_score`, `verdict`, `swot`, `opportunities`, and `overpass_ql`. `verdict` is one of `saturated`, `viable`, or `niche-gap`.
 
-### Example response
-```json
-{
-  "lgd": {
-    "state": "Bihar",
-    "district": "Nalanda",
-    "block": "Hilsa",
-    "gp": "Hilsa",
-    "code": "BR-NA-HI-001",
-    "lat": 25.32,
-    "lon": 85.28
-  },
-  "business_category": "dairy",
-  "poi_count": 18,
-  "density_score": 62.5,
-  "verdict": "viable",
-  "swot": {
-    "strength": "Local demand for daily-need category",
-    "weakness": "Need awareness",
-    "opportunity": "First-mover gap in 5km",
-    "threat": "Input cost volatility"
-  },
-  "opportunities": [
-    {
-      "title": "Cold storage micro-unit",
-      "reason": "Perishables gap"
-    }
-  ],
-  "overpass_ql": "[out:json][timeout:5];\nnode[shop=dairy](around:5000,25.32,85.28);\nout count;"
-}
-```
+- `401`: missing or invalid JWT.
+- `502`: live authoritative location or POI data could not be resolved.
 
-### Frontend usage
-- Use this to power the viability screen.
-- Show:
-  - LGD block and district
-  - `density_score`
-  - `verdict`
-  - `swot`
-  - list of opportunities
-- Put the `overpass_ql` in a debug or audit panel if needed.
+## Compliance
 
----
+### `GET /api/compliance/licenses`
 
-## 5. Compliance / license checklist
+Required query parameter: `business_category`. Optional query parameters: `state` and `district`.
 
-### Endpoint
-GET /api/compliance/licenses
-
-### Required query parameter
 ```text
-business_category=dairy
+/api/compliance/licenses?business_category=dairy&state=Bihar&district=Nalanda
 ```
 
-### Example response
+The service uses ChromaDB/OpenAI when available and falls back to static rules otherwise.
+
 ```json
 {
   "business_category": "dairy",
+  "state": "Bihar",
+  "district": "Nalanda",
   "licenses": [
-    {
-      "id": "udyam",
-      "label": "Udyam Registration",
-      "desc": "MSME registration via udyamregistration.gov.in",
-      "required": true
-    },
     {
       "id": "fssai",
       "label": "FSSAI Licence",
       "desc": "Food safety for milk/products",
       "required": true
-    },
-    {
-      "id": "trade",
-      "label": "Trade Licence",
-      "desc": "Panchayat/municipal trade licence",
-      "required": true
-    }
-  ]
-}
-```
-
-### Frontend usage
-- Show the list as a compliance checklist for the business category.
-- Use `required: true` to display completion states.
-- Support fallback handling when category is unknown.
-
----
-
-## 6. Nearby directory / peer lookup
-
-### Endpoint
-GET /api/directory/nearby
-
-### Required query params
-```text
-lat=25.32&lon=85.28&radius_m=10000&category=dairy
-```
-
-### Example response
-```json
-{
-  "query": {
-    "lat": 25.32,
-    "lon": 85.28,
-    "radius_m": 10000,
-    "category": "dairy"
-  },
-  "count": 3,
-  "profiles": [
-    {
-      "id": "p1",
-      "name": "Lakshmi Dairy",
-      "category": "dairy",
-      "distance_m": 850,
-      "lat": 25.33,
-      "lon": 85.29
     }
   ],
-  "sql": "SELECT * FROM profiles WHERE ST_DWithin(...)"
+  "sources": ["food.md"],
+  "ai_generated": false,
+  "confidence": 0.0
 }
 ```
 
-### Frontend usage
-- Use this to show local peer businesses or similar nearby units.
-- Show distance and category in a card list.
-- At the moment this is deterministic mock data, not a live database-backed directory.
+`ai_generated`, `sources`, and `confidence` describe the result; they do not constitute official licensing approval.
 
----
+## Directory
 
-## 7. DPR generation
+### `GET /api/directory/nearby`
 
-### Endpoint
-POST /api/dpr/render
+Queries PostGIS business profiles. Required query parameters are `lat` and `lon`; `radius_m` defaults to `10000` and is limited to `1000-50000`. `category` is optional.
 
-### Required input
+```text
+/api/directory/nearby?lat=25.32&lon=85.28&radius_m=10000&category=dairy
+```
+
+Returns up to 20 nearest profiles. If the database/spatial query is unavailable, the endpoint returns `503` with `Authoritative directory data unavailable`.
+
+## DPR
+
+### `POST /api/dpr/render` 🔒
+
+Requires authentication. The request requires `feasibility` and `scheme` objects produced by the corresponding endpoints. `capex_opex`, `business_name`, and `verified` are optional; `verified` is `self-reported` or `aa-verified`.
+
 ```json
 {
   "applicant_name": "Ravi Kumar",
   "business_name": "Lakshmi Dairy Unit",
-  "feasibility": {
-    "lgd": {
-      "state": "Bihar",
-      "district": "Nalanda",
-      "block": "Hilsa",
-      "gp": "Hilsa",
-      "code": "BR-NA-HI-001",
-      "lat": 25.32,
-      "lon": 85.28
-    },
-    "business_category": "dairy",
-    "poi_count": 18,
-    "density_score": 62.5,
-    "verdict": "viable",
-    "swot": {},
-    "opportunities": [],
-    "overpass_ql": "[out:json][timeout:5]; node[shop=dairy](around:5000,25.32,85.28); out count;"
-  },
-  "scheme": {
-    "margin": 250000,
-    "tpc": 2500000,
-    "max_loan_raw": 2250000,
-    "max_loan_capped": 125000,
-    "tier": "micro",
-    "rules": {
-      "tier": "micro",
-      "cap": 125000,
-      "rate": 0.065,
-      "tenure_years": 3,
-      "moratorium_months": 3,
-      "effective_from": "2024-11-01",
-      "version": "v2024-11"
-    },
-    "working_capital_buffer": 31250,
-    "eqi_schedule": [],
-    "eqi_amount": 1456.12
-  },
+  "feasibility": { "...": "Feasibility response" },
+  "scheme": { "...": "Scheme calculation response" },
   "capex_opex": {
     "capex": 500000,
     "opex": 180000,
@@ -339,67 +222,77 @@ POST /api/dpr/render
 }
 ```
 
-### Example response
+The endpoint assembles the report, runs SWOT and KYC concurrently, persists a DPR record, and queues PDF rendering through Celery. A normal response is:
+
 ```json
 {
   "dpr_id": "DPR-A1B2C3D4",
   "pdf_url": "/api/dpr/DPR-A1B2C3D4/download",
-  "status": "ready",
-  "data": {
-    "applicant": "Ravi Kumar",
-    "business": "Lakshmi Dairy Unit",
-    "location": {},
-    "feasibility": {},
-    "scheme": {},
-    "capex_opex": {},
-    "verified": "self-reported"
-  },
+  "status": "queued",
+  "data": { "...": "assembled DPR payload" },
   "verified": "self-reported"
 }
 ```
 
-### Frontend usage
-- Call this after user completes feasibility and finance steps.
-- Show a loading state while DPR is being generated.
-- Use `pdf_url` to open or download the generated PDF.
+`status` is `queued` when the Celery broker accepts the task. The download endpoint can return `404` until the worker finishes and writes the PDF. If the broker cannot be reached, the response may report `ready` even though no PDF is available, so clients should check the download or retrieved DPR record.
 
----
+### `GET /api/dpr/{dpr_id}` 🔒
 
-## 8. Important frontend implementation notes
+Returns persisted DPR metadata, status, verification, timestamps, payload, and a PDF URL. Returns `404` when the DPR record does not exist.
 
-### Data flow recommended
-1. User enters business category and location
-2. Call `POST /api/feasibility/score`
-3. Call `POST /api/scheme/calculate` using margin
-4. Fetch compliance checklist via `GET /api/compliance/licenses`
-5. Optionally show nearby businesses via `GET /api/directory/nearby`
-6. Generate DPR via `POST /api/dpr/render`
+### `GET /api/dpr/{dpr_id}/download` 🔒
 
-### Best practices
-- Preserve the exact rule version shown in the UI for user trust.
-- Always show the user the result of `verdict` and `density_score` before continuing.
-- Validate the shape of data before rendering, especially for nested objects like `feasibility` and `scheme`.
-- Treat all external services as optional and gracefully handle missing or failed responses.
+Returns the generated PDF as `application/pdf`. Returns `404` when the record is missing, the worker has not generated the file, or the file is missing from disk.
 
-### Important caveats
-- This is still a prototype backend, but it integrates real Data.gov.in LGD codes and Mappls reverse geocoding for geospatial verification.
-- Some modules (like the nearby directory) are deterministic/mock implementations rather than live government data sources.
-- The backend is designed to degrade gracefully where possible (e.g. AI SWOT), but core verification endpoints like `/api/feasibility/score` will strictly return a 502 error if authoritative geo data cannot be fetched.
+## DPR Workflow
 
----
+### `POST /api/dpr/{dpr_id}/transition` 🔒
 
-## 9. Suggested frontend screen mapping
+JSON body:
 
-| Screen | API to call |
-|---|---|
-| Home / landing | GET /health |
-| Feasibility | POST /api/feasibility/score |
-| Finance | GET /api/scheme/rules + POST /api/scheme/calculate |
-| Compliance | GET /api/compliance/licenses |
-| Directory | GET /api/directory/nearby |
-| DPR preview | POST /api/dpr/render |
-| Download | GET /api/dpr/{dpr_id}/download |
+```json
+{
+  "action": "submit_for_review",
+  "note": "Ready for review"
+}
+```
 
----
+Valid transitions and roles:
 
-This document is intentionally concise to help frontend developers integrate with the current backend contract quickly.
+| Current state | Action | Next state | Allowed roles |
+|---|---|---|---|
+| `draft` | `submit_for_review` | `sca_review` | applicant, dic_officer |
+| `sca_review` | `approve_sca` | `dic_approved` | dic_officer |
+| `sca_review` | `reject` | `rejected` | dic_officer, sca_auditor |
+| `dic_approved` | `send_to_bank` | `bank_review` | dic_officer |
+| `bank_review` | `finalize` | `finalized` | sca_auditor |
+| `bank_review` | `reject` | `rejected` | sca_auditor |
+| any non-terminal state | `force_reject` | `rejected` | sca_auditor |
+
+`rejected` and `finalized` are terminal. The response includes `previous_state`, `current_state`, the triggering user, and the full history. Invalid transitions or roles return `403`.
+
+### `GET /api/dpr/{dpr_id}/history` 🔒
+
+Returns the current workflow state, valid triggers for that state, and append-only application-level history entries. History entries include `from`, `to`, `trigger`, `by_user_id`, `timestamp`, and `note`.
+
+## Audit Trail
+
+Audit endpoints are read-only and restricted to `dic_officer` and `sca_auditor`.
+
+- `GET /api/audit/logs?page=1&page_size=50`: paginated logs, maximum page size `200`.
+- `GET /api/audit/logs/dpr/{dpr_id}`: events whose payload references the DPR.
+- `GET /api/audit/logs/user/{user_id}?page=1&page_size=50`: events for a user UUID.
+
+Audit entries include action, endpoint, user ID when available, IP address, timestamp, and a redacted payload snapshot where applicable. Mutating `/api/*` requests are recorded by middleware; route-level events can therefore produce more than one entry for a single operation.
+
+## Recommended Client Flow
+
+1. Register or log in and retain the JWT.
+2. Call feasibility with a location anchor and business category.
+3. Call scheme calculation with the project margin.
+4. Load compliance requirements and optionally nearby directory profiles.
+5. Submit feasibility and scheme results to DPR render.
+6. Poll `GET /api/dpr/{dpr_id}` or retry the download until the worker has produced the PDF.
+7. Use the workflow endpoints for review transitions.
+
+For the source of truth at runtime, use the generated OpenAPI schema at `/openapi.json` in development.

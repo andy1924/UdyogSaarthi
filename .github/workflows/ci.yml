@@ -34,28 +34,83 @@ jobs:
           --health-timeout=5s
           --health-retries=5
 
+    env:
+      # These are safe CI-only values. Never use in production.
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/udyogsaarthi
+      REDIS_URL: redis://localhost:6379/0
+      APP_ENV: development
+      SECRET_KEY: ci-pipeline-dummy-secret-key-32chars-min
+
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      # Cache pip to speed up subsequent runs.
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
 
       - name: Install dependencies
         working-directory: ./backend
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[dev]
+          pip install -e ".[dev]"
 
-      - name: Run linter
+      - name: Run linter (ruff)
         working-directory: ./backend
         run: ruff check .
 
-      - name: Run tests
+      # ── Database migration validation ───────────────────────────────────
+      # 1. Apply all migrations to the CI Postgres instance.
+      - name: Run Alembic migrations (upgrade head)
         working-directory: ./backend
-        env:
-          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/udyogsaarthi
-          REDIS_URL: redis://localhost:6379/0
+        run: alembic upgrade head
+
+      # 2. Verify there are no unapplied model changes (catches forgotten migrations).
+      - name: Check for migration drift (alembic check)
+        working-directory: ./backend
+        run: alembic check
+
+      # 3. Verify migrations are reversible by running a full round-trip.
+      - name: Test migration round-trip (downgrade → upgrade)
+        working-directory: ./backend
+        run: |
+          alembic downgrade base
+          alembic upgrade head
+
+      # ── Tests ───────────────────────────────────────────────────────────
+      - name: Run test suite (pytest)
+        working-directory: ./backend
         run: pytest -q
+
+  # ── Docker build validation ─────────────────────────────────────────────
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build production Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./backend/Dockerfile
+          target: runtime
+          push: false
+          # Cache layers between runs to speed up builds.
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: udyogsaarthi-api:ci-${{ github.sha }}

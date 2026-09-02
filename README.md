@@ -8,16 +8,17 @@
 - **Deterministic Scheme Engine:** Zero LLM arithmetic; strictly follows versioned scheme rules to compute TPC (Total Project Cost), margins, and EQI (Equated Quarterly Installment).
 - **Geospatial Feasibility Scoring:** Uses live OSM Overpass POI density data and **Mappls reverse geocoding** combined with authoritative **LGD (Local Government Directory) codes via Data.gov.in** to produce an auditable density score.
 - **DPR Generation:** Assembles applicant info, feasibility data, scheme calculations, and CAPEX/OPEX into a final PDF report using Jinja2 and WeasyPrint.
-- **Compliance & Directory:** Provides rule-based license checklists and peer business directory lookups.
+- **Compliance & Directory:** Provides RAG-assisted license checklists with static fallback and PostGIS-backed nearby business lookups.
+- **Authentication, Workflow & Audit:** Provides JWT login, role-based DPR review transitions, and staff-only audit log queries.
 
 ---
 
 ## 🏗️ Architecture & Tech Stack
 The project is currently focused on the **Backend MVP**.
 - **Backend Framework:** FastAPI (Python 3.11+)
-- **Database:** PostgreSQL (with PostGIS for future spatial queries) + Redis (for caching/queues)
-- **Document Generation:** Jinja2 + WeasyPrint
-- **External Integrations:** Mappls (Geocoding), Data.gov.in (LGD API), OSM Overpass (POI density), OpenAI (AI SWOT fallback)
+- **Database:** PostgreSQL with PostGIS + Redis for caching and Celery queues
+- **Document Generation:** Jinja2 + WeasyPrint through Celery
+- **External Integrations:** Mappls (geocoding/POI), Data.gov.in (LGD API), OSM Overpass (POI fallback), OpenAI (SWOT/compliance), and DigiLocker/API Setu-compatible KYC settings
 
 ---
 
@@ -93,10 +94,10 @@ pytest
 ---
 
 ## 🚧 Current Status & Limitations
-- The **frontend is currently inactive**; development is focused strictly on backend APIs.
-- Core logic for feasibility, scheme math, and DPR generation is working.
-- **Live LGD resolution** and **Mappls reverse geocoding** are integrated. The feasibility API strictly returns a `502 Bad Gateway` if authoritative geospatial data cannot be fetched, though OSM POI queries gracefully degrade.
-- **Pending:** Production-grade authentication, robust database persistence/migrations, and real identity/licensing verification layers.
+- The **frontend is currently inactive**; development is focused on backend APIs.
+- Core logic for authentication, scheme math, feasibility, compliance, DPR generation, PDF queuing, workflow transitions, and audit logging is implemented.
+- **Live LGD resolution** and **Mappls reverse geocoding** are integrated. The feasibility API returns `502 Bad Gateway` if authoritative location or POI data cannot be fetched.
+- This remains a prototype: AI/KYC/compliance fallbacks are not authoritative, DPR persistence is best-effort, PDF output requires a Celery worker, and DPR ownership checks are not yet enforced.
 
 ---
 
@@ -105,5 +106,5 @@ pytest
 - [**API Documentation**](docs/apiDocs.md)
 - [**Frontend Specification**](docs/frontend_spec.md)
 - [**Project Status Updates**](docs/update.md)
-- [**Product Truth**](PRODUCT.md)
-- [**Design System**](DESIGN.md)
+- [**Product Truth**](docs/PRODUCT.md)
+- [**Design System**](docs/DESIGN.md)

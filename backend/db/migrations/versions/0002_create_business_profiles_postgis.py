@@ -51,4 +51,6 @@ def downgrade() -> None:
     op.drop_index("ix_business_profiles_category", table_name="business_profiles")
     op.drop_index("ix_business_profiles_name", table_name="business_profiles")
     op.drop_table("business_profiles")
-    op.execute("DROP EXTENSION IF EXISTS postgis;")
+    # PostGIS is shared by the database image and may have dependent
+    # extensions such as postgis_topology and postgis_tiger_geocoder.
+    # Leave it installed when this application migration is downgraded.

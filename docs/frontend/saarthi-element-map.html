@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Saarthi Check — Element Map for Agents</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EDF2EF;--surface:#fff;--fg:#13261F;--muted:#5B6B62;--border:#DCE5DF;--accent:#0E7C5B;--accent-ink:#0A5C44;--caution:#9A6A00;--danger:#B3261E;--font-display:"Sora",system-ui,sans-serif;--font-body:"Inter",system-ui,sans-serif;--font-mono:"IBM Plex Mono",monospace;--shadow:0 12px 32px rgba(19,38,31,.10);--radius:20px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.55;overflow-x:clip}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1120px;margin:0 auto;padding:20px 20px 80px}
+header.hero h1{font-family:var(--font-display);font-size:clamp(28px,4vw,44px);margin:0 0 8px;letter-spacing:-.01em}
+header.hero p{color:var(--muted);max-width:70ch;margin:0 0 6px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;margin-top:18px}
+@media(min-width:960px){.grid{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;min-width:0}
+.tag{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);letter-spacing:.04em;display:block;margin-bottom:6px}
+.card h2{font-family:var(--font-display);font-size:19px;margin:0 0 4px}
+.card p.sub{font-size:13px;color:var(--muted);margin:0 0 10px}
+.demo{border:1px dashed var(--border);border-radius:14px;padding:12px;background:#F8FAF9;margin:10px 0}
+pre{background:#0f1f19;color:#d7e8df;border-radius:12px;padding:12px;font-family:var(--font-mono);font-size:12px;overflow:auto;max-height:220px}
+code.inl{font-family:var(--font-mono);font-size:12.5px;background:#EDF2EF;padding:1px 6px;border-radius:6px}
+.wire{font-size:12.5px;color:var(--muted);margin:8px 0 0}.wire b{color:var(--fg)}
+.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+/* live mini components */
+.swatches{display:flex;gap:8px;flex-wrap:wrap}.sw{flex:1 1 90px;min-width:90px;border:1px solid var(--border);border-radius:12px;overflow:hidden}.sw i{display:block;height:44px}.sw span{display:block;font-size:11px;padding:6px;font-family:var(--font-mono)}
+.langs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+@media(max-width:480px){.langs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.lang{border:1px solid var(--border);background:#F4F7F5;border-radius:14px;padding:10px 6px;font-weight:600;min-height:48px}.lang[aria-pressed="true"]{background:var(--fg);color:#fff}
+.biz-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.biz{border:1.5px solid var(--border);border-radius:14px;padding:10px;min-height:80px;background:#fff}.biz[aria-pressed="true"]{border-color:var(--accent);background:#E9F5EF}
+.loc-row{display:flex;gap:8px}@media(max-width:420px){.loc-row{flex-direction:column}}
+.loc-row input{flex:1;min-width:0;border:1px solid var(--border);border-radius:12px;padding:12px;min-height:48px;font-size:16px}
+.btn-accent{background:var(--accent);color:#fff;border:none;border-radius:14px;min-height:52px;font-weight:700;width:100%}.btn-outline{background:#fff;border:1.5px solid var(--fg);border-radius:12px;min-height:48px;font-weight:700}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:14px}
+.chip{display:inline-block;font-family:var(--font-mono);font-size:11px;border-radius:99px;padding:4px 10px;border:1px solid var(--border)}.chip.ok{background:#E9F5EF;border-color:var(--accent);color:var(--accent-ink)}.chip.warn{background:#FDF3DC;border-color:var(--caution);color:var(--caution)}
+.states{display:grid;gap:8px}.statebox{border-radius:12px;padding:10px;font-size:13px}.s-empty{border:2px dashed var(--border);text-align:center;color:var(--muted)}.s-load{background:linear-gradient(90deg,#e8eeeb 25%,#f4f7f5 50%,#e8eeeb 75%);background-size:200% 100%}.s-err{border:1.5px solid var(--danger);background:#FEF2F1}.s-pop{border:1.5px solid var(--accent);background:#fff}
+.score{display:flex;gap:12px;align-items:center}.ring{width:72px;height:72px;border-radius:50%;border:8px solid var(--accent);border-top-color:#DCE5DF;display:flex;align-items:center;justify-content:center;font-family:var(--font-mono)}
+.toc{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.toc a{font-size:12.5px;border:1px solid var(--border);background:#fff;border-radius:99px;padding:8px 12px;color:var(--fg);text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
+footer{margin-top:20px;font-size:12.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero" data-od-id="map-hero">
+<span class="tag">AGENT MAP · saarthi-check.html · pine/emerald · responsive 360→1440</span>
+<h1>Element map — build the site from here</h1>
+<p>Every block below is a live specimen + exact hook + API binding. Copy the <code class="inl">&lt;pre&gt;</code> snippet into <code class="inl">saarthi-check.html</code>. Full spec in <code class="inl">saarthi-design-system.md</code>, shapes in <code class="inl">api-contract.md</code>, logic in <code class="inl">api-client.js</code>.</p>
+<nav class="toc" aria-label="Components">
+<a href="#c-tokens">Tokens</a><a href="#c-head">Header</a><a href="#c-lang">Languages</a><a href="#c-biz">Business</a><a href="#c-loc">Location</a><a href="#c-margin">Margin</a><a href="#c-auth">Auth</a><a href="#c-cta">CTA+Progress</a><a href="#c-states">5 states</a><a href="#c-score">Score+KV</a><a href="#c-lic">Licences</a><a href="#c-peers">Peers</a><a href="#c-dpr">DPR</a><a href="#c-voice">Voice+Offline</a>
+</nav>
+</header>
+
+<div class="grid">
+<section class="card" id="c-tokens" data-od-id="map-tokens"><span class="tag">C00 TOKENS</span><h2>Palette · type · shape</h2><p class="sub">Bind verbatim. One accent (CTA + ring). Numerals in Plex Mono.</p>
+<div class="demo"><div class="swatches">
+<div class="sw"><i style="background:#EDF2EF"></i><span>--bg #EDF2EF</span></div>
+<div class="sw"><i style="background:#13261F"></i><span>--fg #13261F</span></div>
+<div class="sw"><i style="background:#0E7C5B"></i><span>--accent #0E7C5B</span></div>
+<div class="sw"><i style="background:#5B6B62"></i><span>--muted #5B6B62</span></div>
+<div class="sw"><i style="background:#9A6A00"></i><span>--caution</span></div>
+<div class="sw"><i style="background:#B3261E"></i><span>--danger</span></div>
+</div><p style="font-family:var(--font-display);font-size:22px;margin:10px 0 0">Sora display Aa</p><p style="margin:0">Inter body — अ हिन्दी தமிழ் বাংলা <span class="num">₹1,25,000</span></p></div>
+<pre>:root{--bg:#EDF2EF;--surface:#fff;--fg:#13261F;--muted:#5B6B62;
+--border:#DCE5DF;--accent:#0E7C5B;--accent-ink:#0A5C44;
+--caution:#9A6A00;--danger:#B3261E}</pre>
+<p class="wire"><b>Forbidden:</b> #0F2A44, vermilion, wheat/paper #FFFCF6, stamps, phone frame.</p></section>
+
+<section class="card" id="c-head" data-od-id="map-header"><span class="tag">C01 HEADER · #siteHead</span><h2>Site header</h2><p class="sub">56px sticky. Truncates — never collides with long i18n titles.</p>
+<div class="demo"><div style="display:flex;gap:10px;align-items:center"><div style="width:44px;height:44px;border-radius:50%;background:var(--fg);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700">Sa</div><div style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Saarthi Check</b><span style="font-size:12px;color:var(--muted)">Will it work in my block?</span></div><button class="btn-outline" style="width:48px;border-radius:50%">A+</button></div></div>
+<pre>&lt;header id="siteHead"&gt;.avatar + .head-title(b/span truncate)
++ #sizeBtn.icon-btn + #authChip&lt;/header&gt;</pre>
+<p class="wire"><b>Wiring:</b> <code class="inl">#authChip</code> ← <code class="inl">me()</code>. <code class="inl">#sizeBtn</code> toggles <code class="inl">html[data-size]</code>.</p></section>
+
+<section class="card" id="c-lang" data-od-id="map-langs"><span class="tag">C03 LANGS · #langs</span><h2>Language switcher</h2><p class="sub">4-up → 2×2 ≤480px. Selected = pine fill, not accent.</p>
+<div class="demo"><div class="langs"><button class="lang" aria-pressed="true">EN<small>English</small></button><button class="lang" aria-pressed="false">हिं<small>हिन्दी</small></button><button class="lang" aria-pressed="false">த<small>தமிழ்</small></button><button class="lang" aria-pressed="false">বাং<small>বাংলা</small></button></div></div>
+<pre>&lt;div id="langs" role="group"&gt;
+ &lt;button class="lang" data-lang="en" aria-pressed&gt;…</pre>
+<p class="wire"><b>Wiring:</b> persist <code class="inl">saarthi-lang</code>, set <code class="inl">html[lang]</code>, swap hero+CTA. Line-height hi 1.6 / ta,bn 1.65.</p></section>
+
+<section class="card" id="c-biz" data-od-id="map-biz"><span class="tag">C04 BIZ · .biz[data-biz]</span><h2>Business grid — tap 1/3</h2><p class="sub">Single-select, aria-pressed, 44px+ targets.</p>
+<div class="demo"><div class="biz-grid"><button class="biz" aria-pressed="true"><b>Dairy</b><span>Milk · paneer</span></button><button class="biz" aria-pressed="false"><b>Tailoring</b><span>Boutique</span></button></div></div>
+<pre>&lt;button class="biz" data-biz="dairy" aria-pressed&gt;
+ &lt;b&gt;Dairy&lt;/b&gt;&lt;span&gt;…&lt;/span&gt;</pre>
+<p class="wire"><b>Wiring:</b> <code class="inl">bizToCategory()</code> → <code class="inl">scoreFeasibility({business_category})</code> + <code class="inl">calcScheme(margin,cat)</code>.</p></section>
+
+<section class="card" id="c-loc" data-od-id="map-loc"><span class="tag">C05 LOC · #locInput #gpsBtn</span><h2>Location + GPS — tap 2/3</h2><p class="sub">Stacks ≤420px. Validate on blur, never on keystroke.</p>
+<div class="demo"><div class="loc-row"><input value="Hilsa, Nalanda, Bihar" aria-label="Block, District, State"><button class="btn-outline">◎ GPS</button></div><p style="font-size:12px;color:var(--muted)">Using block: Hilsa · LGD 10423</p></div>
+<pre>&lt;input id="locInput" aria-describedby="locErr"&gt;
+&lt;button id="gpsBtn"&gt;Use GPS&lt;/button&gt;&lt;p id="gpsNote"&gt;
+&lt;p id="locErr" role="alert"&gt;</pre>
+<p class="wire"><b>Wiring:</b> <code class="inl">scoreFeasibility({location_text|lat+lon})</code>. 502 → <code class="inl">LGD_UNAVAILABLE</code> retry UI, keep input.</p></section>
+
+<section class="card" id="c-margin" data-od-id="map-margin"><span class="tag">C06 MARGIN · #marginRange</span><h2>Margin slider</h2><p class="sub">Range + mono input synced. Display only — never compute.</p>
+<div class="demo"><div style="display:flex;gap:10px;align-items:center"><input type="range" min="5000" max="500000" value="25000" style="flex:1;min-height:44px;accent-color:var(--accent)"><b class="num">₹25,000</b></div></div>
+<pre>&lt;input id="marginRange" type="range" min="5000"
+ max="5000000" step="5000"&gt; + &lt;input id="marginNum"&gt;</pre>
+<p class="wire"><b>Wiring:</b> <code class="inl">calcScheme(margin)</code> → TPC/loan/EQI. Out-of-range → local guard, no fetch.</p></section>
+
+<section class="card" id="c-auth" data-od-id="map-auth"><span class="tag">C07 AUTH · #authCard</span><h2>Auth (feasibility + DPR need JWT)</h2><p class="sub">Login is form-encoded, not JSON.</p>
+<div class="demo"><div style="display:grid;gap:8px"><input placeholder="you@example.com" aria-label="Email" style="min-height:48px;border:1px solid var(--border);border-radius:12px;padding:10px"><input placeholder="Password (8+ chars)" type="password" aria-label="Password" style="min-height:48px;border:1px solid var(--border);border-radius:12px;padding:10px"><button class="btn-accent" style="min-height:48px">Log in</button></div></div>
+<pre>POST /auth/token  body: username=&lt;email&gt;&amp;password=…
+→ {access_token} → localStorage 'saarthi-jwt'</pre>
+<p class="wire"><b>Wiring:</b> <code class="inl">login() register() me() logout()</code>. 401 → login nudge, preserve form.</p></section>
+
+<section class="card" id="c-cta" data-od-id="map-cta"><span class="tag">C08–C09 CTA · PROGRESS</span><h2>CTA + stepper — tap 3/3</h2><p class="sub">Fixed bottom on mobile, static ≥960px. One primary only.</p>
+<div class="demo"><button class="btn-accent">Check feasibility</button><div style="height:8px;background:#E7EEEA;border-radius:99px;margin-top:10px"><i style="display:block;height:100%;width:66%;background:var(--fg);border-radius:99px"></i></div><p class="num" style="font-size:12px;color:var(--muted)">Tap 2 of 3 · location set</p></div>
+<pre>&lt;div id="ctaBar"&gt;&lt;button id="checkBtn" class="cta"&gt;
+&lt;div id="progressFill"&gt; + &lt;p id="progressLbl"&gt;</pre>
+<p class="wire"><b>Wiring:</b> disabled until biz+loc valid. DPR <code class="inl">queued</code> → poll <code class="inl">getDpr(id)</code> 3s ×10.</p></section>
+
+<section class="card" id="c-states" data-od-id="map-states"><span class="tag">C10 RESULT STATES</span><h2>Five states — one visible</h2><p class="sub">Missing states are the #1 AI failure. Build all five.</p>
+<div class="demo states"><div class="statebox s-empty">#stEmpty — dashed ring + “Pick a business to see your answer”</div><div class="statebox s-load">#stLoad — skeleton rows · aria-busy · 15s slow notice</div><div class="statebox s-err">#stErr — “Geo lookup failed” + Retry + Last tried …</div><div class="statebox s-pop">#stPop — score + loan + peers (the designed case)</div></div>
+<pre>#stEmpty #stLoad #stErr #stPop — toggle [hidden]
+#errorMsg #retryBtn #retryMeta("Last tried: …")</pre>
+<p class="wire"><b>Wiring:</b> GET retry 2s/4s max 3 → “Contact support + ID”. POSTs never auto-retry; queue offline.</p></section>
+
+<section class="card" id="c-score" data-od-id="map-score"><span class="tag">C11–C13 SCORE · KV</span><h2>Score ring + finance</h2><p class="sub">Ring label centered with flex (not absolute overlay).</p>
+<div class="demo"><div class="score"><div class="ring">72</div><div><span class="chip ok">VIABLE</span><b style="display:block;font-family:var(--font-display)">Yes — go for it</b><span style="font-size:12px;color:var(--muted)">Dairy in Hilsa · demand open</span></div></div>
+<div style="margin-top:8px"><div class="kv"><span>Project cost (TPC)</span><b class="num">₹1,40,000</b></div><div class="kv"><span>Loan you can get</span><b class="num">₹1,25,000</b></div><div class="kv"><span>Pay back / quarter</span><b class="num">₹11,870</b></div></div></div>
+<pre>&lt;svg&gt;&lt;circle id="scoreArc" stroke-dasharray …&gt;
+#scoreNo #verdictChip #verdict #verdictSub
+#tpcNo #loanNo #eqiNo + footnote v2024-11</pre>
+<p class="wire"><b>Wiring:</b> <code class="inl">scoreFeasibility→density_score/verdict/swot</code> + <code class="inl">calcScheme→tpc/max_loan_capped/eqi_amount</code>. Server math only.</p></section>
+
+<section class="card" id="c-lic" data-od-id="map-lic"><span class="tag">C14 COMPLIANCE · #licList</span><h2>Licences checklist</h2><p class="sub">Never blocking. Show sources + AI flag as muted caption.</p>
+<div class="demo"><label style="display:flex;gap:8px;align-items:center;min-height:44px"><input type="checkbox" checked style="width:22px;height:22px;accent-color:var(--accent)"> FSSAI Basic <span class="chip">required</span></label><label style="display:flex;gap:8px;align-items:center;min-height:44px"><input type="checkbox" style="width:22px;height:22px;accent-color:var(--accent)"> Udyam (MSME)</label></div>
+<pre>GET /api/compliance/licenses?business_category=&amp;state=&amp;district=
+→ licenses[{id,label,desc,required}] + sources</pre>
+<p class="wire"><b>Wiring:</b> <code class="inl">getLicenses(cat,state,district)</code>. RAG fallback = static rules, fine.</p></section>
+
+<section class="card" id="c-peers" data-od-id="map-peers"><span class="tag">C15 PEERS · #peers</span><h2>Nearby peers (edge-case home)</h2><p class="sub">Snap-scroll row. Empty + 503 states required.</p>
+<div class="demo"><div style="display:flex;gap:8px;overflow:auto"><span class="chip">Meena Dairy · 1.2 km</span><span class="chip">Milk Point · 2.8 km</span><span class="chip warn">Be the 3rd — low-fat gap</span></div></div>
+<pre>GET /api/directory/nearby?lat=&amp;lon=&amp;radius_m=&amp;category=
+→ profiles[{name,category,distance_m}] ≤20</pre>
+<p class="wire"><b>Wiring:</b> <code class="inl">getNearby()</code>. 503 → hide list + muted note, keep verdict. Empty → “No registered peers”.</p></section>
+
+<section class="card" id="c-dpr" data-od-id="map-dpr"><span class="tag">C16 DPR · #dprDlg</span><h2>Bank paper dialog</h2><p class="sub">Enabled only after feasibility + scheme succeed.</p>
+<div class="demo"><button class="btn-outline" style="width:100%">Get my bank paper (DPR)</button><p class="num" style="font-size:12px;color:var(--muted)">DPR-2026-1843 · queued → polling → download .pdf</p></div>
+<pre>POST /api/dpr/render {feasibility,scheme,applicant_name,…}
+→ {dpr_id,pdf_url,status} → GET /api/dpr/{id}
+→ GET …/download (blob) — 404 while queued is normal</pre>
+<p class="wire"><b>Wiring:</b> <code class="inl">renderDpr() getDpr() downloadDpr()</code>. Officer <code class="inl">transition/history</code> = client fns only, no UI.</p></section>
+
+<section class="card" id="c-voice" data-od-id="map-voice"><span class="tag">C17–C20 VOICE · OFFLINE · TOAST · CONFIG</span><h2>Docks + system</h2><p class="sub">Voice in-flow (never modal). One toast position.</p>
+<div class="demo"><div style="display:flex;gap:8px;align-items:center"><button class="btn-outline" style="width:52px;border-radius:50%">🎙</button><span style="font-size:13px">“Hilsa mein dairy kholna hai”</span></div><p style="font-size:12px"><span class="chip ok">● Online</span> queue <b class="num">0</b> · toast bottom-center · base <span class="num">:8000</span></p></div>
+<pre>#micBtn #vTrans(aria-live) · #offBtn #queueN
+#toast(role=status) · #apiBaseInput → 'saarthi-api-base'</pre>
+<p class="wire"><b>Wiring:</b> voice mocked · <code class="inl">queuePush/flush</code> on offline · <code class="inl">health()</code> dot · 15s timeout everywhere.</p></section>
+</div>
+
+<footer data-od-id="map-footer">Build order: tokens → header/langs/biz/loc/margin → auth+scheme → feasibility states → licences+peers → DPR dialog → docks. Verify 360/390/960/1440 + 5 states × 4 langs. Open: voice/ASR mocked, GPS demo-grade, needs live backend (editable base), officer UI out of scope.</footer>
+</div>
+</body>
+</html>

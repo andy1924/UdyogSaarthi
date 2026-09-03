@@ -1,0 +1,11 @@
+{
+  "name": "UdyogSaarthi",
+  "short_name": "Saarthi",
+  "description": "Will it work in my block? Check feasibility for your business.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#EDF2EF",
+  "theme_color": "#0E7C5B",
+  "lang": "en",
+  "icons": []
+}

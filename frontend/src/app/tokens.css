@@ -1,0 +1,399 @@
+/* UdyogSaarthi design tokens — verbatim from saarthi-design-system.md §1 */
+
+:root {
+  --bg: #EDF2EF;
+  --surface: #FFFFFF;
+  --fg: #13261F;
+  --muted: #5B6B62;
+  --border: #DCE5DF;
+  --accent: #0E7C5B;
+  --accent-ink: #0A5C44;
+  --caution: #9A6A00;
+  --danger: #B3261E;
+  --font-display: "Sora", "Noto Sans Devanagari", system-ui, sans-serif;
+  --font-body: "Inter", "Noto Sans Devanagari", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --shadow: 0 12px 32px rgba(19, 38, 31, 0.10);
+  --tap: 44px;
+  --radius: 20px;
+}
+
+/* Base */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
+  overflow-x: clip;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+h1 {
+  font-size: clamp(28px, 4vw, 44px);
+}
+
+h2 {
+  font-size: clamp(20px, 2.4vw, 26px);
+}
+
+p {
+  overflow-wrap: break-word;
+}
+
+/* Numerals only: TPC, loan, EQI, scores, codes */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focus: 3px accent ring, 2px offset */
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Shell grid — true responsive, no device frame */
+
+.shell {
+  max-width: 1120px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 20px 20px 168px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 960px) {
+  .shell {
+    padding: 28px 20px 56px;
+    gap: 28px;
+  }
+}
+
+.layout {
+  display: grid;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (min-width: 960px) {
+  .layout {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 28px;
+    align-items: start;
+  }
+
+  .col-result {
+    position: sticky;
+    top: 20px;
+  }
+}
+
+.layout > *,
+.shell > * {
+  min-width: 0;
+}
+
+/* Column stacks: form column (wizard + API base) and wizard internals.
+   gap expresses sibling rhythm; no child margins needed. */
+.form-col,
+.wizard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* Result column: one card holds ScoreRing + Verdict + Finance +
+   Compliance + Peers — hairline dividers keep groups distinct
+   without nesting cards. */
+.col-result {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+.col-result .card > * + * {
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+  padding-top: 20px;
+}
+
+/* C07 auth card: stacked label → 48px input rhythm, primary login
+   full-width over a 3-up secondary row. */
+.auth-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-card h2 {
+  margin: 0 0 4px;
+  font-size: 1.125rem;
+}
+
+.auth-nudge {
+  margin: 0 0 4px;
+  font-size: 0.9375rem;
+}
+
+.auth-card > label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 12px 0 6px;
+}
+
+.auth-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  font-size: 16px;
+  font-family: var(--font-body);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.auth-hint {
+  margin: 6px 0 0;
+  font-size: 0.8125rem;
+}
+
+.auth-error {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.auth-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.auth-actions button {
+  min-height: 48px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.auth-actions button:first-child {
+  grid-column: 1 / -1;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-size: 1rem;
+}
+
+.auth-actions button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.auth-notice,
+.auth-user {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+}
+
+/* C20 API base footer: label → 48px mono input, quiet meta note. */
+.api-base-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 4px 0;
+}
+
+.api-base-footer label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.api-base-input {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  font-size: 16px;
+  font-family: var(--font-mono);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+}
+
+.api-base-saved,
+.api-base-note {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+/* Flush card edges: padding owns the whitespace, not browser margins. */
+.card > :first-child {
+  margin-top: 0;
+}
+
+.card > :last-child {
+  margin-bottom: 0;
+}
+
+/* Hero: tight title-to-sub coupling, card padding does the rest. */
+#hero h1 {
+  margin: 0 0 8px;
+}
+
+#hero p {
+  margin: 0;
+}
+
+/* Sticky mobile CTA bar: fixed <960px, static above */
+.cta-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+@media (min-width: 960px) {
+  .cta-bar {
+    position: static;
+  }
+}
+
+/* C01 site header */
+
+.site-head {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 56px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.site-head-inner {
+  max-width: 1120px;
+  height: 56px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.avatar {
+  width: var(--tap);
+  height: var(--tap);
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--accent-ink);
+  color: #fff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.head-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.head-title b,
+.head-title span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.head-title span {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.icon-btn {
+  min-width: 48px;
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.api-dot {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--muted);
+}
+
+/* Cards */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  min-width: 0;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition: none !important;
+    animation: none !important;
+  }
+}

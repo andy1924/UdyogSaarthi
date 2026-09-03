@@ -155,3 +155,4 @@ celerybeat.pid
 # Documentation and static-site output
 docs/_build/
 site/
+.pi/*

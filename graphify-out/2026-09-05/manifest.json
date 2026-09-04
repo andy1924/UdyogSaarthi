@@ -659,6 +659,12 @@
     "ast_hash": "4bf616abc5fe1dcdb2c947c453dd95ea",
     "semantic_hash": ""
   },
+  "docs/handoff.md": {
+    "mtime": 1788461891.95026,
+    "seen": 1788549520.6944041,
+    "ast_hash": "28ece1f01d30e62fd379ab78b6ca4012",
+    "semantic_hash": "28ece1f01d30e62fd379ab78b6ca4012"
+  },
   "frontend/src/app/audit/page.tsx": {
     "mtime": 1788526940.902027,
     "seen": 1788549520.6943493,
@@ -753,24 +759,6 @@
     "mtime": 1788527173.7332544,
     "seen": 1788549520.6944084,
     "ast_hash": "5c27369b226fcf2be8a6cfe52224e767",
-    "semantic_hash": ""
-  },
-  ".vscode/launch.json": {
-    "mtime": 1788373796.4165084,
-    "seen": 1788549737.6379466,
-    "ast_hash": "46bfa0aca5f4730c8e7a03d6cd121a3e",
-    "semantic_hash": ""
-  },
-  ".pi/taste/taste.md": {
-    "mtime": 1788528349.0546446,
-    "seen": 1788549737.6380823,
-    "ast_hash": "adaf65e720fc5a7a5f55086b2de5c4ee",
-    "semantic_hash": ""
-  },
-  "backend/generated_dprs/DPR-TEST0001.pdf": {
-    "mtime": 1788373796.4533808,
-    "seen": 1788549737.638117,
-    "ast_hash": "56986ed8ebaa24b9427b2bfed10ea73c",
     "semantic_hash": ""
   }
 }

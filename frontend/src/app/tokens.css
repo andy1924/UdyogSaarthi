@@ -30,6 +30,14 @@ html {
   font-size: 100%;
 }
 
+html[data-size="100"] {
+  font-size: 100%;
+}
+
+html[data-size="112"] {
+  font-size: 112%;
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -282,6 +290,11 @@ p {
   bottom: 0;
   left: 0;
   right: 0;
+  z-index: 40;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -4px 16px rgba(19, 38, 31, 0.08);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 @media (min-width: 960px) {
@@ -372,6 +385,25 @@ p {
   flex: 0 0 auto;
   border-radius: 50%;
   background: var(--muted);
+}
+
+.api-dot.ok {
+  background: var(--accent);
+}
+
+.api-dot.degraded {
+  background: var(--caution);
+}
+
+#authChip {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 28vw;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 0.8125rem;
+  color: var(--muted);
 }
 
 /* Cards */

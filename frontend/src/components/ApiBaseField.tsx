@@ -18,7 +18,7 @@ export default function ApiBaseField() {
     try {
       return getApiBase();
     } catch {
-      return "http://localhost:8080";
+      return "http://localhost:8000";
     }
   });
   const [saved, setSaved] = useState(false);
@@ -46,7 +46,7 @@ export default function ApiBaseField() {
         inputMode="url"
         spellCheck={false}
         autoComplete="off"
-        placeholder="http://localhost:8080"
+        placeholder="http://localhost:8000"
         value={value}
         onChange={(e) => handleChange(e.target.value)}
         aria-describedby="footNote"
@@ -58,7 +58,7 @@ export default function ApiBaseField() {
         </p>
       )}
       <p id="footNote" className="api-base-note" style={{ color: "var(--muted)" }}>
-        Base {value || "http://localhost:8080"} · math from server only · queue on
+        Base {value || "http://localhost:8000"} · math from server only · queue on
         this phone · voice demo
       </p>
     </footer>

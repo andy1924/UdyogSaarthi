@@ -83,7 +83,7 @@ export default function DprDialog({ feasibility, scheme, open, onClose }: DprDia
     return () => {
       cancelled.current = true;
       if (pollTimer.current) clearTimeout(pollTimer.current);
-      if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+      revokeUrl();
     };
   }, []);
 
@@ -94,9 +94,17 @@ export default function DprDialog({ feasibility, scheme, open, onClose }: DprDia
     }
   }
 
+  function revokeUrl() {
+    if (objectUrl.current) {
+      URL.revokeObjectURL(objectUrl.current);
+      objectUrl.current = null;
+    }
+  }
+
   function handleNativeClose() {
     cancelled.current = true;
     stopPolling();
+    revokeUrl();
     onClose();
   }
 
@@ -115,7 +123,11 @@ export default function DprDialog({ feasibility, scheme, open, onClose }: DprDia
         const status = typeof rec.status === "string" ? rec.status : "queued";
         const next = count + 1;
         setAttempt(next);
-        if (status === "ready") {
+        // GET /api/dpr/{id} returns the DB record status
+        // (generated|verified|archived|pdf_failed), never the render-response
+        // "queued"/"ready". generated|verified mean the PDF exists — the
+        // download 404 path below keeps polling if the worker is still writing.
+        if (status === "ready" || status === "generated" || status === "verified") {
           setPhase("ready");
           pushToast("Bank paper is ready — download it.");
         } else {
@@ -171,7 +183,7 @@ export default function DprDialog({ feasibility, scheme, open, onClose }: DprDia
     setError(null);
     try {
       const blob = await SaarthiApi.dprDownload(dprId);
-      if (objectUrl.current) URL.revokeObjectURL(objectUrl.current);
+      revokeUrl();
       objectUrl.current = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = objectUrl.current;
@@ -181,6 +193,18 @@ export default function DprDialog({ feasibility, scheme, open, onClose }: DprDia
       a.remove();
       pushToast("Bank paper download started.");
     } catch (err) {
+      if (cancelled.current) return;
+      // 404 on download while queued is normal (worker hasn't written the
+      // PDF yet) — keep polling instead of surfacing "unknown id".
+      if (err instanceof ApiError && err.status === 404) {
+        setError("Bank paper still rendering — PDF not ready yet, keep polling.");
+        pushToast("Bank paper still rendering — retry download shortly.");
+        if (attempt < POLL_MAX_ATTEMPTS) {
+          setPhase("queued");
+          pollStatus(dprId, attempt);
+        }
+        return;
+      }
       setError(errorMessage(err));
     }
   }

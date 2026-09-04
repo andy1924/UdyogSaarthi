@@ -86,6 +86,10 @@ export default function WizardForm({
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [errorCause, setErrorCause] = useState<string | null>(null);
   const [errorRecovery, setErrorRecovery] = useState<string | null>(null);
+  // HTTP status of the last failed check: 401 → login nudge (no retry
+  // button; AuthCard above handles login), anything else → retry row.
+  // Form values are never cleared in either case.
+  const [errorStatus, setErrorStatus] = useState<number | null>(null);
   const [lastTried, setLastTried] = useState<number | null>(null);
   const [slow, setSlow] = useState(false);
 
@@ -117,6 +121,7 @@ export default function WizardForm({
     setInlineError(null);
     setErrorCause(null);
     setErrorRecovery(null);
+    setErrorStatus(null);
     setSlow(false);
     setLastTried(Date.now());
     setStatus("loading");
@@ -143,11 +148,13 @@ export default function WizardForm({
         return;
       }
       if (err instanceof ApiError && err.status === 401) {
+        setErrorStatus(401);
         setErrorCause("You need to log in to check feasibility.");
         setErrorRecovery(
           "Log in with the card above — your business, location and margin are kept.",
         );
       } else if (err instanceof ApiError && err.status === 502) {
+        setErrorStatus(502);
         setErrorCause(
           `Location lookup failed (geo service error 502): ${err.detail}`,
         );
@@ -155,6 +162,7 @@ export default function WizardForm({
           "Check the block spelling and retry — your entries are kept.",
         );
       } else if (err instanceof ApiError) {
+        setErrorStatus(err.status);
         setErrorCause(
           err.status === 0
             ? `Network error: ${err.detail}`
@@ -162,6 +170,7 @@ export default function WizardForm({
         );
         setErrorRecovery("Check your connection and retry — your entries are kept.");
       } else {
+        setErrorStatus(null);
         setErrorCause(err instanceof Error ? err.message : "Something went wrong.");
         setErrorRecovery("Retry — your entries are kept.");
       }
@@ -217,7 +226,7 @@ export default function WizardForm({
         <AuthCard />
 
         {inlineError && (
-          <p role="alert" style={{ color: "var(--danger)", margin: 0 }}>
+          <p id="formErr" role="alert" style={{ color: "var(--danger)", margin: 0 }}>
             {inlineError}
           </p>
         )}
@@ -333,6 +342,10 @@ export default function WizardForm({
                 {errorRecovery}
               </p>
             )}
+            {/* 401 → login nudge only (AuthCard above handles login;
+                retrying without a token would just 401 again). All other
+                failures → graceful retry row. Values are kept either way. */}
+            {errorStatus !== 401 && (
             <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
               <button
                 type="button"
@@ -357,6 +370,7 @@ export default function WizardForm({
                 </span>
               )}
             </div>
+            )}
           </div>
         )}
 

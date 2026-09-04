@@ -144,7 +144,7 @@ export default function AuthCard() {
       style={{
         background: "var(--surface)",
         border: "1px solid var(--border)",
-        borderRadius: 12,
+        borderRadius: "var(--radius)",
       }}
     >
       <h2 style={{ color: "var(--fg)" }}>Login</h2>

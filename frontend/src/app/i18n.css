@@ -1,8 +1,11 @@
 /* UdyogSaarthi i18n + integrator components (Agent 5).
  * Do NOT edit tokens.css — all values reference var(--…) tokens. */
 
-/* C19: Devanagari / Tamil / Bengali need roomy line-height (≥1.6). */
-.lang-hi,
+/* C19: Devanagari needs 1.6, Tamil / Bengali need 1.65. */
+.lang-hi {
+  line-height: 1.6;
+}
+
 .lang-ta,
 .lang-bn {
   line-height: 1.65;

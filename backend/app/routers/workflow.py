@@ -10,7 +10,7 @@ in ``dpr_fsm.TRANSITIONS``.  Attempting a forbidden transition returns 403.
 
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -38,6 +38,7 @@ class TransitionRequest(BaseModel):
 async def transition_dpr(
     dpr_id: str,
     body: TransitionRequest,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> dict:
@@ -91,6 +92,7 @@ async def transition_dpr(
         action=f"DPR_TRANSITION_{body.action.upper()}",
         endpoint=f"/api/dpr/{dpr_id}/transition",
         user=current_user,
+        ip=request.client.host if request.client else None,
         payload={
             "dpr_id": dpr_id,
             "from_state": current_state,

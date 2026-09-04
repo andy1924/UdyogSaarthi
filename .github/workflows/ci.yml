@@ -92,6 +92,39 @@ jobs:
         working-directory: ./backend
         run: pytest -q
 
+  # ── Frontend typecheck / tests / build ──────────────────────────────────
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # Fail fast on type errors before running tests or building.
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      - name: Typecheck (tsc --noEmit)
+        working-directory: ./frontend
+        run: npm run typecheck
+
+      - name: Run frontend unit tests
+        working-directory: ./frontend
+        run: npm test
+
+      - name: Production build (next build)
+        working-directory: ./frontend
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
   # ── Docker build validation ─────────────────────────────────────────────
   docker-build:
     runs-on: ubuntu-latest

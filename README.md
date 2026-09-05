@@ -4,7 +4,7 @@
 
 ---
 
-## 🎯 Core Features
+## Core Features
 - **Deterministic Scheme Engine:** Zero LLM arithmetic; strictly follows versioned scheme rules to compute TPC (Total Project Cost), margins, and EQI (Equated Quarterly Installment).
 - **Geospatial Feasibility Scoring:** Uses live OSM Overpass POI density data and **Mappls reverse geocoding** combined with authoritative **LGD (Local Government Directory) codes via Data.gov.in** to produce an auditable density score.
 - **DPR Generation:** Assembles applicant info, feasibility data, scheme calculations, and CAPEX/OPEX into a final PDF report using Jinja2 and WeasyPrint.
@@ -13,7 +13,7 @@
 
 ---
 
-## 🏗️ Architecture & Tech Stack
+## Architecture & Tech Stack
 The project is currently focused on the **Backend MVP**.
 - **Backend Framework:** FastAPI (Python 3.11+)
 - **Database:** PostgreSQL with PostGIS + Redis for caching and Celery queues
@@ -22,7 +22,7 @@ The project is currently focused on the **Backend MVP**.
 
 ---
 
-## 📂 Directory Structure
+## Directory Structure
 - `backend/app`: FastAPI application (routers, schemas, services, core, models)
 - `backend/db`: Database and migrations
 - `backend/tests`: Test suite for the backend application
@@ -33,7 +33,7 @@ The project is currently focused on the **Backend MVP**.
 
 ---
 
-## 🚀 Getting Started
+## Getting Started
 
 > 💡 **Quickstart with Docker:** For a one-command containerized setup (PostGIS + Redis + FastAPI), see our [**Developer Docker Quickstart Guide**](docs/QUICKSTART.md).
 
@@ -82,7 +82,7 @@ uvicorn app.main:app --reload
 
 ---
 
-## 🧪 Testing & CI
+## Testing & CI
 The project uses `pytest` for testing and `ruff` for linting, enforced via GitHub Actions.
 ```bash
 # Run the linter
@@ -94,7 +94,7 @@ pytest
 
 ---
 
-## 🚧 Current Status & Limitations
+## Current Status & Limitations
 - Backend **and frontend are live-wired**: FastAPI APIs plus a Next.js PWA (applicant wizard, officer review, audit console, DPR view) talking to the live API.
 - Core logic for authentication, scheme math, feasibility, compliance, DPR generation, PDF queuing, workflow transitions, and audit logging is implemented.
 - **Live LGD resolution** and **Mappls reverse geocoding** are integrated. The feasibility API returns `502 Bad Gateway` if authoritative location or POI data cannot be fetched.
@@ -102,7 +102,7 @@ pytest
 
 ---
 
-## 📖 Documentation
+## Documentation
 - [**Developer Docker Quickstart**](docs/QUICKSTART.md)
 - [**API Documentation**](docs/apiDocs.md)
 - [**Project Status Updates**](docs/update.md) ← read this first for what exists

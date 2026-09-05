@@ -10,6 +10,7 @@ from app.core.database import AsyncSessionLocal
 from app.core.security.setup import setup_layer1_security
 from app.core.security.setup_layer2 import setup_layer2_security
 from app.core.security.setup_layer3 import setup_layer3_security
+from app.core.security.setup_layer4 import setup_layer4_security
 from app.middleware.audit_middleware import AuditMiddleware
 from app.routers.audit import router as audit_router
 from app.routers.auth import router as auth_router
@@ -36,6 +37,7 @@ app = FastAPI(
 setup_layer2_security(app)
 setup_layer1_security(app)
 setup_layer3_security(app)
+setup_layer4_security(app)
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 # In production, restrict allow_origins to your actual frontend domain(s).

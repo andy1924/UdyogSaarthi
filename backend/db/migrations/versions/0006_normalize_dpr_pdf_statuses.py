@@ -4,9 +4,8 @@ Revision ID: 0006_normalize_dpr_pdf_statuses
 Revises: 0005_update_dpr_status_comment
 """
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 revision = "0006_normalize_dpr_pdf_statuses"
 down_revision = "0005"

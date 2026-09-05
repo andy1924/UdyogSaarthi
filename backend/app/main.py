@@ -32,8 +32,9 @@ app = FastAPI(
     redoc_url="/redoc" if settings.app_env != "production" else None,
 )
 
-setup_layer2_security(app)
-setup_layer1_security(app)
+if settings.app_env == "production":
+    setup_layer2_security(app)
+    setup_layer1_security(app)
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
 # In production, restrict allow_origins to your actual frontend domain(s).

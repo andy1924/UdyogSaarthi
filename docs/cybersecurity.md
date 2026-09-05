@@ -297,3 +297,67 @@ Engineering owns implementation and tests; platform engineering owns TLS, networ
 | DPR ownership checks are documented as a prototype limitation | Enforce case ownership/assignment in every read, write and render path | Cross-user API tests |
 
 This register is part of the security policy and must be updated when a gap is closed or a new trust boundary is introduced.
+
+## Appendix B: Implemented Layer Overlays
+
+This document is the single cybersecurity document for the repository. Future security layers must add their implementation notes, file inventory, configuration, tests and known gaps here; do not create separate `cybersecurity_layerN.md` files.
+
+### B.1 Layer 1: Edge and Gateway Security
+
+Layer 1 is the active perimeter overlay providing request integrity, replay protection, Redis token-bucket rate limiting and defensive response headers.
+
+- Mutating requests (`POST`, `PUT`, `PATCH`) require `X-Timestamp`, `X-Nonce` and `X-Signature`.
+- The HMAC-SHA256 message is `METHOD + raw path + timestamp + nonce + body`.
+- Timestamps outside the 120-second window and reused nonces are rejected.
+- Redis policies are 30 requests/minute for public routes, 5 requests/minute for login routes, and 5 requests/minute for job/PDF creation routes.
+- Responses receive CSP, `X-Frame-Options`, `X-Content-Type-Options`, HSTS and `Referrer-Policy` headers.
+- Redis failures fail closed for replay and rate-limit decisions.
+- Docker activation: `app.main` registers `setup_layer1_security(app)`, and the Compose API service uses the internal `redis` hostname so nonce and rate-limit checks reach the Redis container. Production receives `SECRET_KEY` through the Docker secret; local Compose uses the development-only key from the override file.
+
+Implementation files:
+
+- `backend/app/core/security/layer1_hmac.py` - HMAC validation and nonce reservation.
+- `backend/app/core/security/layer1_ratelimit.py` - Redis token bucket and route policies.
+- `backend/app/core/security/layer1_headers.py` - defensive response headers.
+- `backend/app/core/security/setup.py` - Layer 1 composition wrapper.
+
+Layer 1 testing includes missing headers, stale timestamps, altered signatures/bodies, nonce reuse, `429` responses, Redis outage handling and security-header assertions. A PowerShell HMAC request example is included below.
+
+### B.2 Layer 2: Identity and Authorisation
+
+Layer 2 provides JWT lifecycle controls, fail-closed bearer validation, request identity context, role checks and DPR object-level scope checks.
+
+New access tokens contain `sub`, `role`, `jti`, `token_version` and `exp`; generated expiry is capped at 30 minutes. Revoked identifiers are stored as `revoked:<jti>` in Redis until token expiry. Invalid, expired or revoked bearer tokens receive `401`; unavailable revocation storage receives `503`. Requests without bearer credentials remain available to public routes, while valid credentials populate `request.state.identity` with `user_id`, `role`, `jti` and `token_version`.
+
+Use `RequireRole(["dic_officer", "sca_auditor"])` for staff-only dependencies. `verify_dpr_ownership` fails closed unless an applicant matches `owner_user_id` or staff matches the loaded case `assigned_user_id`.
+
+Implementation files:
+
+- `backend/app/core/security/layer2_jwt.py` - JWT decoding, revocation and TTL helpers.
+- `backend/app/core/security/layer2_auth_middleware.py` - bearer validation and identity injection.
+- `backend/app/core/security/layer2_rbac.py` - role and DPR scope guards.
+- `backend/app/core/security/setup_layer2.py` - Layer 2 composition wrapper.
+
+Existing integration files:
+
+- `backend/app/main.py` - registers `setup_layer2_security(app)`.
+- `backend/app/core/security.py` - adds lifecycle claims and caps token lifetime.
+
+Layer 2 testing includes malformed, expired, tampered and revoked tokens, missing claims, Redis outage fail-closed behavior, role denials, cross-user DPR access and assignment checks.
+
+### B.3 Layer 1 HMAC request example
+
+```powershell
+$timestamp = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds().ToString()
+$nonce = [guid]::NewGuid().ToString('N')
+$method = 'POST'
+$path = '/auth/token'
+$body = ''
+$message = [Text.Encoding]::UTF8.GetBytes($method + $path + $timestamp + $nonce + $body)
+$key = [Text.Encoding]::UTF8.GetBytes($env:SECRET_KEY)
+$hmac = [Security.Cryptography.HMACSHA256]::new($key)
+$signature = ([BitConverter]::ToString($hmac.ComputeHash($message))).Replace('-', '').ToLowerInvariant()
+curl.exe -i -X POST "http://localhost:8000$path" -H "X-Timestamp: $timestamp" -H "X-Nonce: $nonce" -H "X-Signature: $signature" --data "$body"
+```
+
+Without the three headers, the request receives `401`. Altering the signature receives `401`, reusing the nonce receives `409`, and exceeding a route policy receives `429` with `Retry-After`.

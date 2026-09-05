@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import Any, Iterable
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -31,9 +31,10 @@ def get_password_hash(password: str) -> str:
 
 def create_access_token(data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
     to_encode = data.copy()
-    delta = expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
+    requested_delta = expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
+    delta = min(requested_delta, timedelta(minutes=30))
     expire = datetime.now(UTC) + delta
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire, "jti": str(uuid4()), "token_version": 0})
     return jwt.encode(to_encode, settings.secret_key, algorithm=settings.jwt_algorithm)
 
 

@@ -19,7 +19,7 @@ services:
     environment:
       APP_ENV: development
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/udyogsaarthi
-      REDIS_URL: redis://localhost:6379/0
+      REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
       SECRET_KEY: dev-only-secret-key-do-not-use-in-production

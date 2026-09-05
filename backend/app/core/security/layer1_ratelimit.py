@@ -85,7 +85,10 @@ class Layer1RateLimitMiddleware:
     @staticmethod
     async def _reject(send: Send, status: int, detail: str, retry_after: int | None = None) -> None:
         body = json.dumps({"detail": detail}).encode("utf-8")
-        headers = [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())]
+        headers = [
+            (b"content-type", b"application/json"),
+            (b"content-length", str(len(body)).encode()),
+        ]
         if retry_after is not None:
             headers.append((b"retry-after", str(retry_after).encode()))
         await send({"type": "http.response.start", "status": status, "headers": headers})

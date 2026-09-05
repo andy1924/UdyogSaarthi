@@ -18,7 +18,10 @@ def _response(start: int, body: bytes) -> dict:
     return {
         "type": "http.response.start",
         "status": start,
-        "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())],
+        "headers": [
+            (b"content-type", b"application/json"),
+            (b"content-length", str(len(body)).encode()),
+        ],
     }
 
 
@@ -38,7 +41,11 @@ class Layer1HMACMiddleware:
         self.max_age_seconds = max_age_seconds
 
     async def __call__(self, scope: dict, receive: Receive, send: Send) -> None:
-        if scope["type"] != "http" or scope.get("method", "GET").upper() not in {"POST", "PUT", "PATCH"}:
+        if scope["type"] != "http" or scope.get("method", "GET").upper() not in {
+            "POST",
+            "PUT",
+            "PATCH",
+        }:
             await self.app(scope, receive, send)
             return
 
@@ -54,12 +61,22 @@ class Layer1HMACMiddleware:
             await self._reject(send, 401, "Missing or invalid request signature headers")
             return
 
-        if not nonce or not supplied_signature or abs(time.time() - request_time) > self.max_age_seconds:
+        if (
+            not nonce
+            or not supplied_signature
+            or abs(time.time() - request_time) > self.max_age_seconds
+        ):
             await self._reject(send, 401, "Missing or expired request signature")
             return
 
         path = scope.get("raw_path", scope.get("path", "").encode("utf-8"))
-        message = scope["method"].upper().encode() + path + timestamp.encode() + nonce.encode() + body
+        message = (
+            scope["method"].upper().encode()
+            + path
+            + timestamp.encode()
+            + nonce.encode()
+            + body
+        )
         expected_signature = hmac.new(self.secret_key, message, hashlib.sha256).hexdigest()
         if not hmac.compare_digest(expected_signature, supplied_signature):
             await self._reject(send, 401, "Invalid request signature")
@@ -69,7 +86,12 @@ class Layer1HMACMiddleware:
             await self._reject(send, 503, "Request replay protection is unavailable")
             return
         try:
-            reserved = await self.redis.set(f"layer1:nonce:{nonce}", "1", ex=self.max_age_seconds, nx=True)
+            reserved = await self.redis.set(
+                f"layer1:nonce:{nonce}",
+                "1",
+                ex=self.max_age_seconds,
+                nx=True,
+            )
         except Exception:
             await self._reject(send, 503, "Request replay protection is unavailable")
             return

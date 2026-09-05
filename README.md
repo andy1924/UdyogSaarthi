@@ -94,7 +94,7 @@ pytest
 ---
 
 ## 🚧 Current Status & Limitations
-- The **frontend is currently inactive**; development is focused on backend APIs.
+- Backend **and frontend are live-wired**: FastAPI APIs plus a Next.js PWA (applicant wizard, officer review, audit console, DPR view) talking to the live API.
 - Core logic for authentication, scheme math, feasibility, compliance, DPR generation, PDF queuing, workflow transitions, and audit logging is implemented.
 - **Live LGD resolution** and **Mappls reverse geocoding** are integrated. The feasibility API returns `502 Bad Gateway` if authoritative location or POI data cannot be fetched.
 - This remains a prototype: AI/KYC/compliance fallbacks are not authoritative, DPR persistence is best-effort, PDF output requires a Celery worker, and DPR ownership checks are not yet enforced.
@@ -104,7 +104,7 @@ pytest
 ## 📖 Documentation
 - [**Developer Docker Quickstart**](docs/QUICKSTART.md)
 - [**API Documentation**](docs/apiDocs.md)
-- [**Frontend Specification**](docs/frontend_spec.md)
-- [**Project Status Updates**](docs/update.md)
+- [**Project Status Updates**](docs/update.md) ← read this first for what exists
 - [**Product Truth**](docs/PRODUCT.md)
 - [**Design System**](docs/DESIGN.md)
+- [**Frontend Theme (pine/emerald, authoritative)**](docs/frontend/DESIGN.md)

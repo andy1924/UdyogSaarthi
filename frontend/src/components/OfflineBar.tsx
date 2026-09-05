@@ -12,7 +12,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { queueCount } from "../lib/offline-queue";
+import { queueCount, queueFlush } from "../lib/offline-queue";
 
 export default function OfflineBar() {
   const [demo, setDemo] = useState(false);
@@ -24,8 +24,16 @@ export default function OfflineBar() {
 
   useEffect(() => {
     refresh();
-    window.addEventListener("online", refresh);
-    return () => window.removeEventListener("online", refresh);
+    async function flushOnOnline() {
+      try {
+        await queueFlush();
+      } catch {
+        // IndexedDB missing — count stays 0, banner still explains fallback.
+      }
+      refresh();
+    }
+    window.addEventListener("online", flushOnOnline);
+    return () => window.removeEventListener("online", flushOnOnline);
   }, [refresh]);
 
   return (

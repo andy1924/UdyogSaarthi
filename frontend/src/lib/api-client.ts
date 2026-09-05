@@ -2,7 +2,7 @@
  * UdyogSaarthi API client (WAVE 1, Agent 2).
  *
  * Contract: docs/apiDocs.md + docs/frontend/DESIGN.md §4.
- * Base `http://localhost:8080` (see `./api-base`).
+ * Base `http://localhost:8000` (see `./api-base`).
  *
  * Rules enforced here:
  * - 15 s timeout on EVERY request (AbortController).
@@ -140,7 +140,7 @@ export interface LgdCode {
   state: string;
   district: string;
   block: string;
-  gp: string | null;
+  gp?: string | null;
   code: string;
   lat: number;
   lon: number;
@@ -234,6 +234,42 @@ export interface HealthOut {
   status: "ok" | "degraded";
   database: string;
   redis: string;
+}
+
+// ── Audit trail (read-only, dic_officer / sca_auditor; applicant gets 403) ──
+// Shapes mirror backend/app/routers/audit.py. Note: the dpr- and user-scoped
+// endpoints omit `payload_snapshot` (and user scope omits `user_id`), so
+// those fields are optional here.
+
+export interface AuditLogEntry {
+  id: string;
+  user_id?: string | null;
+  action: string;
+  endpoint: string;
+  ip_address?: string | null;
+  timestamp?: string | null;
+  payload_snapshot?: Record<string, unknown> | null;
+}
+
+export interface AuditLogsOut {
+  page: number;
+  page_size: number;
+  count: number;
+  logs: AuditLogEntry[];
+}
+
+export interface AuditLogsByDprOut {
+  dpr_id: string;
+  count: number;
+  logs: AuditLogEntry[];
+}
+
+export interface AuditLogsByUserOut {
+  user_id: string;
+  page: number;
+  page_size: number;
+  count: number;
+  logs: AuditLogEntry[];
 }
 
 // ── Transport core ──────────────────────────────────────────────────────────
@@ -467,6 +503,37 @@ export const SaarthiApi = {
 
   dprHistory(id: string): Promise<DprHistoryOut> {
     return get<DprHistoryOut>(`/api/dpr/${encodeURIComponent(id)}/history`, true);
+  },
+
+  // Audit (Bearer; staff only — applicant gets 403)
+  auditLogs(page = 1, pageSize = 50): Promise<AuditLogsOut> {
+    const q = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+    });
+    return get<AuditLogsOut>(`/api/audit/logs?${q.toString()}`, true);
+  },
+
+  auditLogsByDpr(dprId: string): Promise<AuditLogsByDprOut> {
+    return get<AuditLogsByDprOut>(
+      `/api/audit/logs/dpr/${encodeURIComponent(dprId)}`,
+      true,
+    );
+  },
+
+  auditLogsByUser(
+    userId: string,
+    page = 1,
+    pageSize = 50,
+  ): Promise<AuditLogsByUserOut> {
+    const q = new URLSearchParams({
+      page: String(page),
+      page_size: String(pageSize),
+    });
+    return get<AuditLogsByUserOut>(
+      `/api/audit/logs/user/${encodeURIComponent(userId)}?${q.toString()}`,
+      true,
+    );
   },
 
   // System

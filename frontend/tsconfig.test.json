@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Compile the pure `src/lib` suites (+ their imports) to CommonJS so
+    // plain `node` can run them — no test framework, no extra dependency.
+    "noEmit": false,
+    "outDir": ".test-out",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "incremental": false,
+    "jsx": "react-jsx",
+    "types": ["node"]
+  },
+  "include": ["src/lib/**/*.ts"]
+}

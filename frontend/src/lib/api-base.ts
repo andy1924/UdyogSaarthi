@@ -3,7 +3,7 @@
  *
  * Single source of truth for the backend origin. Persisted in
  * `localStorage` under `saarthi-api-base` so the C20 config footer can
- * override it at runtime. Defaults to `http://localhost:8080`.
+ * override it at runtime. Defaults to `http://localhost:8000`.
  *
  * NOTE: Agent 1 owns layout/shell/tokens.css — this file did not exist
  * when the API layer was built, so it was created here.
@@ -11,7 +11,7 @@
 
 export const API_BASE_KEY = "saarthi-api-base";
 
-export const DEFAULT_API_BASE = "http://localhost:8080";
+export const DEFAULT_API_BASE = "http://localhost:8000";
 
 function readStored(): string | null {
   if (typeof window === "undefined" || !window.localStorage) return null;

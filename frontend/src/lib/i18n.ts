@@ -1,8 +1,6 @@
 /**
- * C19 i18n — English-only for now; the switcher stays visible with hi/ta/bn
- * stubbed (disabled) until the translation API lands. Then: add dicts here
- * (or fetch them), flip `ENABLED_LANGS`, and every `t()` call site lights up
- * with zero component changes.
+ * C19 i18n — hero + CTA + wizard hints live for en/hi/ta/bn;
+ * deeper result strings stay EN-stubbed (design-system §11.6).
  *
  * Keys: hero.title, hero.sub, cta.check, steps.*, verdict.*, wizard.*, dpr.*.
  *
@@ -15,7 +13,7 @@ export type Lang = "en" | "hi" | "ta" | "bn";
 export const LANGS: Lang[] = ["en", "hi", "ta", "bn"];
 
 /** Languages with a real dictionary. Everything else renders disabled. */
-export const ENABLED_LANGS: Lang[] = ["en"];
+export const ENABLED_LANGS: Lang[] = ["en", "hi", "ta", "bn"];
 
 export const LANG_KEY = "saarthi-lang";
 
@@ -40,12 +38,58 @@ export type I18nKey = keyof typeof en;
 
 type Dict = Record<I18nKey, string>;
 
-/* NOTE: hi/ta/bn dictionaries were removed 2026-09-04. Translations
-   arrive via a future translation API — re-add as const hi/ta/bn: Dict and
-   register in dicts + ENABLED_LANGS when it lands. */
+const hi: Dict = {
+  "hero.title": "क्या यह मेरे ब्लॉक में चलेगा?",
+  "hero.sub": "स्थान, व्यवहार्यता, वित्त, अनुपालन — तीन टैप में जवाब।",
+  "cta.check": "व्यवहार्यता जांचें",
+  "cta.dpr": "बैंक दस्तावेज़ पाएं",
+  "steps.locate": "स्थान",
+  "steps.feasibility": "व्यवहार्यता",
+  "steps.finance": "वित्त",
+  "verdict.viable": "हाँ — आगे बढ़ें",
+  "verdict.saturated": "भीड़ है — कोई खास क्षेत्र सोचें",
+  "verdict.niche": "खुली जगह — एक खास अवसर",
+  "verdict.niche-gap": "खुली जगह — एक खास अवसर",
+  "wizard.hint": "वित्त, अनुपालन, साथी और बैंक दस्तावेज़ देखने के लिए जांच चलाएं।",
+  "wizard.pending": "व्यवहार्यता जांच यहाँ दिखेगी (विज़ार्ड)।",
+  "dpr.hint": "पहले व्यवहार्यता जांच चलाएं — व्यवहार्यता + वित्त सफल होने पर बैंक दस्तावेज़ खुलेगा।",
+};
 
+const ta: Dict = {
+  "hero.title": "என் வட்டாரத்தில் இது வெற்றி பெறுமா?",
+  "hero.sub": "இடம், சாத்தியம், நிதி, இணக்கம் — மூன்று தட்டல்களில் பதில்.",
+  "cta.check": "சாத்தியத்தை சரிபார்",
+  "cta.dpr": "வங்கி ஆவணம் பெறுக",
+  "steps.locate": "இடம்",
+  "steps.feasibility": "சாத்தியம்",
+  "steps.finance": "நிதி",
+  "verdict.viable": "ஆம் — தொடருங்கள்",
+  "verdict.saturated": "நெரிசல் — ஒரு சிறப்பு இடத்தை யோசியுங்கள்",
+  "verdict.niche": "திறந்த இடம் — ஒரு சிறப்பு வாய்ப்பு",
+  "verdict.niche-gap": "திறந்த இடம் — ஒரு சிறப்பு வாய்ப்பு",
+  "wizard.hint": "நிதி, இணக்கம், சகாக்கள், வங்கி ஆவணத்தைக் காண சரிபார்ப்பை இயக்கவும்.",
+  "wizard.pending": "சாத்தியச் சரிபார்ப்பு இங்கே தோன்றும்.",
+  "dpr.hint": "முதலில் சாத்தியச் சரிபார்ப்பை இயக்கவும் — சாத்தியம் + நிதி வெற்றிக்குப் பிறகு வங்கி ஆவணம் திறக்கும்.",
+};
 
-const dicts: Partial<Record<Lang, Dict>> = { en };
+const bn: Dict = {
+  "hero.title": "আমার ব্লকে কি এটা চলবে?",
+  "hero.sub": "অবস্থান, সম্ভাব্যতা, অর্থ, সম্মতি — তিন ট্যাপে উত্তর।",
+  "cta.check": "সম্ভাব্যতা যাচাই করুন",
+  "cta.dpr": "ব্যাংক কাগজ নিন",
+  "steps.locate": "অবস্থান",
+  "steps.feasibility": "সম্ভাব্যতা",
+  "steps.finance": "অর্থ",
+  "verdict.viable": "হ্যাঁ — এগিয়ে যান",
+  "verdict.saturated": "ভিড় আছে — একটি বিশেষ ক্ষেত্র ভাবুন",
+  "verdict.niche": "খোলা জায়গা — একটি বিশেষ সুযোগ",
+  "verdict.niche-gap": "খোলা জায়গা — একটি বিশেষ সুযোগ",
+  "wizard.hint": "অর্থ, সম্মতি, সহকর্মী ও ব্যাংক কাগজ দেখতে যাচাই চালান।",
+  "wizard.pending": "সম্ভাব্যতা যাচাই এখানে দেখা যাবে।",
+  "dpr.hint": "আগে সম্ভাব্যতা যাচাই চালান — সম্ভাব্যতা + অর্থ সফল হলে ব্যাংক কাগজ খুলবে।",
+};
+
+const dicts: Partial<Record<Lang, Dict>> = { en, hi, ta, bn };
 
 /** Read persisted language; `"en"` unless a real dictionary is enabled. */
 export function getLang(): Lang {
@@ -72,7 +116,7 @@ export function setLang(lang: Lang): void {
   }
 }
 
-/** Translate `key`; English-only until the translation API lands. */
-export function t(_lang: Lang, key: I18nKey): string {
-  return en[key] ?? key;
+/** Translate `key`; falls back to English, then the key itself. */
+export function t(lang: Lang, key: I18nKey): string {
+  return dicts[lang]?.[key] ?? en[key] ?? key;
 }

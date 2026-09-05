@@ -31,6 +31,7 @@ import FinanceCard from "@/components/FinanceCard";
 import LangSwitcher from "@/components/LangSwitcher";
 import OfflineBar from "@/components/OfflineBar";
 import PeersList from "@/components/PeersList";
+import SchemeRulesCard from "@/components/SchemeRulesCard";
 import ScoreRing from "@/components/ScoreRing";
 import Toasts from "@/components/Toasts";
 import VerdictCard from "@/components/VerdictCard";
@@ -75,6 +76,11 @@ export default function Home() {
         <div className="form-col">
           <WizardForm onFeasibility={handleFeasibility} onRequestDpr={() => setDprOpen(true)} />
           <ApiBaseField />
+          <p className="muted" style={{ fontSize: "0.875rem", margin: "12px 0 0" }}>
+            <a href="/officer" style={{ color: "var(--muted)" }}>
+              Officer review →
+            </a>
+          </p>
         </div>
 
         <div className="col-result">
@@ -94,6 +100,7 @@ export default function Home() {
                   opportunity={swotOpportunity(feasibility)}
                 />
                 <FinanceCard scheme={scheme} />
+                <SchemeRulesCard />
                 <ComplianceList
                   businessCategory={feasibility.business_category}
                   state={feasibility.lgd.state}

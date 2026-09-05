@@ -21,6 +21,8 @@ const WIDTHS: Record<ProgressBarProps["step"], string> = {
 };
 
 export default function ProgressBar({ step }: ProgressBarProps) {
+  // Steps 1–3 are the three taps; step 4 (result ready) keeps the
+  // completed "Tap 3 of 3" label per C09.
   return (
     <div aria-label="Wizard progress">
       <div
@@ -71,6 +73,13 @@ export default function ProgressBar({ step }: ProgressBarProps) {
           }}
         />
       </div>
+      <p
+        id="progressLbl"
+        className="num"
+        style={{ color: "var(--muted)", fontSize: "0.75rem", margin: "8px 0 0" }}
+      >
+        Tap {Math.min(step, 3)} of 3{step === 4 ? " · ready" : ""}
+      </p>
     </div>
   );
 }

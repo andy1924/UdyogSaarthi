@@ -121,6 +121,7 @@ pnpm-debug.log*
 .pnp.*
 frontend/dist/
 frontend/build/
+frontend/.test-out/
 mobile/dist/
 mobile/build/
 .next/

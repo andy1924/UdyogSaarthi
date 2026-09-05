@@ -8,6 +8,7 @@ psycopg2-binary>=2.9.9,<3
 geoalchemy2>=0.14.0
 redis>=5.0.0
 pydantic-settings>=2.2.1
+email-validator>=2.0.0
 python-jose[cryptography]>=3.3.0
 # passlib 1.7.4 reads bcrypt's legacy __about__ attribute, removed in bcrypt 4.1.
 passlib[bcrypt]>=1.7.4

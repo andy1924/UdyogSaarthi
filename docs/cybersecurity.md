@@ -289,12 +289,12 @@ Engineering owns implementation and tests; platform engineering owns TLS, networ
 
 | Gap | Required action | Evidence of closure |
 |---|---|---|
-| Access tokens default to 24 hours and no active revocation check | Implement 15-minute tokens, Redis `jti`/version revocation and staff MFA | Automated lifecycle and outage tests |
+| Access-token lifetime and revocation | Layer 2 now adds `jti`, `token_version`, a 30-minute maximum and Redis revocation checks; staff MFA and refresh-token rotation remain outstanding | Automated lifecycle/outage tests plus staff MFA evidence |
 | Audit rows lack hash-chain fields/checkpoints | Add canonical hash chain, serialized head and external WORM/checkpoint export | Daily verifier report and tamper test |
 | RLS/envelope encryption are policy requirements, not yet demonstrated in the MVP | Implement migrations, KMS adapter and negative tests | Migration review, KMS audit and RLS test report |
 | PDF fetcher and worker egress require hardening | Enforce custom fetcher, isolated worker profile and egress policy | Sandbox/SSRF test and container policy evidence |
 | Production configuration has development-style defaults in settings/compose | Require environment validation, private service bindings, TLS and secret-manager integration | Startup failure tests and deployment review |
-| DPR ownership checks are documented as a prototype limitation | Enforce case ownership/assignment in every read, write and render path | Cross-user API tests |
+| DPR ownership checks are not wired into every route | Layer 2 provides `verify_dpr_ownership`; apply it in every DPR read, write and render path | Cross-user API tests |
 
 This register is part of the security policy and must be updated when a gap is closed or a new trust boundary is introduced.
 
@@ -320,8 +320,9 @@ Implementation files:
 - `backend/app/core/security/layer1_ratelimit.py` - Redis token bucket and route policies.
 - `backend/app/core/security/layer1_headers.py` - defensive response headers.
 - `backend/app/core/security/setup.py` - Layer 1 composition wrapper.
+- `backend/app/core/security/legacy.py` - compatibility implementation for the existing authentication and audit exports after `app.core.security` became a package.
 
-Layer 1 testing includes missing headers, stale timestamps, altered signatures/bodies, nonce reuse, `429` responses, Redis outage handling and security-header assertions. A PowerShell HMAC request example is included below.
+Layer 1 testing includes missing headers, stale timestamps, altered signatures/bodies, nonce reuse, `429` responses, Redis outage handling and security-header assertions. Security-generated `401` responses include `WWW-Authenticate: Bearer` for compatibility with OAuth2 route behavior. A PowerShell HMAC request example is included below.
 
 ### B.2 Layer 2: Identity and Authorisation
 
@@ -342,6 +343,9 @@ Existing integration files:
 
 - `backend/app/main.py` - registers `setup_layer2_security(app)`.
 - `backend/app/core/security.py` - adds lifecycle claims and caps token lifetime.
+- `backend/app/core/security/__init__.py` - re-exports the existing authentication API and Layer 1 setup entry point.
+
+The original `backend/app/core/security.py` module name collides with the new `backend/app/core/security/` package name. The module is retained as a compatibility shim, while the shared implementation lives in `backend/app/core/security/legacy.py`; existing router imports therefore remain unchanged.
 
 Layer 2 testing includes malformed, expired, tampered and revoked tokens, missing claims, Redis outage fail-closed behavior, role denials, cross-user DPR access and assignment checks.
 
@@ -361,3 +365,15 @@ curl.exe -i -X POST "http://localhost:8000$path" -H "X-Timestamp: $timestamp" -H
 ```
 
 Without the three headers, the request receives `401`. Altering the signature receives `401`, reusing the nonce receives `409`, and exceeding a route policy receives `429` with `Retry-After`.
+
+### B.4 Layer 1/2 dependency inventory
+
+Layer 1 and Layer 2 use dependencies already required by the backend:
+
+- `fastapi` and Starlette ASGI middleware for request interception and response handling.
+- `redis>=5.0.0` for the async Redis client, token buckets and nonce/JWT revocation keys.
+- `python-jose[cryptography]` for JWT signing and validation.
+- `email-validator>=2.0.0` for the existing Pydantic email fields; it is now declared in `backend/requirements.txt` as well as `backend/pyproject.toml`.
+- `ruff` remains a development-only lint dependency and is not required at runtime by either security layer.
+
+No new third-party runtime package was introduced specifically for Layer 1 or Layer 2. Dependency installation is defined by `backend/requirements.txt` and `backend/pyproject.toml`; Docker installs the project dependencies during the image build.

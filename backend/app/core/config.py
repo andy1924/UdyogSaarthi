@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     # Data.gov.in CKAN resource ID for the LGD Block-level dataset
     # Known public ID: 9115b89c-b661-4d12-8a1c-6ef2dc81c7b5
     lgd_api_resource_id: str = "9115b89c-b661-4d12-8a1c-6ef2dc81c7b5"
+    # API key issued by data.gov.in for the LGD datastore endpoint.
+    data_gov_api_key: str = ""
 
     # ── DPR / AI SWOT & KYC ──────────────────────────────────────────
     openai_api_key: str = ""

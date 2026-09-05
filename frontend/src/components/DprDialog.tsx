@@ -5,7 +5,7 @@
  * Collects applicant_name + business_name (+ verified self-reported|aa-verified
  * select, capex_opex optional notes), calls `SaarthiApi.dprRender()`.
  * `status: queued` → determinate progress bar polling `SaarthiApi.dprGet(id)`
- * every 3 s, max 10 attempts. `ready` → download link via `SaarthiApi.dprDownload`
+ * every 3 s, max 10 attempts. `pdf_failed` → actionable retry message.
  * blob (object-URL anchor). Errors: 401 login nudge, 422 missing-data message,
  * 404 unknown id. Announces progress via `pushToast` (see Toasts.tsx).
  *
@@ -162,9 +162,9 @@ export default function DprDialog({ feasibility, scheme, open, onClose }: DprDia
       });
       if (cancelled.current) return;
       setDprId(out.dpr_id);
-      if (out.status === "ready") {
-        setPhase("ready");
-        pushToast("Bank paper is ready — download it.");
+      if (out.status === "pdf_failed") {
+        setError("Bank paper could not be queued. Please try again shortly.");
+        pushToast("Bank paper could not be queued — please retry.");
       } else {
         setPhase("queued");
         setAttempt(0);

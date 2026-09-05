@@ -65,6 +65,7 @@ SECRET_KEY=your_secret_key_here
 
 # Geo Integrations
 MAPPLS_REST_KEY=your_mappls_api_key
+DATA_GOV_API_KEY=your_data_gov_api_key
 LGD_API_RESOURCE_ID=9115b89c-b661-4d12-8a1c-6ef2dc81c7b5
 
 # AI Fallback

@@ -106,27 +106,16 @@ async def render(
         ],
     }
 
-    # ── Enqueue PDF generation (Celery) ────────────────────────
-    # Generate the PDF asynchronously in the Celery 'pdf' queue.
-    # The response immediately returns 'queued'; the Celery worker updates
-    # DPRRecord.pdf_path and status once the PDF is ready.
-    try:
-        generate_dpr_pdf_task.delay(dpr_id, data)
-        pdf_queued = True
-        logger.info("PDF task enqueued for %s", dpr_id)
-    except Exception as exc:
-        # If Celery broker is unreachable, log and continue without queueing.
-        logger.error("Could not enqueue PDF task for %s: %s", dpr_id, exc)
-        pdf_queued = False
-
     # ── Persist to PostgreSQL ────────────────────────────────────
+    # Persist before dispatching the task. Otherwise a fast worker can finish
+    # before the row exists, leaving the PDF path permanently unrecorded.
     try:
         record = DPRRecord(
             id=dpr_id,
             applicant_name=inp.applicant_name,
             business_name=business_name,
             business_category=inp.feasibility.business_category,
-            status="generated",
+            status="queued",
             verified=verified,
             pdf_path=None,  # will be set by Celery worker on completion
             dpr_payload=data,
@@ -139,10 +128,28 @@ async def render(
         logger.info("DPR record %s persisted to PostgreSQL", dpr_id)
     except Exception as exc:
         await db.rollback()
-        logger.warning(
-            "Failed to persist DPR %s to DB (%s) — returning response anyway",
-            dpr_id, exc,
-        )
+        logger.exception("Failed to persist DPR %s", dpr_id)
+        raise HTTPException(
+            status_code=503,
+            detail="Could not save DPR for PDF generation. Please try again.",
+        ) from exc
+
+    # ── Enqueue PDF generation (Celery) ────────────────────────
+    # New reports start queued; the worker moves the record to ready only
+    # after the file exists. A failed dispatch is persisted as pdf_failed.
+    try:
+        generate_dpr_pdf_task.delay(dpr_id, data)
+        render_status = "queued"
+        logger.info("PDF task enqueued for %s", dpr_id)
+    except Exception as exc:
+        logger.error("Could not enqueue PDF task for %s: %s", dpr_id, exc)
+        record.status = "pdf_failed"
+        try:
+            await db.commit()
+        except Exception:
+            await db.rollback()
+            logger.exception("Failed to record PDF dispatch failure for %s", dpr_id)
+        render_status = "pdf_failed"
 
     # ── Build response ───────────────────────────────────────────
     pdf_url = f"/api/dpr/{dpr_id}/download"  # will resolve once Celery completes
@@ -150,7 +157,7 @@ async def render(
     response = DPRGenerateOut(
         dpr_id=dpr_id,
         pdf_url=pdf_url,
-        status="queued" if pdf_queued else "ready",
+        status=render_status,
         data=data,
         verified=verified,
     )

@@ -255,12 +255,14 @@ async def resolve_lgd_live(
 
     # 2. Live Data.gov.in call
     resource_id = settings.lgd_api_resource_id
-    if not resource_id:
-        logger.warning("LGD_API_RESOURCE_ID not configured")
+    api_key = settings.data_gov_api_key
+    if not resource_id or not api_key:
+        logger.warning("LGD_API_RESOURCE_ID or DATA_GOV_API_KEY not configured")
         return None
 
     params: dict[str, Any] = {
         "resource_id": resource_id,
+        "api-key": api_key,
         "filters[district_name]": district,
         "limit": "5",
     }

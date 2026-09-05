@@ -20,6 +20,8 @@ class DPRGenerateIn(BaseModel):
 class DPRGenerateOut(BaseModel):
     dpr_id: str
     pdf_url: str
-    status: Literal["ready", "queued"] = "ready"
+    # Render only returns queued (or pdf_failed if dispatch fails). `ready` is
+    # returned by GET /api/dpr/{id} after the worker writes the PDF.
+    status: Literal["queued", "pdf_failed"] = "queued"
     data: dict
     verified: str

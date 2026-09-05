@@ -202,7 +202,7 @@ export interface DprRenderIn {
 export interface DprRenderOut {
   dpr_id: string;
   pdf_url: string;
-  status: "ready" | "queued";
+  status: "queued" | "pdf_failed";
   data: Record<string, unknown>;
   verified: string;
 }

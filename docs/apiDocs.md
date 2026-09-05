@@ -234,11 +234,17 @@ The endpoint assembles the report, runs SWOT and KYC concurrently, persists a DP
 }
 ```
 
-`status` is `queued` when the Celery broker accepts the task. The download endpoint can return `404` until the worker finishes and writes the PDF. If the broker cannot be reached, the response may report `ready` even though no PDF is available, so clients should check the download or retrieved DPR record.
+`status` is `queued` when the Celery broker accepts the task. If dispatching the
+task fails, it is `pdf_failed`. The download endpoint can return `404` until the
+worker finishes and writes the PDF.
 
 ### `GET /api/dpr/{dpr_id}` 🔒
 
-Returns persisted DPR metadata, status, verification, timestamps, payload, and a PDF URL. Returns `404` when the DPR record does not exist.
+Returns persisted DPR metadata, status, verification, timestamps, payload, and a
+PDF URL. DPR PDF statuses are `queued`, `ready`, or `pdf_failed`: `ready` means
+the file has been written and can be downloaded. Historical records may retain
+the older `generated`, `verified`, or `archived` values. Returns `404` when the
+DPR record does not exist.
 
 ### `GET /api/dpr/{dpr_id}/download` 🔒
 

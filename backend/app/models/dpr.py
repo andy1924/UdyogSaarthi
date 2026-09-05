@@ -24,8 +24,8 @@ class DPRRecord(Base):
     business_name: Mapped[str] = mapped_column(String(200), nullable=False)
     business_category: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     status: Mapped[str] = mapped_column(
-        String(30), nullable=False, default="generated", index=True,
-        comment="generated | verified | archived | pdf_failed",
+        String(30), nullable=False, default="queued", index=True,
+        comment="queued | ready | pdf_failed (legacy: generated | verified | archived)",
     )
     verified: Mapped[str] = mapped_column(
         String(30), nullable=False, default="self-reported",

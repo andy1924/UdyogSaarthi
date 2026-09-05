@@ -101,7 +101,7 @@ def generate_dpr_pdf_task(self: _BaseTask, dpr_id: str, dpr_payload: dict) -> st
             raise
 
     # Update the DPR record with the real PDF path.
-    _update_dpr_status(self.engine, dpr_id, pdf_path=result_path, status="generated")
+    _update_dpr_status(self.engine, dpr_id, pdf_path=result_path, status="ready")
     logger.info("[pdf] DPRRecord %s updated with pdf_path=%s", dpr_id, result_path)
     return result_path
 

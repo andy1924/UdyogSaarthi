@@ -10,6 +10,7 @@ import time
 from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
+from unittest.mock import AsyncMock
 from uuid import uuid4
 
 import pytest
@@ -38,6 +39,13 @@ from app.core.security.layer3_validation import (  # noqa: E402
     bounded_int,
     sanitize_text,
 )
+from app.core.security.layer4_crypto import decrypt_field, encrypt_field  # noqa: E402
+from app.core.security.layer4_rls import (  # noqa: E402
+    RLS_POLICY_SQL,
+    clear_rls_context,
+    set_rls_context,
+)
+from app.core.security.setup_layer4 import setup_layer4_security  # noqa: E402
 from app.routers.scheme import calculate as calculate_scheme  # noqa: E402
 from app.schemas.scheme import SchemeCalculateIn  # noqa: E402
 
@@ -388,6 +396,60 @@ def test_layer3_numeric_validation_is_strict_and_bounded() -> None:
         bounded_int(True, minimum=0, maximum=1)
     with pytest.raises(ValueError):
         bounded_float(float("inf"), minimum=0, maximum=10)
+
+
+def test_layer4_encrypts_and_decrypts_with_unique_envelopes() -> None:
+    first = encrypt_field("restricted-value")
+    second = encrypt_field("restricted-value")
+
+    assert first != second
+    assert decrypt_field(first) == "restricted-value"
+    assert decrypt_field(second) == "restricted-value"
+
+
+def test_layer4_rejects_tampered_ciphertext() -> None:
+    import base64
+
+    envelope = encrypt_field("tamper-resistant")
+    raw_envelope = bytearray(
+        base64.urlsafe_b64decode(envelope + "=" * (-len(envelope) % 4))
+    )
+    raw_envelope[-1] ^= 1
+    tampered = base64.urlsafe_b64encode(raw_envelope).decode().rstrip("=")
+
+    with pytest.raises(ValueError, match="Invalid or unauthenticated"):
+        decrypt_field(tampered)
+
+
+@pytest.mark.asyncio
+async def test_layer4_sets_and_clears_transaction_local_rls_context() -> None:
+    session = AsyncMock()
+
+    await set_rls_context(session, user_id=uuid4(), role="applicant")
+    await clear_rls_context(session)
+
+    assert session.execute.await_count == 4
+    statements = [call.args[0].text for call in session.execute.await_args_list]
+    assert statements[:2] == [
+        "SELECT set_config('app.user_id', :user_id, true)",
+        "SELECT set_config('app.role', :role, true)",
+    ]
+    assert statements[2:] == [
+        "SELECT set_config('app.user_id', '', true)",
+        "SELECT set_config('app.role', '', true)",
+    ]
+    assert "ALTER TABLE dpr_records ENABLE ROW LEVEL SECURITY" in RLS_POLICY_SQL
+
+
+def test_layer4_setup_registers_kms_and_rls_helpers() -> None:
+    from fastapi import FastAPI
+
+    app = FastAPI()
+    setup_layer4_security(app)
+
+    assert hasattr(app.state, "layer4_kms")
+    assert app.state.set_rls_context is set_rls_context
+    assert app.state.clear_rls_context is clear_rls_context
 
 
 async def _ok_response(send: Callable[[dict], Awaitable[None]], body: bytes = b"layer1-ok") -> None:

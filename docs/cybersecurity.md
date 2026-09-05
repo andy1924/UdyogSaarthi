@@ -366,6 +366,28 @@ curl.exe -i -X POST "http://localhost:8000$path" -H "X-Timestamp: $timestamp" -H
 
 Without the three headers, the request receives `401`. Altering the signature receives `401`, reusing the nonce receives `409`, and exceeding a route policy receives `429` with `Retry-After`.
 
+### B.4 Layer 3: Application and Service Boundary
+
+Layer 3 adds a non-intrusive application boundary around existing FastAPI routes:
+
+- `CorrelationIDMiddleware` generates or preserves `X-Correlation-ID`, stores it in `request.state.correlation_id`, and returns it on responses.
+- Unhandled exceptions are logged internally with the correlation ID and return a generic `500` response containing only `detail` and `correlation_id`; stack traces, SQL and internal implementation details are not exposed.
+- `Layer3BoundaryMiddleware` denies unknown paths with `403` before application code. Existing `/health`, documentation paths, `/api/scheme/rules`, `/auth/*`, and `/api/*` paths are delegated to their established route and Layer 2 authorization policies so existing business behavior is preserved.
+- `StrictBoundaryModel`, `SafeTextMixin`, `sanitize_text`, `bounded_int`, `bounded_float`, and `validate_boundary_model` provide reusable strict validation for new service-boundary schemas. New schemas should inherit `StrictBoundaryModel` to reject extra fields.
+
+Implementation files:
+
+- `backend/app/core/security/layer3_exceptions.py` - correlation IDs, sanitized exception handling and internal security logging.
+- `backend/app/core/security/layer3_validation.py` - bounded numeric validation, unsafe markup rejection and strict Pydantic base model.
+- `backend/app/core/security/layer3_boundary.py` - deny-by-default unknown-path middleware and public endpoint marker.
+- `backend/app/core/security/setup_layer3.py` - Layer 3 composition wrapper.
+
+Existing integration file:
+
+- `backend/app/main.py` - imports and calls `setup_layer3_security(app)` after the Layer 1 and Layer 2 setup calls.
+
+Layer 3 tests should cover correlation-ID propagation, sanitized `500` responses, unknown-path `403` responses, safe validation rejection, extra-field rejection, and preservation of existing authenticated route behavior. The current boundary uses a path policy because ASGI middleware runs before FastAPI resolves an endpoint; route-specific decorator enforcement should be added when new service routers are introduced.
+
 ### B.4 Layer 1/2 dependency inventory
 
 Layer 1 and Layer 2 use dependencies already required by the backend:

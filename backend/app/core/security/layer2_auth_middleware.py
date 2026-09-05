@@ -57,5 +57,7 @@ class Layer2AuthMiddleware:
             (b"content-type", b"application/json"),
             (b"content-length", str(len(body)).encode()),
         ]
+        if status == 401:
+            headers.append((b"www-authenticate", b"Bearer"))
         await send({"type": "http.response.start", "status": status, "headers": headers})
         await send({"type": "http.response.body", "body": body})

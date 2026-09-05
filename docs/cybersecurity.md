@@ -311,7 +311,7 @@ Layer 1 is the active perimeter overlay providing request integrity, replay prot
 - Timestamps outside the 120-second window and reused nonces are rejected.
 - Redis policies are 30 requests/minute for public routes, 5 requests/minute for login routes, and 5 requests/minute for job/PDF creation routes.
 - Responses receive CSP, `X-Frame-Options`, `X-Content-Type-Options`, HSTS and `Referrer-Policy` headers.
-- Redis failures fail closed for replay and rate-limit decisions.
+- Redis failures fail closed for replay and rate-limit decisions in production. Development/test mode allows the request to continue when only rate-limit storage is unavailable, so route-level authentication can return its normal `401`; replay protection remains fail closed.
 - Docker activation: `app.main` registers `setup_layer1_security(app)`, and the Compose API service uses the internal `redis` hostname so nonce and rate-limit checks reach the Redis container. Production receives `SECRET_KEY` through the Docker secret; local Compose uses the development-only key from the override file.
 
 Implementation files:

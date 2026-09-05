@@ -46,10 +46,17 @@ def policy_for(path: str, method: str) -> str:
 
 
 class Layer1RateLimitMiddleware:
-    def __init__(self, app, redis_client: Redis, key_prefix: str = "layer1:ratelimit") -> None:
+    def __init__(
+        self,
+        app,
+        redis_client: Redis,
+        key_prefix: str = "layer1:ratelimit",
+        fail_open: bool = False,
+    ) -> None:
         self.app = app
         self.redis = redis_client
         self.key_prefix = key_prefix
+        self.fail_open = fail_open
 
     async def __call__(self, scope: dict, receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -70,6 +77,9 @@ class Layer1RateLimitMiddleware:
                 window,
             )
         except Exception:
+            if self.fail_open:
+                await self.app(scope, receive, send)
+                return
             await self._reject(send, 503, "Rate limiting service is unavailable")
             return
         if not int(allowed):

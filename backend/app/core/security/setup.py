@@ -23,5 +23,9 @@ def setup_layer1_security(app: FastAPI) -> None:
         secret_key=settings.secret_key,
         redis_client=redis_client,
     )
-    app.add_middleware(Layer1RateLimitMiddleware, redis_client=redis_client)
+    app.add_middleware(
+        Layer1RateLimitMiddleware,
+        redis_client=redis_client,
+        fail_open=settings.app_env != "production",
+    )
     app.add_middleware(Layer1HeadersMiddleware)

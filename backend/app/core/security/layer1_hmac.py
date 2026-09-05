@@ -15,13 +15,16 @@ Receive = Callable[[], Awaitable[dict]]
 
 
 def _response(start: int, body: bytes) -> dict:
+    headers = [
+        (b"content-type", b"application/json"),
+        (b"content-length", str(len(body)).encode()),
+    ]
+    if start == 401:
+        headers.append((b"www-authenticate", b"Bearer"))
     return {
         "type": "http.response.start",
         "status": start,
-        "headers": [
-            (b"content-type", b"application/json"),
-            (b"content-length", str(len(body)).encode()),
-        ],
+        "headers": headers,
     }
 
 

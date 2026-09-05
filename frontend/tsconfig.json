@@ -26,7 +26,8 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "isolatedModules": true
   },
   "include": [
     "src",

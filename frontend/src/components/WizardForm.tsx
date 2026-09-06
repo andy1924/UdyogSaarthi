@@ -240,7 +240,6 @@ export default function WizardForm({
               margin: "0 auto",
               padding: "12px 20px",
               background: "var(--surface)",
-              borderTop: "1px solid var(--border)",
             }}
           >
             <button

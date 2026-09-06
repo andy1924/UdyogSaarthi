@@ -42,14 +42,19 @@ function KvRow({
         display: "flex",
         justifyContent: "space-between",
         alignItems: "baseline",
-        gap: 12,
+        gap: "4px 12px",
+        flexWrap: "wrap",
         padding: "8px 0",
         borderBottom: "1px solid var(--border)",
         minHeight: 44,
       }}
     >
-      <span className="muted">{label}</span>
-      <span id={valueId} className={mono ? "num" : undefined}>
+      <span className="muted" style={{ flex: "1 1 auto", minWidth: 0 }}>{label}</span>
+      <span
+        id={valueId}
+        className={mono ? "num" : undefined}
+        style={{ flex: "0 1 auto", minWidth: 0, textAlign: "right", overflowWrap: "anywhere" }}
+      >
         {value}
       </span>
     </div>

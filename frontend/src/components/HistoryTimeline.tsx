@@ -49,12 +49,25 @@ export default function HistoryTimeline({ entries }: HistoryTimelineProps) {
           <li
             key={index}
             style={{
-              borderLeft: "2px solid var(--accent)",
+              borderLeft: "2px solid var(--border)",
               padding: "0 0 16px 16px",
               marginLeft: "6px",
               position: "relative",
             }}
           >
+            <span
+              aria-hidden="true"
+              style={{
+                position: "absolute",
+                left: "-7px",
+                top: "4px",
+                width: "12px",
+                height: "12px",
+                borderRadius: "50%",
+                background: "var(--accent)",
+                border: "2px solid var(--surface)",
+              }}
+            />
             <p style={{ margin: "0 0 4px", fontWeight: 600 }}>
               <span className="num">{text(entry["from"])}</span>
               {" → "}

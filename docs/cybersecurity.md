@@ -396,6 +396,30 @@ Layer 1 and Layer 2 use dependencies already required by the backend:
 - `redis>=5.0.0` for the async Redis client, token buckets and nonce/JWT revocation keys.
 - `python-jose[cryptography]` for JWT signing and validation.
 - `email-validator>=2.0.0` for the existing Pydantic email fields; it is now declared in `backend/requirements.txt` as well as `backend/pyproject.toml`.
-- `ruff` remains a development-only lint dependency and is not required at runtime by either security layer.
+- `cryptography>=42.0.0` provides the direct AES-256-GCM implementation used by Layer 4.
+- `ruff` remains a development-only lint dependency and is not required at runtime by the security layers.
 
-No new third-party runtime package was introduced specifically for Layer 1 or Layer 2. Dependency installation is defined by `backend/requirements.txt` and `backend/pyproject.toml`; Docker installs the project dependencies during the image build.
+Dependency installation is defined by `backend/requirements.txt` and `backend/pyproject.toml`; Docker installs the project dependencies during the image build.
+
+### B.5 Layer 4: Data Vault and Storage Security
+
+Layer 4 provides reusable data-protection primitives without changing existing models or business calculations:
+
+- `encrypt_field` generates a fresh 256-bit DEK and unique 96-bit AES-GCM nonce for every field encryption operation.
+- The DEK is wrapped by a separate KEK through the `KMS` abstraction. `LocalKMS` is a development adapter derived from `SECRET_KEY`; production must replace it with a managed KMS/HSM implementation and keep KEKs outside the application process.
+- Encrypted values are versioned, authenticated envelopes containing the algorithm, data nonce, ciphertext and wrapped DEK. Authentication or format failures return a generic `ValueError`.
+- `set_rls_context` sets transaction-local PostgreSQL variables using parameterized `set_config` calls: `app.user_id` and `app.role`. `clear_rls_context` clears them explicitly.
+- `RLS_POLICY_SQL` supplies reviewed starting templates for enabling RLS on `users` and `dpr_records`, with applicant ownership and staff-role policy conditions. Apply and test these statements through migrations before production use.
+- `setup_layer4_security(app)` exposes the KMS manager and explicit RLS context helpers on `app.state`; it does not alter the database session factory or silently invent identity context.
+
+Implementation files:
+
+- `backend/app/core/security/layer4_crypto.py` - AES-256-GCM envelope encryption and KMS contract.
+- `backend/app/core/security/layer4_rls.py` - transaction-local RLS context helpers and SQL templates.
+- `backend/app/core/security/setup_layer4.py` - Layer 4 composition wrapper.
+
+Existing integration file:
+
+- `backend/app/main.py` - imports and calls `setup_layer4_security(app)` after Layers 1-3.
+
+Layer 4 remains incomplete until a managed KMS adapter, migration-reviewed RLS policies, explicit context-setting at the authenticated database boundary, encrypted restricted columns, key rotation, and positive/negative RLS tests are evidenced. Do not treat `LocalKMS` or the SQL templates as production controls by themselves.

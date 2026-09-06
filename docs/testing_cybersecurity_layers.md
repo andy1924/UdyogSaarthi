@@ -10,6 +10,8 @@ Layer 2 coverage includes unauthenticated endpoint protection, Redis-backed JWT 
 
 Layer 3 coverage includes generated and preserved correlation IDs, sanitized generic `500` responses, unknown-path `403` denial, delegation of known API paths, strict Pydantic extra-field rejection, unsafe markup rejection, and bounded numeric validation.
 
+Layer 4 coverage includes AES-256-GCM round trips with unique envelopes, tampered-ciphertext rejection, transaction-local RLS context setup/clear operations, RLS policy template presence, and Layer 4 composition state registration.
+
 The suite uses an in-memory Redis fake for deterministic nonce, rate-limit, and revocation behavior. Endpoint tests use FastAPI `TestClient`; if platform-native application dependencies are unavailable, those endpoint tests are skipped with the import reason rather than failing during test collection.
 
 ## Run From VS Code Terminal
@@ -51,6 +53,12 @@ Run only Layer 3 checks:
 python -m pytest backend\tests\test_security_overlay.py -k "test_layer3" -v -s
 ```
 
+Run only Layer 4 checks:
+
+```powershell
+python -m pytest backend\tests\test_security_overlay.py -k "test_layer4" -v -s
+```
+
 Run it from the backend directory instead:
 
 ```powershell
@@ -75,6 +83,20 @@ python -m compileall -q app tests
 ```
 
 For CI/Linux, install the native WeasyPrint libraries used by the existing application before importing `app.main`. The Docker image already installs the required Cairo, Pango, GDK Pixbuf, and related runtime libraries.
+
+On Windows, WeasyPrint also needs native GTK/GObject DLLs. Install MSYS2 with `winget`, install the MinGW64 runtime packages, and add the runtime directory to the user PATH:
+
+```powershell
+winget install --id MSYS2.MSYS2 --exact
+& C:\msys64\usr\bin\pacman.exe -S --needed mingw-w64-x86_64-pango mingw-w64-x86_64-cairo mingw-w64-x86_64-gdk-pixbuf2
+[Environment]::SetEnvironmentVariable('Path', "$([Environment]::GetEnvironmentVariable('Path', 'User'));C:\msys64\mingw64\bin", 'User')
+```
+
+Restart the VS Code terminal after changing PATH, then verify:
+
+```powershell
+python -c "import weasyprint; print('WeasyPrint native runtime loaded')"
+```
 
 ## Interpreting Failures
 

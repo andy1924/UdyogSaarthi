@@ -121,12 +121,22 @@ export default function AuditPage() {
         <div
           style={{
             display: "flex",
-            gap: "0.5rem",
+            gap: "12px 8px",
             flexWrap: "wrap",
             alignItems: "end",
           }}
         >
-          <label>
+          <label
+            style={{
+              flex: "1 1 200px",
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+              color: "var(--muted)",
+              fontSize: "0.875rem",
+            }}
+          >
             DPR id
             <input
               className="auth-input"
@@ -137,7 +147,17 @@ export default function AuditPage() {
               aria-label="Filter by DPR id"
             />
           </label>
-          <label>
+          <label
+            style={{
+              flex: "1 1 200px",
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+              color: "var(--muted)",
+              fontSize: "0.875rem",
+            }}
+          >
             User UUID
             <input
               className="auth-input"
@@ -148,10 +168,42 @@ export default function AuditPage() {
               aria-label="Filter by user UUID"
             />
           </label>
-          <button type="button" onClick={applyFilters}>
+          <button
+            type="button"
+            onClick={applyFilters}
+            style={{
+              minHeight: "48px",
+              padding: "10px 20px",
+              borderRadius: "12px",
+              border: "1px solid var(--accent)",
+              background: "var(--accent)",
+              color: "var(--surface)",
+              fontFamily: "var(--font-body)",
+              fontSize: "1rem",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
             Apply
           </button>
-          <button type="button" onClick={clearFilters} disabled={!scoped}>
+          <button
+            type="button"
+            onClick={clearFilters}
+            disabled={!scoped}
+            style={{
+              minHeight: "48px",
+              padding: "10px 20px",
+              borderRadius: "12px",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--fg)",
+              fontFamily: "var(--font-body)",
+              fontSize: "1rem",
+              fontWeight: 600,
+              cursor: scoped ? "pointer" : "not-allowed",
+              opacity: scoped ? 1 : 0.55,
+            }}
+          >
             Clear
           </button>
         </div>
@@ -166,12 +218,23 @@ export default function AuditPage() {
         <div
           style={{
             display: "flex",
-            gap: "0.5rem",
+            gap: "12px 8px",
             flexWrap: "wrap",
             alignItems: "end",
+            marginTop: "12px",
           }}
         >
-          <label>
+          <label
+            style={{
+              flex: "1 1 120px",
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+              color: "var(--muted)",
+              fontSize: "0.875rem",
+            }}
+          >
             Page
             <input
               className="auth-input"
@@ -183,7 +246,17 @@ export default function AuditPage() {
               aria-label="Page"
             />
           </label>
-          <label>
+          <label
+            style={{
+              flex: "1 1 140px",
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+              color: "var(--muted)",
+              fontSize: "0.875rem",
+            }}
+          >
             Page size (max 200)
             <input
               className="auth-input"
@@ -199,6 +272,19 @@ export default function AuditPage() {
             type="button"
             onClick={() => setPage((p) => p + 1)}
             disabled={loading || dprFilter !== ""}
+            style={{
+              minHeight: "48px",
+              padding: "10px 20px",
+              borderRadius: "12px",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--fg)",
+              fontFamily: "var(--font-body)",
+              fontSize: "1rem",
+              fontWeight: 600,
+              cursor: loading || dprFilter !== "" ? "not-allowed" : "pointer",
+              opacity: loading || dprFilter !== "" ? 0.55 : 1,
+            }}
           >
             Next
           </button>
@@ -206,6 +292,20 @@ export default function AuditPage() {
             type="button"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={loading || page <= 1 || dprFilter !== ""}
+            style={{
+              minHeight: "48px",
+              padding: "10px 20px",
+              borderRadius: "12px",
+              border: "1px solid var(--border)",
+              background: "var(--surface)",
+              color: "var(--fg)",
+              fontFamily: "var(--font-body)",
+              fontSize: "1rem",
+              fontWeight: 600,
+              cursor:
+                loading || page <= 1 || dprFilter !== "" ? "not-allowed" : "pointer",
+              opacity: loading || page <= 1 || dprFilter !== "" ? 0.55 : 1,
+            }}
           >
             Prev
           </button>
@@ -232,7 +332,12 @@ export default function AuditPage() {
 
         {!forbidden && logs.length > 0 && (
           <div style={{ overflowX: "auto" }}>
-            <table>
+            <style>{`
+              .audit-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+              .audit-table th { text-align: left; padding: 8px 8px 8px 0; color: var(--muted); font-weight: 600; white-space: nowrap; }
+              .audit-table td { padding: 8px 8px 8px 0; border-top: 1px solid var(--border); vertical-align: top; overflow-wrap: break-word; }
+            `}</style>
+            <table className="audit-table">
               <thead>
                 <tr>
                   <th scope="col">Action</th>

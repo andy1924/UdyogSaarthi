@@ -84,14 +84,13 @@ export default function Home() {
         </div>
 
         <div className="col-result">
-          <section
-            className="card"
-            aria-label="Result"
-            aria-live="polite"
-            aria-busy="false"
-          >
-            {populated ? (
-              <>
+          {populated ? (
+            <>
+              <section
+                className="card result-summary"
+                aria-label="Result"
+                aria-live="polite"
+              >
                 <ScoreRing score={feasibility.density_score} verdict={feasibility.verdict} />
                 <VerdictCard
                   verdict={feasibility.verdict}
@@ -99,29 +98,34 @@ export default function Home() {
                   block={feasibility.lgd.block}
                   opportunity={swotOpportunity(feasibility)}
                 />
-                <FinanceCard scheme={scheme} />
-                <SchemeRulesCard />
-                <ComplianceList
-                  businessCategory={feasibility.business_category}
-                  state={feasibility.lgd.state}
-                  district={feasibility.lgd.district}
-                />
-                <PeersList
-                  lat={feasibility.lgd.lat}
-                  lon={feasibility.lgd.lon}
-                  category={feasibility.business_category}
-                />
-              </>
-            ) : (
-              <>
-                <h2>
-                  {t(lang, "steps.feasibility")} · {t(lang, "steps.finance")}
-                </h2>
-                <p className="muted">{t(lang, "wizard.hint")}</p>
-                <p className="muted">{t(lang, "dpr.hint")}</p>
-              </>
-            )}
-          </section>
+              </section>
+              <FinanceCard scheme={scheme} />
+              <SchemeRulesCard />
+              <ComplianceList
+                businessCategory={feasibility.business_category}
+                state={feasibility.lgd.state}
+                district={feasibility.lgd.district}
+              />
+              <PeersList
+                lat={feasibility.lgd.lat}
+                lon={feasibility.lgd.lon}
+                category={feasibility.business_category}
+              />
+            </>
+          ) : (
+            <section
+              className="card"
+              aria-label="Result"
+              aria-live="polite"
+              aria-busy="false"
+            >
+              <h2>
+                {t(lang, "steps.feasibility")} · {t(lang, "steps.finance")}
+              </h2>
+              <p className="muted">{t(lang, "wizard.hint")}</p>
+              <p className="muted">{t(lang, "dpr.hint")}</p>
+            </section>
+          )}
           <OfflineBar />
         </div>
       </div>

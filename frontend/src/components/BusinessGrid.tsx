@@ -93,9 +93,11 @@ export default function BusinessGrid({ value, onChange }: BusinessGridProps) {
                 gap: "4px",
                 padding: "12px",
                 borderRadius: "12px",
-                border: selected
-                  ? "2px solid var(--accent)"
-                  : "1px solid var(--border)",
+                border: "1px solid var(--border)",
+                borderColor: selected ? "var(--accent)" : "var(--border)",
+                boxShadow: selected
+                  ? "0 0 0 1px var(--accent)"
+                  : "none",
                 background: "var(--surface)",
                 color: "var(--fg)",
                 cursor: "pointer",

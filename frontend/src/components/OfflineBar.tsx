@@ -45,7 +45,7 @@ export default function OfflineBar() {
           role="switch"
           aria-checked={demo}
           className="dpr-ghost"
-          style={{ padding: "10px 16px" }}
+          style={{ minHeight: "44px", padding: "10px 16px" }}
           onClick={() => setDemo((prev) => !prev)}
         >
           Offline demo: {demo ? "on" : "off"}

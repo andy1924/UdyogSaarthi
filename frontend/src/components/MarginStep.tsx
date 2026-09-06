@@ -66,7 +66,7 @@ export default function MarginStep({ margin, onMargin }: MarginStepProps) {
         aria-describedby="marginReadout"
         style={{ width: "100%", minHeight: "44px", accentColor: "var(--accent)" }}
       />
-      <div style={{ display: "flex", gap: "12px", alignItems: "center", marginTop: "4px" }}>
+      <div style={{ display: "flex", gap: "4px 12px", flexWrap: "wrap", alignItems: "center", marginTop: "4px" }}>
         <input
           id="marginNum"
           type="number"
@@ -82,7 +82,7 @@ export default function MarginStep({ margin, onMargin }: MarginStepProps) {
           style={{
             minHeight: "44px",
             minWidth: 0,
-            flex: "1 1 auto",
+            flex: "1 1 180px",
             padding: "10px 12px",
             fontSize: "16px",
             border: outOfRange
@@ -97,7 +97,14 @@ export default function MarginStep({ margin, onMargin }: MarginStepProps) {
           id="marginReadout"
           className="num"
           htmlFor="marginRange marginNum"
-          style={{ flex: "0 0 auto", fontWeight: 700, fontSize: "1rem" }}
+          style={{
+            flex: "1 1 auto",
+            minWidth: 0,
+            textAlign: "right",
+            overflowWrap: "anywhere",
+            fontWeight: 700,
+            fontSize: "1rem",
+          }}
         >
           {fmtINR(margin)}
         </output>

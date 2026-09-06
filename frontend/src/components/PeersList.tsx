@@ -104,13 +104,14 @@ export default function PeersList({ lat, lon, category }: PeersListProps) {
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "baseline",
-                  gap: 12,
+                  gap: "4px 12px",
+                  flexWrap: "wrap",
                   minHeight: 44,
                   padding: "8px 0",
                   borderBottom: "1px solid var(--border)",
                 }}
               >
-                <span style={{ minWidth: 0 }}>
+                <span style={{ flex: "1 1 160px", minWidth: 0 }}>
                   <b style={{ overflowWrap: "break-word" }}>{peer.name}</b>
                   <span className="muted" style={{ display: "block", fontSize: "0.875rem" }}>
                     {peer.category}

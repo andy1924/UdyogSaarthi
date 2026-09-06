@@ -106,9 +106,9 @@ export default function ComplianceList({ businessCategory, state, district }: Co
                     onChange={() => toggle(lic.id)}
                     style={{ width: 22, height: 22, marginTop: 2, accentColor: "var(--accent)" }}
                   />
-                  <span style={{ minWidth: 0 }}>
-                    <span style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                      <b>{lic.label}</b>
+                  <span style={{ flex: "1 1 auto", minWidth: 0 }}>
+                    <span style={{ display: "flex", gap: "4px 8px", alignItems: "center", flexWrap: "wrap" }}>
+                      <b style={{ overflowWrap: "break-word" }}>{lic.label}</b>
                       {lic.required && (
                         <span
                           style={{

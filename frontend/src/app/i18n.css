@@ -55,7 +55,7 @@
 .toast-wrap {
   position: fixed;
   left: 50%;
-  bottom: 150px;
+  bottom: 214px;
   transform: translateX(-50%);
   z-index: 60;
   display: flex;
@@ -137,7 +137,8 @@
 .offline-row {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
   min-height: var(--tap);
 }
 
@@ -191,6 +192,7 @@
 
 .dpr-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 16px;
 }

@@ -134,9 +134,9 @@ p {
   min-width: 0;
 }
 
-/* Result column: one card holds ScoreRing + Verdict + Finance +
-   Compliance + Peers — hairline dividers keep groups distinct
-   without nesting cards. */
+/* Result column: one slip per concern — summary, finance, rules,
+   compliance, peers — each its own card, separated by gap rhythm
+   (never nested cards, never hairline-divided mega-cards). */
 .col-result {
   display: flex;
   flex-direction: column;
@@ -144,10 +144,18 @@ p {
   min-width: 0;
 }
 
-.col-result .card > * + * {
-  border-top: 1px solid var(--border);
-  margin-top: 20px;
-  padding-top: 20px;
+/* Summary slip: score ring leads left, verdict stacks right.
+   Wraps under 300px so the ring never squeezes the headline. */
+.result-summary {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.result-summary > :last-child {
+  flex: 1 1 200px;
+  min-width: 0;
 }
 
 /* C07 auth card: stacked label → 48px input rhythm, primary login
@@ -199,7 +207,7 @@ p {
 
 .auth-actions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 10px;
   margin-top: 16px;
 }
@@ -404,6 +412,18 @@ p {
   text-overflow: ellipsis;
   font-size: 0.8125rem;
   color: var(--muted);
+}
+
+/* 360px safety: tighten header chrome so avatar + truncating title +
+   health dot + chip + A+ button fit without squeezing the title. */
+@media (max-width: 420px) {
+  .site-head-inner {
+    padding: 0 12px;
+    gap: 8px;
+  }
+  #authChip {
+    max-width: 22vw;
+  }
 }
 
 /* Cards */

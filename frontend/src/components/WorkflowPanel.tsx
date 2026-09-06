@@ -69,8 +69,7 @@ export default function WorkflowPanel({
             border: "1px solid var(--accent)",
             borderRadius: "999px",
             padding: "4px 12px",
-            minHeight: "44px",
-            lineHeight: "34px",
+            lineHeight: 1.5,
           }}
         >
           {currentState}

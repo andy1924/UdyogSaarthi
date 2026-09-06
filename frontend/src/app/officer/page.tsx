@@ -120,31 +120,42 @@ export default function OfficerPage() {
             e.preventDefault();
             void handleLoad();
           }}
-          style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}
+          style={{ display: "flex", flexWrap: "wrap", gap: "8px", alignItems: "end" }}
         >
-          <label htmlFor="officerDprId" className="muted">
-            DPR id
-          </label>
-          <input
-            id="officerDprId"
-            className="num"
-            type="text"
-            autoComplete="off"
-            spellCheck={false}
-            placeholder="DPR-XXXXXXXX"
-            value={dprIdInput}
-            onChange={(e) => setDprIdInput(e.target.value)}
+          <label
+            htmlFor="officerDprId"
+            className="muted"
             style={{
               flex: "1 1 220px",
-              minHeight: "44px",
-              border: "1px solid var(--border)",
-              borderRadius: "12px",
-              padding: "10px 12px",
-              color: "var(--fg)",
-              background: "var(--surface)",
-              fontSize: "1rem",
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: "6px",
+              fontSize: "0.875rem",
             }}
-          />
+          >
+            DPR id
+            <input
+              id="officerDprId"
+              className="num"
+              type="text"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="DPR-XXXXXXXX"
+              value={dprIdInput}
+              onChange={(e) => setDprIdInput(e.target.value)}
+              style={{
+                width: "100%",
+                minHeight: "44px",
+                border: "1px solid var(--border)",
+                borderRadius: "12px",
+                padding: "10px 12px",
+                color: "var(--fg)",
+                background: "var(--surface)",
+                fontSize: "1rem",
+              }}
+            />
+          </label>
           <button
             type="submit"
             disabled={loading || dprIdInput.trim() === ""}

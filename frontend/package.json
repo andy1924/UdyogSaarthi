@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "start": "next start",
     "build": "next build",
     "typecheck": "tsc --noEmit",
     "test": "tsc -p tsconfig.test.json && node .test-out/run-tests.js",

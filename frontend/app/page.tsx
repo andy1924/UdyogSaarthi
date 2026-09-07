@@ -19,9 +19,9 @@ const steps = [
 ];
 
 const metrics = [
-  ["5%", "per annum", "Interest rate"],
-  ["Up to Rs.50L", "loan support", "Project funding"],
-  ["100%", "DBT", "Transparent transfer"],
+  ["5% per annum", "Concessional rate", "Government Credit Line"],
+  ["Up to Rs.50L", "Interest rate cap", "Direct Applicant Support"],
+  ["100% DBT", "Transparent transfer", "Every transaction tracked"],
   ["3 Mins", "to get started", "Simple guidance"],
 ];
 
@@ -39,12 +39,12 @@ export default function Home() {
           <a href="#how-it-works">How-To</a>
           <a href="#contact">Contact Us</a>
         </nav>
-        <button className="language-button" type="button">IN / EN <span aria-hidden="true">⌄</span></button>
+        <button className="language-button" type="button">EN/हिं</button>
       </header>
 
       <section className="hero" id="top">
         <div className="hero-copy">
-          <h1>Udyog-Saarthi</h1>
+          <h1>Udyog<span className="title-hyphen">-</span>Saarthi</h1>
           <div className="hero-actions">
             <a className="button button-dark" href="#how-it-works">Feasibility Checker <span aria-hidden="true">↗</span></a>
             <a className="button button-light" href="#contact"><span aria-hidden="true">◉</span> Voice-Saarthi</a>
@@ -61,7 +61,6 @@ export default function Home() {
 
       <section className="work-section" id="how-it-works">
         <div className="section-heading">
-          <p className="eyebrow">Your journey, made clear</p>
           <h2>How does UdyogSaarthi Work?</h2>
         </div>
         <div className="step-grid">
@@ -77,7 +76,6 @@ export default function Home() {
 
       <section className="guidance" id="contact">
         <div>
-          <p className="eyebrow eyebrow-on-dark">Need a little help?</p>
           <h2>Need Phone Guidance in your language?</h2>
         </div>
         <div className="phone-card">
@@ -88,9 +86,9 @@ export default function Home() {
 
       <section className="backing" id="benefits">
         <div className="section-heading centered">
-          <p className="eyebrow">Built for confidence</p>
+          <p className="supporting-label">Supporting rural entrepreneurship</p>
           <h2>Official Backing &amp; Concessional Credit</h2>
-          <p>Clear information, transparent support, and guidance you can trust.</p>
+          <p>Empowering enterprise with reliable credit and local support.</p>
         </div>
         <div className="metric-grid">
           {metrics.map(([value, label, caption]) => (

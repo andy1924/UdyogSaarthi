@@ -167,6 +167,23 @@ services:
           cpus: "2.0"
           memory: 2G
 
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: udyogsaarthi-frontend
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      BACKEND_API_URL: http://api:8000
+      BACKEND_HMAC_SECRET_FILE: /run/secrets/app_secret_key
+    secrets:
+      - app_secret_key
+    ports:
+      - "3000:3000"
+
 volumes:
   postgres_data:
   redis_data:

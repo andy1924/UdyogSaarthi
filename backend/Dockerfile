@@ -26,7 +26,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY backend/pyproject.toml ./pyproject.toml
-RUN pip install --upgrade pip && pip install --no-cache-dir ".[dev]"
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir ".[dev]" && \
+    pip install --no-cache-dir --upgrade "setuptools>=83.0.0" "msgpack>=1.2.1"
 
 # ============================================================
 # Stage 2: runtime

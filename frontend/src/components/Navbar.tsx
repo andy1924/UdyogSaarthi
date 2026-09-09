@@ -6,7 +6,11 @@ const NAV_ITEMS = ['Benefits', 'Specifications', 'How-to', 'Contact Us'];
 const LOGO_URL =
   'https://s3-alpha-sig.figma.com/img/9e6e/ce29/563027c2088c16dc05bbc1071b0d25ff?Expires=1789344000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=c8mL~9GPabDeNL9aIb6l46yrs6pRkcHFdoTcozn17jji-P~7chdA9T7wp5OKZZ~OSGXBrmCWUwRad3bKOH93BecR5xWiY~IdQZgTGQPZdWr5K~XbsLzK329LeT1j7-g5S3Ea46ds4ipLTJoOadv8wwkEWhRF2oM56ttZbGtxqaxz9ADmpzsE8ZI12SjkYk64ymGOR4hgI32tciYcpv2cYex96fL3Z9P5y0KZFl-W7ai1xHL-tCv-H-7fyI1rNd2q~ysjDO1W4xnIgeKZai1kA8Hv9MHirqbhKSkak29cKYjQ-Lr~VkCQO7q6QRrs86hWXzTIGK6c1aded5pm37Ygrw__';
 
-export default function Navbar() {
+interface NavbarProps {
+  onOpenFeasibility?: () => void;
+}
+
+export default function Navbar({ onOpenFeasibility }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -20,7 +24,7 @@ export default function Navbar() {
           />
         </div>
 
-        <div className="hidden md:flex items-center gap-5 lg:gap-7 bg-white/40 backdrop-blur-[30px] rounded-full px-6 py-3">
+        <div className="hidden md:flex items-center gap-4 lg:gap-6 bg-white/40 backdrop-blur-[30px] rounded-full px-6 py-2.5">
           {NAV_ITEMS.map((item) => (
             <a
               key={item}
@@ -30,6 +34,14 @@ export default function Navbar() {
               {item}
             </a>
           ))}
+          {onOpenFeasibility && (
+            <button
+              onClick={onOpenFeasibility}
+              className="font-dm font-bold text-xs lg:text-sm bg-olive-800 text-white rounded-full px-4 py-1.5 hover:bg-olive-800/90 transition-colors cursor-pointer"
+            >
+              Feasibility Check
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -60,6 +72,17 @@ export default function Navbar() {
               {item}
             </a>
           ))}
+          {onOpenFeasibility && (
+            <button
+              onClick={() => {
+                setMobileOpen(false);
+                onOpenFeasibility();
+              }}
+              className="w-full text-left font-dm font-bold text-base text-olive-800 tracking-tight px-2 py-2 hover:bg-olive-50 rounded transition-colors"
+            >
+              Feasibility Check →
+            </button>
+          )}
           <button className="flex items-center gap-1 bg-olive-50 rounded-full px-5 py-2.5 font-dm font-bold text-sm text-black tracking-tight mx-2">
             EN/हिं
             <ChevronDown size={16} />

@@ -224,6 +224,8 @@ async def download_dpr(
     user: User = Depends(get_current_user),
 ):
     """Serve the actual generated PDF file. Requires authentication."""
+    from app.services.pdf_service import generate_dpr_pdf
+
     stmt = select(DPRRecord).where(DPRRecord.id == dpr_id)
     result = await db.execute(stmt)
     record = result.scalar_one_or_none()
@@ -231,15 +233,22 @@ async def download_dpr(
     if record is None:
         raise HTTPException(status_code=404, detail=f"DPR {dpr_id} not found")
 
-    if not record.pdf_path:
-        raise HTTPException(status_code=404, detail=f"PDF not yet generated for {dpr_id}")
-
-    pdf_file = Path(record.pdf_path)
-    if not pdf_file.is_file():
-        raise HTTPException(
-            status_code=404,
-            detail=f"PDF file missing from disk for {dpr_id}",
-        )
+    pdf_file = Path(record.pdf_path) if record.pdf_path else None
+    if not pdf_file or not pdf_file.is_file():
+        # Generate on-demand if background worker has not run or file was moved
+        try:
+            logger.info("Generating DPR PDF on-demand for %s", dpr_id)
+            generated_path = await generate_dpr_pdf(dpr_id, record.dpr_payload or {})
+            record.pdf_path = generated_path
+            record.status = "ready"
+            await db.commit()
+            pdf_file = Path(generated_path)
+        except Exception as exc:
+            logger.exception("Failed on-demand PDF generation for %s", dpr_id)
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to generate PDF for {dpr_id}: {exc}",
+            ) from exc
 
     return FileResponse(
         path=str(pdf_file),
@@ -247,3 +256,4 @@ async def download_dpr(
         filename=f"{dpr_id}.pdf",
         headers={"Content-Disposition": f'attachment; filename="{dpr_id}.pdf"'},
     )
+

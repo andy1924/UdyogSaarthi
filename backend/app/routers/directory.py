@@ -19,26 +19,21 @@ async def nearby(
     category: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    point = func.ST_SetSRID(func.ST_MakePoint(lon, lat), 4326)
-    distance_expr = func.ST_Distance(BusinessProfile.location, point.cast("geography")).label(
-        "distance_m"
-    )
-    stmt = select(
-        BusinessProfile.id,
-        BusinessProfile.name,
-        BusinessProfile.category,
-        func.ST_X(BusinessProfile.location).label("profile_lon"),
-        func.ST_Y(BusinessProfile.location).label("profile_lat"),
-        distance_expr,
-    ).where(func.ST_DWithin(BusinessProfile.location, point.cast("geography"), radius_m))
-
+    sql_base = """
+        SELECT id, name, category, ST_X(location::geometry) AS profile_lon, ST_Y(location::geometry) AS profile_lat,
+               ST_Distance(location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) AS distance_m
+        FROM business_profiles
+        WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
+    """
+    params = {"lat": lat, "lon": lon, "radius_m": radius_m}
     if category:
-        stmt = stmt.where(BusinessProfile.category.ilike(category))
-
-    stmt = stmt.order_by(distance_expr).limit(20)
+        sql_base += " AND category ILIKE :category"
+        params["category"] = f"%{category}%"
+    sql_base += " ORDER BY distance_m LIMIT 20;"
 
     try:
-        rows = (await db.execute(stmt)).all()
+        from sqlalchemy import text
+        rows = (await db.execute(text(sql_base), params)).all()
     except Exception as exc:
         raise HTTPException(
             status_code=503,
@@ -57,17 +52,9 @@ async def nearby(
         for row in rows
     ]
 
-    sql = (
-        "SELECT id, name, category, ST_X(location), ST_Y(location), "
-        "ST_Distance(location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) "
-        "FROM business_profiles WHERE ST_DWithin(location, "
-        "ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m) "
-        "ORDER BY ST_Distance(location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography);"
-    )
-
     return DirectoryOut(
         query={"lat": lat, "lon": lon, "radius_m": radius_m, "category": category},
         count=len(profiles),
         profiles=profiles,
-        sql=sql,
+        sql=sql_base,
     )

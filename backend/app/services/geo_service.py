@@ -121,8 +121,9 @@ def build_overpass_ql(
 async def _query_overpass(overpass_ql: str) -> int | None:
     """Execute Overpass QL, return element count or None on failure."""
     url = settings.overpass_api_url
+    headers = {"User-Agent": "UdyogSaarthi/1.0 (https://udyogsaarthi.gov.in; contact@udyogsaarthi.gov.in)"}
     try:
-        async with httpx.AsyncClient(timeout=_OVERPASS_TIMEOUT) as client:
+        async with httpx.AsyncClient(timeout=_OVERPASS_TIMEOUT, headers=headers) as client:
             resp = await client.post(url, data={"data": overpass_ql})
 
         if resp.status_code != 200:
@@ -188,50 +189,117 @@ async def reverse_geocode(lat: float, lon: float) -> dict[str, str] | None:
 
     # 2. Live Mappls call
     api_key = settings.mappls_rest_key
-    if not api_key:
-        logger.warning("MAPPLS_REST_KEY not configured — cannot reverse geocode")
-        return None
+    if api_key:
+        url = f"{settings.mappls_rev_geocode_url}/{api_key}/rev_geocode"
+        params: dict[str, Any] = {"lat": str(lat), "lng": str(lon)}
+        try:
+            async with httpx.AsyncClient(timeout=_MAPPLS_REVGEO_TIMEOUT) as client:
+                resp = await client.get(url, params=params)
 
-    url = f"{settings.mappls_rev_geocode_url}/{api_key}/rev_geocode"
-    params: dict[str, Any] = {"lat": str(lat), "lng": str(lon)}
+            if resp.status_code == 200:
+                data = resp.json()
+                results = data.get("results", [])
+                if results:
+                    top = results[0]
+                    state = top.get("state", "").strip()
+                    district = top.get("district", "").strip()
+                    block = top.get("area", top.get("subDistrict", "")).strip()
+                    if state and district:
+                        result = {"state": state, "district": district, "block": block}
+                        logger.info(
+                            "Reverse geocoded (%.5f, %.5f) → %s, %s, %s",
+                            lat, lon, state, district, block,
+                        )
+                        await cache.set_json("revgeo", result, settings.cache_ttl_revgeo, lat_s, lon_s)
+                        return result
+            else:
+                logger.warning(
+                    "Mappls rev-geocode HTTP %d for (%.5f, %.5f)",
+                    resp.status_code, lat, lon,
+                )
+        except (httpx.TimeoutException, httpx.HTTPError) as exc:
+            logger.warning("Mappls rev-geocode failed (%s)", exc)
 
-    result: dict[str, str] | None = None
+    # 3. OpenStreetMap Nominatim fallback
     try:
-        async with httpx.AsyncClient(timeout=_MAPPLS_REVGEO_TIMEOUT) as client:
-            resp = await client.get(url, params=params)
-
+        url = "https://nominatim.openstreetmap.org/reverse"
+        params = {"format": "json", "lat": str(lat), "lon": str(lon), "zoom": "14", "addressdetails": "1"}
+        headers = {"User-Agent": "UdyogSaarthi/1.0 (contact@udyogsaarthi.gov.in)"}
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            resp = await client.get(url, params=params, headers=headers)
         if resp.status_code == 200:
             data = resp.json()
-            results = data.get("results", [])
-            if results:
-                top = results[0]
-                state = top.get("state", "").strip()
-                district = top.get("district", "").strip()
-                block = top.get("area", top.get("subDistrict", "")).strip()
-                if state and district:
-                    result = {"state": state, "district": district, "block": block}
-                    logger.info(
-                        "Reverse geocoded (%.5f, %.5f) → %s, %s, %s",
-                        lat, lon, state, district, block,
-                    )
-        else:
-            logger.warning(
-                "Mappls rev-geocode HTTP %d for (%.5f, %.5f)",
-                resp.status_code, lat, lon,
-            )
-    except (httpx.TimeoutException, httpx.HTTPError) as exc:
-        logger.warning("Mappls rev-geocode failed (%s)", exc)
+            addr = data.get("address", {})
+            state = addr.get("state", "").strip()
+            district = addr.get("state_district", addr.get("county", addr.get("city", ""))).strip()
+            block = addr.get("suburb", addr.get("town", addr.get("village", addr.get("neighbourhood", addr.get("county", ""))))).strip()
+            if state:
+                result = {
+                    "state": state,
+                    "district": district or state,
+                    "block": block or district or state,
+                    "display_name": data.get("display_name", f"{lat}, {lon}"),
+                }
+                logger.info(
+                    "OSM Reverse geocoded (%.5f, %.5f) → %s, %s, %s",
+                    lat, lon, state, district, block,
+                )
+                await cache.set_json("revgeo", result, settings.cache_ttl_revgeo, lat_s, lon_s)
+                return result
+    except Exception as exc:
+        logger.warning("Nominatim rev-geocode failed (%s)", exc)
 
-    if result is not None:
-        await cache.set_json("revgeo", result, settings.cache_ttl_revgeo, lat_s, lon_s)
+    return None
 
-    return result
+
+async def forward_geocode(query: str) -> dict[str, Any] | None:
+    """Resolve location string to (lat, lon, state, district, block) with caching."""
+    q_clean = query.strip()
+    if not q_clean:
+        return None
+
+    q_key = q_clean.lower().replace(" ", "_")
+    cached = await cache.get_json("fwdgeo", q_key)
+    if cached is not None:
+        return cached
+
+    try:
+        url = "https://nominatim.openstreetmap.org/search"
+        params = {"format": "json", "q": q_clean, "limit": "1", "addressdetails": "1"}
+        headers = {"User-Agent": "UdyogSaarthi/1.0 (contact@udyogsaarthi.gov.in)"}
+        async with httpx.AsyncClient(timeout=4.0) as client:
+            resp = await client.get(url, params=params, headers=headers)
+        if resp.status_code == 200:
+            data = resp.json()
+            if data and len(data) > 0:
+                top = data[0]
+                lat = float(top["lat"])
+                lon = float(top["lon"])
+                addr = top.get("address", {})
+                state = addr.get("state", "").strip()
+                district = addr.get("state_district", addr.get("county", addr.get("city", ""))).strip()
+                block = addr.get("suburb", addr.get("town", addr.get("village", addr.get("neighbourhood", addr.get("county", ""))))).strip()
+                result = {
+                    "lat": lat,
+                    "lon": lon,
+                    "state": state,
+                    "district": district or state,
+                    "block": block or district or state,
+                    "display_name": top.get("display_name", q_clean),
+                }
+                await cache.set_json("fwdgeo", result, 86400, q_key)
+                return result
+    except Exception as exc:
+        logger.warning("Forward geocode failed for %r: %s", q_clean, exc)
+
+    return None
 
 
 # ── Live LGD Resolution (with Redis cache) ────────────────────────────
 
 _LGD_API_BASE = "https://data.gov.in/api/datastore/resource.json"
 _LGD_TIMEOUT = 6.0
+
 
 
 async def resolve_lgd_live(

@@ -50,5 +50,6 @@ class FeasibilityOut(BaseModel):
     verdict: Literal["saturated", "viable", "niche-gap"]
     swot: dict
     opportunities: list[dict]
-    overpass_ql: str
+    overpass_ql: str = ""
+
 

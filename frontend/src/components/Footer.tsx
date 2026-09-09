@@ -1,61 +1,105 @@
-const FOOTER_LINKS = [
-  'Viability Assessment',
-  'Interest & Subvention Matrix',
-  'Project Report Dossier',
-  'Interest & Subvention Matrix',
-  'Project Report Dossier',
-  'Apex Desk Directory',
-  'Interest & Subvention Matrix',
-];
+import { useState } from 'react';
+import LegalModal from './legal/LegalModal';
+import PrivacyPolicy from './legal/PrivacyPolicy';
+import TermsOfService from './legal/TermsOfService';
+import CookiePolicy from './legal/CookiePolicy';
+import CookieNotice from './legal/CookieNotice';
 
-const POLICY_LINKS = ['Data Privacy Charter', 'Advisory Terms', 'Grievance Redressal'];
+type LegalDoc = 'privacy' | 'terms' | 'cookies';
+
+const columnTitle =
+  'font-roboto-mono text-xs leading-[1.4] tracking-[0.08em] uppercase text-olive-800';
+const columnLink =
+  'font-dm font-bold text-base lg:text-lg leading-[1.5] tracking-[-0.025em] text-black/75 hover:text-olive-800 transition-colors text-left';
+
+const DOC_META: Record<LegalDoc, { title: string; subtitle: string }> = {
+  privacy: {
+    title: 'Privacy Policy',
+    subtitle: 'DPDP Act 2023-aligned · demo/sandbox notice',
+  },
+  terms: {
+    title: 'Terms of Service',
+    subtitle: 'Demo use · indicative outputs · grievance redressal',
+  },
+  cookies: {
+    title: 'Cookie Policy',
+    subtitle: 'Minimal local storage · no trackers',
+  },
+};
 
 export default function Footer() {
+  const [activeDoc, setActiveDoc] = useState<LegalDoc | null>(null);
+
+  const openDoc = (doc: LegalDoc) => setActiveDoc(doc);
+  const closeDoc = () => setActiveDoc(null);
+
   return (
-    <footer className="px-4 sm:px-8 lg:px-14 pt-16 sm:pt-20 lg:pt-24 pb-6 sm:pb-8">
-      <div className="flex flex-col lg:flex-row gap-10 lg:gap-20">
-        <div className="flex-1">
-          <h3 className="font-crimson text-[40px] sm:text-[50px] lg:text-[60px] leading-[0.9] tracking-[-0.03em] text-black">
-            UdyogSaarthi
-          </h3>
-          <p className="font-crimson text-[28px] sm:text-[32px] lg:text-[40px] leading-[0.9] tracking-[-0.03em] text-black/75 mt-3">
-            Independent Rural Enterprise Advisory Platform
+    <>
+      <footer className="px-4 sm:px-8 lg:px-14 pt-7 sm:pt-9 lg:pt-11 pb-6 sm:pb-8">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
+          <div className="flex-1">
+            <h3 className="font-crimson text-[19px] sm:text-[24px] lg:text-[29px] leading-[0.9] tracking-[-0.03em] text-black">
+              UdyogSaarthi
+            </h3>
+            <p className="font-crimson text-[14px] sm:text-[16px] lg:text-[20px] leading-[0.9] tracking-[-0.03em] text-black/75 mt-3">
+              Independent Rural Enterprise Advisory Platform
+            </p>
+            <p className="font-crimson text-base sm:text-lg lg:text-xl leading-[1] tracking-[-0.03em] text-black/95 mt-6 max-w-[420px]">
+              A digital public utility that demystifies credit and subsidies for rural innovators.
+            </p>
+          </div>
+
+          <nav aria-label="Footer" className="grid grid-cols-2 gap-8 lg:gap-12 lg:pt-2">
+            <div className="flex flex-col gap-2.5">
+              <h4 className={columnTitle}>Resources</h4>
+              <a href="#how-to" className={columnLink}>
+                How It Works
+              </a>
+              <a href="#contact-us" className={columnLink}>
+                Contact
+              </a>
+              <button type="button" onClick={() => openDoc('terms')} className={columnLink}>
+                Grievance Redressal
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <h4 className={columnTitle}>Legal</h4>
+              <button type="button" onClick={() => openDoc('privacy')} className={columnLink}>
+                Privacy Policy
+              </button>
+              <button type="button" onClick={() => openDoc('terms')} className={columnLink}>
+                Terms of Service
+              </button>
+              <button type="button" onClick={() => openDoc('cookies')} className={columnLink}>
+                Cookie Policy
+              </button>
+            </div>
+          </nav>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-7 sm:mt-9 pt-6 border-t border-black/10 gap-3">
+          <p className="font-roboto text-sm lg:text-base leading-[1.33] text-neutral-750">
+            &copy; 2026 UdyogSaarthi
           </p>
-          <p className="font-crimson text-base sm:text-lg lg:text-xl leading-[1] tracking-[-0.03em] text-black/95 mt-6 max-w-[694px]">
-            A digital public utility built to remove friction from institutional credit and state subsidy adoption for rural innovators, self-help clusters, and micro-enterprises
+          <p className="font-roboto-mono text-xs leading-[1.4] tracking-[-0.01em] text-olive-800">
+            Built as a Digital Public Good demo
           </p>
         </div>
+      </footer>
 
-        <div className="flex flex-col gap-1 lg:pt-2">
-          {FOOTER_LINKS.map((link, index) => (
-            <a
-              key={`${link}-${index}`}
-              href="#"
-              className="font-dm font-bold text-lg lg:text-xl leading-[1.4] tracking-[-0.025em] text-black/75 hover:text-olive-800 transition-colors"
-            >
-              {link}
-            </a>
-          ))}
-        </div>
-      </div>
+      <LegalModal
+        open={activeDoc !== null}
+        title={activeDoc ? DOC_META[activeDoc].title : ''}
+        subtitle={activeDoc ? DOC_META[activeDoc].subtitle : undefined}
+        onClose={closeDoc}
+      >
+        {activeDoc === 'privacy' ? <PrivacyPolicy /> : null}
+        {activeDoc === 'terms' ? <TermsOfService /> : null}
+        {activeDoc === 'cookies' ? <CookiePolicy /> : null}
+      </LegalModal>
 
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-12 sm:mt-16 pt-6 border-t border-black/10 gap-4">
-        <p className="font-roboto text-lg sm:text-xl lg:text-2xl leading-[1.33] text-neutral-750">
-          &copy; 2026 UdyogSaarthi Rural Enterprise Advisory.
-        </p>
-
-        <div className="flex items-center gap-4 sm:gap-6">
-          {POLICY_LINKS.map((link) => (
-            <a
-              key={link}
-              href="#"
-              className="font-roboto-mono text-xs leading-[1.4] tracking-[-0.01em] text-olive-800 hover:underline transition-colors"
-            >
-              {link}
-            </a>
-          ))}
-        </div>
-      </div>
-    </footer>
+      <CookieNotice onOpenCookiePolicy={() => openDoc('cookies')} />
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ChevronDown, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import LanguageSelector from './LanguageSelector';
 
 const NAV_ITEMS = ['Benefits', 'Specifications', 'How-to', 'Contact Us'];
 
@@ -10,7 +11,8 @@ interface NavbarProps {
   onOpenFeasibility?: () => void;
 }
 
-export default function Navbar({ onOpenFeasibility }: NavbarProps) {
+export default function Navbar({ onOpenFeasibility: _onOpenFeasibility }: NavbarProps) {
+  void _onOpenFeasibility;
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -34,21 +36,12 @@ export default function Navbar({ onOpenFeasibility }: NavbarProps) {
               {item}
             </a>
           ))}
-          {onOpenFeasibility && (
-            <button
-              onClick={onOpenFeasibility}
-              className="font-dm font-bold text-xs lg:text-sm bg-olive-800 text-white rounded-full px-4 py-1.5 hover:bg-olive-800/90 transition-colors cursor-pointer"
-            >
-              Feasibility Check
-            </button>
-          )}
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="hidden md:flex items-center gap-1 bg-olive-50 rounded-full px-4 lg:px-5 py-2.5 font-dm font-bold text-sm text-black tracking-tight hover:bg-olive-50/80 transition-colors">
-            EN/हिं
-            <ChevronDown size={16} />
-          </button>
+          <div className="hidden md:block">
+            <LanguageSelector variant="landing" />
+          </div>
 
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -72,21 +65,7 @@ export default function Navbar({ onOpenFeasibility }: NavbarProps) {
               {item}
             </a>
           ))}
-          {onOpenFeasibility && (
-            <button
-              onClick={() => {
-                setMobileOpen(false);
-                onOpenFeasibility();
-              }}
-              className="w-full text-left font-dm font-bold text-base text-olive-800 tracking-tight px-2 py-2 hover:bg-olive-50 rounded transition-colors"
-            >
-              Feasibility Check →
-            </button>
-          )}
-          <button className="flex items-center gap-1 bg-olive-50 rounded-full px-5 py-2.5 font-dm font-bold text-sm text-black tracking-tight mx-2">
-            EN/हिं
-            <ChevronDown size={16} />
-          </button>
+          <LanguageSelector variant="landing" className="mx-2" />
         </div>
       )}
     </header>

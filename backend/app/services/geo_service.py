@@ -35,6 +35,19 @@ _MAPPLS_KEYWORDS: dict[str, str] = {
     "food": "restaurant",
     "retail": "grocery",
     "electronics": "electronics",
+    # Extended catalog — one canonical slug per business group so every
+    # frontend idea resolves to a real POI taxonomy instead of shop=<slug>.
+    "mill": "flour mill",
+    "bakery": "bakery",
+    "farm": "agriculture",
+    "craft": "handicraft",
+    "clothes": "clothing",
+    "tailor": "tailor",
+    "beauty": "salon",
+    "repair": "workshop",
+    "mobile": "mobile",
+    "services": "internet",
+    "pharmacy": "pharmacy",
 }
 
 _OSM_TAGS: dict[str, str] = {
@@ -42,6 +55,17 @@ _OSM_TAGS: dict[str, str] = {
     "food": "amenity=restaurant",
     "retail": "shop=supermarket",
     "electronics": "shop=electronics",
+    "mill": "shop=food",
+    "bakery": "shop=bakery",
+    "farm": "shop=agrarian",
+    "craft": "shop=craft",
+    "clothes": "shop=clothes",
+    "tailor": "craft=tailor",
+    "beauty": "shop=beauty",
+    "repair": "shop=trade",
+    "mobile": "shop=mobile_phone",
+    "services": "shop=copyshop",
+    "pharmacy": "amenity=pharmacy",
 }
 
 # ── Mappls Nearby Search ─────────────────────────────────────────────

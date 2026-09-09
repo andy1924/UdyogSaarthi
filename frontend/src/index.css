@@ -12,3 +12,52 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ── Dashboard step transitions ───────────────────────────────
+   Lateral shift: next step shifts in from the right, previous step
+   shifts in from the left. Sections remount on step change, so the
+   animation replays on every transition. */
+@keyframes step-shift-right {
+  from {
+    opacity: 0;
+    transform: translateX(72px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes step-shift-left {
+  from {
+    opacity: 0;
+    transform: translateX(-72px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-step-forward {
+  animation: step-shift-right 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+.animate-step-back {
+  animation: step-shift-left 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+/* Legacy alias (was referenced but never defined) */
+.animate-fadeIn {
+  animation: step-shift-right 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-step-forward,
+  .animate-step-back,
+  .animate-fadeIn {
+    animation: none;
+  }
+}

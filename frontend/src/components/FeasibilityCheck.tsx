@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   MapPin,
   Factory,
@@ -8,19 +8,14 @@ import {
   ArrowRight,
   TrendingUp,
   Zap,
-  Check,
   CheckCircle2,
   Share2,
   Phone,
   Layers,
   ChevronDown,
   ShieldCheck,
-  Leaf,
-  Globe,
   Sliders,
   RefreshCw,
-  Server,
-  LocateFixed,
   Search,
   Navigation
 } from 'lucide-react';
@@ -31,6 +26,8 @@ import {
   type NearbyProfile,
   type LicenseItem,
 } from '../lib/api';
+import RealMap from './RealMap';
+import LanguageSelector from './LanguageSelector';
 
 interface FeasibilityCheckProps {
   onBackToLanding: () => void;
@@ -38,52 +35,266 @@ interface FeasibilityCheckProps {
 
 interface EnterpriseOption {
   id: string;
+  /** Backend-canonical POI slug (must exist in geo_service _MAPPLS_KEYWORDS/_OSM_TAGS). */
   apiCategory: string;
+  group: string;
   name: string;
   description: string;
   capex: number;
   capexLabel: string;
 }
 
+// Full business-idea catalog — grouped per PMEGP/KVIC industry families
+// (agro-based, agri-allied, forest-based, rural engineering, service & textile).
+// CAPEX benchmarks follow PMEGP model-project scale (Micro ≤ ₹1.40L, Term ≤ ₹50L).
 const ENTERPRISE_OPTIONS: EnterpriseOption[] = [
+  // ── Agro & Food Processing ──────────────────────────────────────
   {
     id: 'agro_processing',
-    apiCategory: 'agro-processing',
-    name: 'Agro & Food Value Addition',
-    description: 'Millet milling, cold-press oil extraction, spice powdering, and solar micro-dehydration.',
+    apiCategory: 'mill',
+    group: 'Agro & Food Processing',
+    name: 'Millet Milling, Oil & Spice Unit',
+    description: 'Mini flour mill, cold-press oil expeller, spice powdering and solar micro-dehydration.',
     capex: 2500000,
     capexLabel: '₹25.00 Lakh',
   },
   {
+    id: 'rice_dal_mill',
+    apiCategory: 'mill',
+    group: 'Agro & Food Processing',
+    name: 'Rice / Dal Milling & Packaging',
+    description: 'Paddy de-husking or dal milling with grading, weighing and branded pack packaging.',
+    capex: 1400000,
+    capexLabel: '₹14.00 Lakh',
+  },
+  {
+    id: 'bakery_namkeen',
+    apiCategory: 'bakery',
+    group: 'Agro & Food Processing',
+    name: 'Bakery, Rusks & Namkeen Unit',
+    description: 'Breads, rusks, biscuits and fried snacks for kirana and tea-stall supply routes.',
+    capex: 750000,
+    capexLabel: '₹7.50 Lakh',
+  },
+  {
+    id: 'honey_processing',
+    apiCategory: 'food',
+    group: 'Agro & Food Processing',
+    name: 'Honey Processing & Bottling',
+    description: 'KVIC model project: apiary-linked extraction, filtering, moisture control and bottling.',
+    capex: 500000,
+    capexLabel: '₹5.00 Lakh',
+  },
+  {
+    id: 'dhaba_tea',
+    apiCategory: 'food',
+    group: 'Agro & Food Processing',
+    name: 'Tea Stall / Rural Dhaba',
+    description: 'Highway or market-committee eatery: tea, snacks and thali with minimal equipment.',
+    capex: 120000,
+    capexLabel: '₹1.20 Lakh',
+  },
+  // ── Dairy & Livestock ────────────────────────────────────────────
+  {
     id: 'dairy_livestock',
     apiCategory: 'dairy',
-    name: 'Dairy & By-Products',
-    description: 'Bulk milk cooling unit (BMC), paneer/ghee packaging, and cow-dung bio-fertilizer pellets.',
+    group: 'Dairy & Livestock',
+    name: 'Bulk Milk Cooling & Ghee Unit',
+    description: 'Bulk milk cooler (BMC), paneer/ghee packaging, and cow-dung bio-fertilizer pellets.',
     capex: 1800000,
     capexLabel: '₹18.00 Lakh',
   },
   {
+    id: 'poultry_layer',
+    apiCategory: 'farm',
+    group: 'Dairy & Livestock',
+    name: 'Poultry Layer Farm (500 birds)',
+    description: 'Deep-litter shed, feeders, layer chicks and egg-tray supply to local retailers.',
+    capex: 800000,
+    capexLabel: '₹8.00 Lakh',
+  },
+  {
+    id: 'goatry',
+    apiCategory: 'farm',
+    group: 'Dairy & Livestock',
+    name: 'Goatry Unit (20 goats + shed)',
+    description: 'Stall-fed Osmanabadi/Sirohi goats with kidding shed and fodder plot linkage.',
+    capex: 400000,
+    capexLabel: '₹4.00 Lakh',
+  },
+  // ── Farm Services & Agri-Allied ──────────────────────────────────
+  {
     id: 'farm_mechanization',
-    apiCategory: 'farm_mechanization',
+    apiCategory: 'farm',
+    group: 'Farm Services & Agri-Allied',
     name: 'Custom Hiring Center',
-    description: 'Tractor implements, rotavators, drone sprayers, and solar pump maintenance workshop.',
+    description: 'Tractor implements, rotavators, drone sprayers, and solar pump maintenance on hire.',
     capex: 3200000,
     capexLabel: '₹32.00 Lakh',
   },
   {
+    id: 'agri_input_shop',
+    apiCategory: 'farm',
+    group: 'Farm Services & Agri-Allied',
+    name: 'Agri-Input & Seed Shop',
+    description: 'Seeds, fertilizers, pesticides and small tools at the mandi or village chowk.',
+    capex: 500000,
+    capexLabel: '₹5.00 Lakh',
+  },
+  {
+    id: 'cold_storage',
+    apiCategory: 'farm',
+    group: 'Farm Services & Agri-Allied',
+    name: 'Solar Cold Storage (10 MT)',
+    description: 'Micro cold room for vegetables, dairy and floriculture on pay-per-crate rental.',
+    capex: 2800000,
+    capexLabel: '₹28.00 Lakh',
+  },
+  {
+    id: 'nursery_vermi',
+    apiCategory: 'farm',
+    group: 'Farm Services & Agri-Allied',
+    name: 'Nursery + Vermicompost Unit',
+    description: 'Sapling nursery with vermi-beds converting farm waste into bagged compost.',
+    capex: 250000,
+    capexLabel: '₹2.50 Lakh',
+  },
+  // ── Craft, Handloom & Forest ─────────────────────────────────────
+  {
     id: 'artisanal_handloom',
-    apiCategory: 'artisanal_handloom',
-    name: 'Rural Craft & Bio-Packaging',
-    description: 'Areca leaf cutlery, bamboo weaving, handloom spinning, and natural dye processing.',
+    apiCategory: 'craft',
+    group: 'Craft, Handloom & Forest',
+    name: 'Areca, Bamboo & Bio-Packaging',
+    description: 'Areca leaf cutlery pressing, bamboo weaving and plastic-alternative packaging.',
     capex: 1200000,
     capexLabel: '₹12.00 Lakh',
   },
+  {
+    id: 'stitching_garment',
+    apiCategory: 'tailor',
+    group: 'Craft, Handloom & Forest',
+    name: 'Handloom & Stitching Unit',
+    description: 'Power-loom or handloom weaving plus stitching job-work for school uniforms and blouses.',
+    capex: 600000,
+    capexLabel: '₹6.00 Lakh',
+  },
+  {
+    id: 'handmade_paper',
+    apiCategory: 'craft',
+    group: 'Craft, Handloom & Forest',
+    name: 'Handmade Paper & Carry Bags',
+    description: 'KVIC model project: waste-cotton paper, envelopes and stitched cloth/paper carry bags.',
+    capex: 1100000,
+    capexLabel: '₹11.00 Lakh',
+  },
+  // ── Rural Retail & Trade ─────────────────────────────────────────
+  {
+    id: 'kirana_mart',
+    apiCategory: 'retail',
+    group: 'Rural Retail & Trade',
+    name: 'Kirana + FMCG Mini-Mart',
+    description: 'Daily-need grocery, toiletries and recharge counter with UPI billing.',
+    capex: 400000,
+    capexLabel: '₹4.00 Lakh',
+  },
+  {
+    id: 'garment_footwear',
+    apiCategory: 'clothes',
+    group: 'Rural Retail & Trade',
+    name: 'Garments & Footwear Store',
+    description: 'Readymade clothes, school uniforms, Hawai chappals and seasonal wear.',
+    capex: 600000,
+    capexLabel: '₹6.00 Lakh',
+  },
+  {
+    id: 'jan_aushadhi',
+    apiCategory: 'pharmacy',
+    group: 'Rural Retail & Trade',
+    name: 'Jan Aushadhi Medicine Shop',
+    description: 'Generic-medicine franchise near PHC/bus stand with pharmacist on rolls.',
+    capex: 300000,
+    capexLabel: '₹3.00 Lakh',
+  },
+  // ── Services & Digital ───────────────────────────────────────────
+  {
+    id: 'csc_center',
+    apiCategory: 'services',
+    group: 'Services & Digital',
+    name: 'CSC / Digital Seva + Xerox',
+    description: 'Aadhaar, banking BC, bill payments, photocopy/lamination and online-form filing.',
+    capex: 200000,
+    capexLabel: '₹2.00 Lakh',
+  },
+  {
+    id: 'salon_grooming',
+    apiCategory: 'beauty',
+    group: 'Services & Digital',
+    name: 'Salon & Grooming Studio',
+    description: 'Haircut, shave, bridal and festival-season packages with basic cosmetics retail.',
+    capex: 250000,
+    capexLabel: '₹2.50 Lakh',
+  },
+  {
+    id: 'mobile_kiosk',
+    apiCategory: 'mobile',
+    group: 'Services & Digital',
+    name: 'Mobile Sales & Repair Kiosk',
+    description: 'Handsets, accessories, recharge and chip-level repair with spare-parts stock.',
+    capex: 300000,
+    capexLabel: '₹3.00 Lakh',
+  },
+  // ── Repair, Energy & Workshop ────────────────────────────────────
+  {
+    id: 'solar_electrical',
+    apiCategory: 'repair',
+    group: 'Repair, Energy & Workshop',
+    name: 'Electrical + Solar Installation',
+    description: 'Home wiring, pump repair and rooftop-solar installation with DISCOM empanelment.',
+    capex: 350000,
+    capexLabel: '₹3.50 Lakh',
+  },
+  {
+    id: 'welding_garage',
+    apiCategory: 'repair',
+    group: 'Repair, Energy & Workshop',
+    name: 'Welding & Two-Wheeler Workshop',
+    description: 'Fabrication (gates, sheds), agro-implement repair and two-wheeler servicing bay.',
+    capex: 700000,
+    capexLabel: '₹7.00 Lakh',
+  },
 ];
+
+// Distinct dropdown groups, in catalog order.
+const ENTERPRISE_GROUPS: string[] = [...new Set(ENTERPRISE_OPTIONS.map((e) => e.group))];
+
+// Approximate DigiLocker brand mark (mock only): purple document + cloud-keyhole.
+function DigiLockerMark({ size = 40, mono = false }: { size?: number; mono?: boolean }) {
+  const main = mono ? '#ffffff' : '#5558A6';
+  const fold = mono ? 'rgba(255,255,255,0.65)' : '#8386C4';
+  const h = (size * 3) / 4;
+  return (
+    <svg width={size} height={h} viewBox="0 0 64 48" fill="none" aria-hidden="true">
+      <path d="M22 3h22l12 12v27a4 4 0 0 1-4 4H22a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4z" fill={main} />
+      <path d="M44 3l12 12H46a2 2 0 0 1-2-2V3z" fill={fold} />
+      <path
+        d="M14 20a7 7 0 0 1 1.6-13.8A10 10 0 0 1 35 8a8 8 0 0 1 6.5 12.6c.3 4.5-3.3 8.4-7.9 8.4H21a7 7 0 0 1-7-9z"
+        fill={mono ? '#5558A6' : '#ffffff'}
+      />
+      <circle cx="23" cy="20" r="2.6" fill={main} />
+      <path d="M21.8 21.5h2.4l.9 5h-4.2l.9-5z" fill={main} />
+    </svg>
+  );
+}
 
 // No mock/fallback peer data — only real PostGIS results are shown
 
 export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckProps) {
   const [currentStep, setCurrentStep] = useState<number>(1);
+  // Slide direction for step transitions (forward = from right, back = from left)
+  const [stepDirection, setStepDirection] = useState<'forward' | 'back'>('forward');
+  const stepAnimClass = stepDirection === 'back' ? 'animate-step-back' : 'animate-step-forward';
+  // Anchor for step transitions — goToStep scroll-locks here, not page top
+  const stepContentRef = useRef<HTMLDivElement>(null);
   const [radius, setRadius] = useState<number>(5000);
   const [selectedEnterprise, setSelectedEnterprise] = useState<string>('agro_processing');
   const [marginPercent, setMarginPercent] = useState<number>(10);
@@ -100,7 +311,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
   const [manualOverrideOpen, setManualOverrideOpen] = useState<boolean>(false);
 
   // Backend Integration States
-  const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
+  const [, setBackendOnline] = useState<boolean | null>(null);
   const [loadingState, setLoadingState] = useState<string | null>(null);
   const [feasibilityResult, setFeasibilityResult] = useState<FeasibilityResult | null>(null);
   const [schemeResult, setSchemeResult] = useState<SchemeCalculationResult | null>(null);
@@ -110,6 +321,18 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
   const [licenses, setLicenses] = useState<LicenseItem[]>([]);
   const [dprId, setDprId] = useState<string>('UDYOG-MH-2026-8941');
   const [dprStatus, setDprStatus] = useState<string>('Compiled & Signed');
+
+  // Mock DigiLocker sandbox (Step 5) — frontend-only simulation, no real API call.
+  const [digiError, setDigiError] = useState<string | null>(null);
+  const [digiStatus, setDigiStatus] = useState<'idle' | 'redirecting' | 'consent' | 'verified'>('idle');
+  const [digiIdentity, setDigiIdentity] = useState<{
+    name: string;
+    dob: string;
+    gender: string;
+    maskedAadhaar: string;
+    pan: string;
+    address: string;
+  } | null>(null);
 
   const enterprise = ENTERPRISE_OPTIONS.find((e) => e.id === selectedEnterprise) || ENTERPRISE_OPTIONS[0];
 
@@ -127,59 +350,124 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
   const displayLoan = schemeResult ? schemeResult.max_loan_capped : fallbackLoan;
   const displayEqi = schemeResult ? schemeResult.eqi_amount : fallbackEqi;
 
-  // Dynamic SVG circle radius (maps 1000m -> 45px, 10000m -> 140px)
-  const svgCircleRadius = 35 + (radius / 10000) * 105;
+  // Mirror of geoStatus for async GPS callbacks (avoids stale closures).
+  const geoStatusRef = useRef(geoStatus);
+  useEffect(() => {
+    geoStatusRef.current = geoStatus;
+  }, [geoStatus]);
 
-  // 1. Detect Exact GPS Location of User
-  const detectExactLocation = useCallback(async () => {
+  // Pune fallback carries real coordinates so map + feasibility keep working without GPS.
+  const applyPuneFallback = useCallback(() => {
+    setUserCoords({ lat: 18.5204, lon: 73.8567 });
+    setGeoResolved({ state: 'Maharashtra', district: 'Pune', block: 'Haveli' });
+    setLocationText('Haveli, Pune, Maharashtra');
+    setSearchLocationQuery('Pune, Maharashtra');
+    setGeoStatus('denied');
+    setLoadingState(null);
+  }, []);
+
+  // Last-resort place-name lookup when the backend is unreachable.
+  // Server path (Mappls → Nominatim) stays preferred; this mirrors its parsing.
+  const reverseGeocodeClientSide = async (lat: number, lon: number) => {
+    const url =
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}` +
+      `&zoom=14&addressdetails=1`;
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error(`Nominatim HTTP ${res.status}`);
+    const data = await res.json();
+    const addr = data.address || {};
+    const state = (addr.state || '').trim();
+    if (!state) throw new Error('Nominatim returned no state');
+    const district = (addr.state_district || addr.county || addr.city || '').trim();
+    const block = (addr.suburb || addr.town || addr.village || addr.neighbourhood || addr.county || '').trim();
+    return {
+      state,
+      district: district || state,
+      block: block || district || state,
+      display_name: data.display_name as string | undefined,
+    };
+  };
+
+  const resolvePlaceName = async (lat: number, lon: number) => {
+    try {
+      return await api.reverseGeocode(lat, lon);
+    } catch (err) {
+      console.warn('Backend reverse-geocode unreachable, trying client-side lookup:', err);
+      return await reverseGeocodeClientSide(lat, lon);
+    }
+  };
+
+  // 1. Detect Exact GPS Location of User.
+  // Called by the Locate button when the search input is blank; force=true
+  // overwrites even a manual search, the silent mount call never clobbers
+  // a location the user already searched.
+  const detectExactLocation = useCallback(async (force = false) => {
     if (typeof window === 'undefined' || !navigator.geolocation) {
-      setGeoStatus('denied');
-      setLocationText('Pune, Maharashtra');
+      applyPuneFallback();
+      return;
+    }
+    if (!force && geoStatusRef.current === 'manual') return;
+    if (window.isSecureContext === false) {
+      // getCurrentPosition always fails off HTTPS (except localhost) — skip straight to fallback.
+      console.warn('Geolocation needs HTTPS or localhost; using Pune fallback.');
+      applyPuneFallback();
       return;
     }
 
     setGeoStatus('detecting');
     setLoadingState('Acquiring high-precision GPS satellite fix...');
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        setUserCoords({ lat, lon });
+    const onFix = async (pos: GeolocationPosition) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      setUserCoords({ lat, lon });
 
-        try {
-          const resolved = await api.reverseGeocode(lat, lon);
-          setGeoResolved(resolved);
-          const locStr = [resolved.block || resolved.district, resolved.district, resolved.state]
-            .filter(Boolean)
-            .join(', ');
-          const finalStr = locStr || resolved.display_name || `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
-          setLocationText(finalStr);
-          setSearchLocationQuery(finalStr);
-          setGeoStatus('detected');
-        } catch (err) {
-          console.warn('Reverse geocode fallback notice:', err);
-          const coordStr = `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
-          setLocationText(coordStr);
-          setGeoStatus('detected');
-        } finally {
-          setLoadingState(null);
-        }
-      },
-      (err) => {
-        console.warn('Geolocation permission not granted or timeout:', err.message);
-        setGeoStatus('denied');
+      try {
+        const resolved = await resolvePlaceName(lat, lon);
+        // A manual search that landed while GPS was in flight wins.
+        if (!force && geoStatusRef.current === 'manual') return;
+        setGeoResolved(resolved);
+        const locStr = [resolved.block || resolved.district, resolved.district, resolved.state]
+          .filter(Boolean)
+          .join(', ');
+        const finalStr = locStr || resolved.display_name || `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
+        setLocationText(finalStr);
+        setSearchLocationQuery(finalStr);
+        setGeoStatus('detected');
+      } catch (err) {
+        console.warn('Place-name lookup failed, showing coordinates:', err);
+        const coordStr = `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
+        setLocationText(coordStr);
+        setSearchLocationQuery(coordStr);
+        setGeoStatus('detected');
+      } finally {
         setLoadingState(null);
-        // Fallback default if not already set
-        if (!locationText || locationText === 'Detecting exact location...') {
-          setLocationText('Pune, Maharashtra');
-          setSearchLocationQuery('Pune, Maharashtra');
-          setGeoResolved({ state: 'Maharashtra', district: 'Pune', block: 'Haveli' });
+      }
+    };
+
+    const onHardFail = (err: GeolocationPositionError) => {
+      console.warn('Geolocation unavailable:', err.message);
+      applyPuneFallback();
+    };
+
+    navigator.geolocation.getCurrentPosition(
+      onFix,
+      (err) => {
+        if (err.code === err.TIMEOUT) {
+          // High-accuracy fix too slow (indoor/device) — retry with network fix before giving up.
+          setLoadingState('High-accuracy fix timed out — retrying with network location...');
+          navigator.geolocation.getCurrentPosition(onFix, onHardFail, {
+            enableHighAccuracy: false,
+            timeout: 25000,
+            maximumAge: 600000,
+          });
+        } else {
+          onHardFail(err);
         }
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
-  }, [locationText]);
+  }, [applyPuneFallback]);
 
   // 2. Search Any Location by Query
   const handleLocationSearch = async (queryText?: string) => {
@@ -206,6 +494,15 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
       setIsSearchingLocation(false);
       setLoadingState(null);
     }
+  };
+
+  // Locate button: blank input → auto GPS fix; typed query → geocode search.
+  const handleLocate = () => {
+    if (!searchLocationQuery.trim()) {
+      detectExactLocation(true);
+      return;
+    }
+    handleLocationSearch();
   };
 
   // 3. Initial Health Check & Initial Geolocation Detection
@@ -236,11 +533,12 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
   //    Only fires when we have real user coordinates — never uses mock data
   useEffect(() => {
     if (!userCoords) return; // wait for GPS to resolve
+    const { lat, lon } = userCoords;
     let mounted = true;
     async function loadNearby() {
       setNearbyLoading(true);
       try {
-        const dir = await api.getNearbyDirectory(userCoords.lat, userCoords.lon, radius, enterprise.apiCategory);
+        const dir = await api.getNearbyDirectory(lat, lon, radius, enterprise.apiCategory);
         if (mounted) {
           // Only show profiles that are actually within the selected radius
           const withinRadius = (dir.profiles || []).filter((p) => p.distance_m <= radius);
@@ -333,7 +631,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
       // 1. If feasibility and scheme results are ready, request backend render
       if (feasibilityResult && schemeResult) {
         const res = await api.renderDpr({
-          applicant_name: 'Applicant Beneficiary',
+          applicant_name: digiIdentity ? digiIdentity.name : 'Applicant Beneficiary',
           business_name: `${enterprise.name} Unit`,
           feasibility: feasibilityResult,
           scheme: schemeResult,
@@ -379,8 +677,52 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
   };
 
   const goToStep = (stepNum: number) => {
+    setStepDirection(stepNum < currentStep ? 'back' : 'forward');
     setCurrentStep(stepNum);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Lock scroll onto the step content (below the stepper), offset for fixed header
+    requestAnimationFrame(() => {
+      const el = stepContentRef.current;
+      if (el) {
+        const top = el.getBoundingClientRect().top + window.scrollY - 96;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    });
+  };
+
+  // ── Mock DigiLocker sandbox flow ──────────────────────────────────
+  // Clearly MOCK: branded button → fake redirect → fake consent page →
+  // synthetic identity. Nothing leaves the browser.
+  const startDigiRedirect = () => {
+    setDigiError(null);
+    setDigiStatus('redirecting');
+    window.setTimeout(() => setDigiStatus('consent'), 1200);
+  };
+
+  const allowDigiConsent = () => {
+    const block = geoResolved?.block || locationText.split(',')[0] || 'Haveli';
+    const district = geoResolved?.district || 'Pune';
+    const state = geoResolved?.state || 'Maharashtra';
+    setDigiIdentity({
+      name: 'Ravi Patil',
+      dob: '15/08/1990',
+      gender: 'Male',
+      maskedAadhaar: 'XXXX-XXXX-7777',
+      pan: 'DKZPP4821F',
+      address: `${block}, ${district}, ${state}`,
+    });
+    setDigiError(null);
+    setDigiStatus('verified');
+  };
+
+  const denyDigiConsent = () => {
+    setDigiStatus('idle');
+    setDigiError('Access was denied on the DigiLocker page — try again or skip for now.');
+  };
+
+  const resetDigiSandbox = () => {
+    setDigiError(null);
+    setDigiStatus('idle');
+    setDigiIdentity(null);
   };
 
   // Score & SWOT values (from backend or baseline)
@@ -406,49 +748,6 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
               </span>
             </button>
           </div>
-
-
-          <nav
-            aria-label="Workflow Quick Steps"
-            className="hidden lg:flex items-center gap-1 p-1 rounded-full border border-outline-variant/40 bg-surface-container-lowest"
-          >
-            {[
-              { num: 1, label: '01 Location' },
-              { num: 2, label: '02 Enterprise' },
-              { num: 3, label: '03 Feasibility' },
-              { num: 4, label: '04 Credit & Subsidy' },
-              { num: 5, label: '05 DPR Dossier' },
-            ].map((s) => (
-              <button
-                key={s.num}
-                onClick={() => goToStep(s.num)}
-                className={`px-3 py-1.5 rounded-full font-label-ui text-label-ui transition-colors ${currentStep === s.num
-                    ? 'bg-secondary-container text-on-secondary-container font-bold shadow-sm'
-                    : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
-                  }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </nav>
-
-          <div className="flex items-center gap-space-sm shrink-0">
-            {/* Backend live status indicator */}
-            <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container text-[12px] font-label-ui border border-outline-variant/40">
-              <Server size={14} className={backendOnline ? 'text-secondary' : 'text-amber-600'} />
-              <span className="font-medium">
-                {backendOnline ? 'Live API Connected' : backendOnline === false ? 'Local Fallback Active' : 'Connecting API...'}
-              </span>
-              <span className={`w-2 h-2 rounded-full ${backendOnline ? 'bg-secondary animate-pulse' : 'bg-amber-500'}`} />
-            </div>
-
-            <button
-              onClick={onBackToLanding}
-              className="px-4 py-2 rounded-full bg-primary text-surface hover:bg-primary-container font-label-ui text-xs font-semibold shadow-sm transition-colors cursor-pointer"
-            >
-              Exit to Home
-            </button>
-          </div>
         </div>
       </header>
 
@@ -466,27 +765,6 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
       {/* ==================== MAIN CONTENT ==================== */}
       <main className="w-full pt-20 bg-surface-container-lowest">
         <div className="flex flex-col w-full">
-          {/* Multilingual Advisory Sub-Header Banner */}
-          <div className="w-full text-on-secondary-container py-2 px-gutter-mobile lg:px-gutter-desktop text-center border-b border-outline-variant/60 bg-surface-container-low">
-            <div className="max-w-[1200px] mx-auto flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-left">
-                <Globe size={18} className="text-secondary shrink-0" />
-                <span className="font-label-ui text-label-ui font-medium">
-                  Rural Public Digital Good • बहुभाषी जन-सहायता: हिन्दी, मराठी, বাংলা, తెలుగు, ಕನ್ನಡ & English
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-left">
-                <span className="inline-flex items-center gap-1.5 font-label-kicker text-label-kicker uppercase tracking-wider text-primary">
-                  <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-                  LGD Connected (Govt of India)
-                </span>
-                <span className="text-on-secondary-container/40 hidden sm:inline">•</span>
-                <span className="font-body-sm text-body-sm text-secondary hidden sm:inline font-semibold">
-                  NABARD / PMEGP / CGTMSE Mapped
-                </span>
-              </div>
-            </div>
-          </div>
 
           {/* Main Multi-Step Container */}
           <div className="max-w-[1200px] mx-auto w-full px-gutter-mobile lg:px-gutter-desktop py-space-xl">
@@ -504,19 +782,40 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                   calculation for rural micro-enterprises.
                 </p>
               </div>
-              <div className="shrink-0 flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-surface-container-high flex flex-col items-end border border-outline-variant/40">
-                  <span className="font-label-kicker text-label-kicker uppercase text-secondary">Session Id</span>
-                  <span className="font-label-ui text-label-ui font-mono font-bold text-primary">
-                    {dprId}
-                  </span>
-                </div>
+              <div className="shrink-0 self-end md:self-start md:pt-1">
+                <LanguageSelector variant="wizard" />
               </div>
             </div>
 
-            {/* 5-Step Process Progress Bar */}
+            {/* Workflow Quick Steps (relocated from page header) */}
+            <nav
+              aria-label="Workflow Quick Steps"
+              className="flex flex-wrap items-center gap-1 p-1 mb-space-lg rounded-full border border-outline-variant/40 bg-surface-container-lowest w-fit max-w-full"
+            >
+              {[
+                { num: 1, label: '01 Location' },
+                { num: 2, label: '02 Enterprise' },
+                { num: 3, label: '03 Feasibility' },
+                { num: 4, label: '04 Credit & Subsidy' },
+                { num: 5, label: '05 Identity' },
+                { num: 6, label: '06 DPR Dossier' },
+              ].map((s) => (
+                <button
+                  key={s.num}
+                  onClick={() => goToStep(s.num)}
+                  className={`px-3 py-1.5 rounded-full font-label-ui text-label-ui transition-colors ${currentStep === s.num
+                      ? 'bg-secondary-container text-on-secondary-container font-bold shadow-sm'
+                      : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container'
+                    }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </nav>
+
+            {/* 6-Step Process Progress Bar */}
             <nav aria-label="Project Report Stepper" className="w-full mb-space-3xl overflow-x-auto pb-2">
-              <ol className="flex items-center justify-between min-w-[760px] gap-2">
+              <ol className="flex items-center justify-between min-w-[920px] gap-2">
                 <li className="flex-1">
                   <button
                     onClick={() => goToStep(1)}
@@ -624,6 +923,30 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                       <span className="font-label-kicker text-label-kicker tracking-widest text-secondary uppercase font-semibold">
                         Step 05
                       </span>
+                      <ShieldCheck size={18} className="text-secondary" />
+                    </div>
+                    <span className="font-label-ui text-label-ui font-semibold truncate text-primary">Identity Check</span>
+                    <span className="font-body-sm text-body-sm text-on-surface-variant truncate">
+                      {digiStatus === 'verified' ? 'Verified via DigiLocker' : 'DigiLocker Sandbox'}
+                    </span>
+                  </button>
+                </li>
+
+                <li className="flex-1">
+                  <button
+                    onClick={() => goToStep(6)}
+                    className={`w-full text-left group flex flex-col p-3 rounded-xl transition-all cursor-pointer ${currentStep === 6
+                        ? 'bg-[#e8f5e2] text-primary border-2 border-[#2e5320] shadow-sm'
+                        : currentStep > 6
+                          ? 'bg-surface-container-highest text-on-surface border border-outline-variant/40'
+                          : 'bg-surface-container-lowest text-on-surface border border-outline-variant/60 hover:bg-surface-container-low'
+                      }`}
+                    type="button"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-label-kicker text-label-kicker tracking-widest text-secondary uppercase font-semibold">
+                        Step 06
+                      </span>
                       <FileDown size={18} className="text-secondary" />
                     </div>
                     <span className="font-label-ui text-label-ui font-semibold truncate text-primary">Dossier Package</span>
@@ -633,14 +956,17 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
               </ol>
             </nav>
 
+            {/* Step panels — goToStep scroll-locks to this anchor */}
+            <div ref={stepContentRef} className="scroll-mt-24">
+
             {/* ==================== STEP 1: GEOLOCATION & RADIUS ==================== */}
             {currentStep === 1 && (
-              <section className="space-y-space-xl animate-fadeIn">
+              <section className={`space-y-space-xl ${stepAnimClass}`}>
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-xl">
                   {/* Left Column: Configuration */}
                   <div className="lg:col-span-6 flex flex-col gap-space-lg">
                     <div className="p-space-xl rounded-2xl bg-surface-container border border-outline-variant/60 shadow-sm">
-                      <div className="flex flex-wrap items-center justify-between gap-2 mb-space-md">
+                      <div className="flex flex-wrap items-center gap-2 mb-space-md">
                         <span className="px-3 py-1 rounded-full bg-secondary/15 text-secondary font-label-kicker text-label-kicker tracking-wider uppercase flex items-center gap-1.5 font-semibold">
                           <span className={`w-2 h-2 rounded-full ${geoStatus === 'detecting' ? 'bg-amber-500 animate-pulse' : 'bg-secondary animate-ping'}`} />
                           {geoStatus === 'detecting'
@@ -651,16 +977,6 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                                 ? 'Location Geocoded'
                                 : 'Location Active'}
                         </span>
-
-                        <button
-                          type="button"
-                          onClick={() => detectExactLocation()}
-                          className="px-3 py-1.5 rounded-full bg-primary text-surface hover:bg-primary-container font-label-ui text-[12px] font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                          title="Detect your exact coordinates via device GPS"
-                        >
-                          <LocateFixed size={14} className={geoStatus === 'detecting' ? 'animate-spin' : ''} />
-                          <span>Detect Live GPS</span>
-                        </button>
                       </div>
 
                       <h2 className="font-headline-md text-headline-md text-primary font-bold mb-space-xs font-playfair">
@@ -674,7 +990,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                             {geoResolved?.block ? <span className="text-secondary font-semibold"> (Block: {geoResolved.block})</span> : ''}
                           </>
                         ) : (
-                          <span className="text-amber-600 font-semibold">Awaiting GPS fix — click "Detect Live GPS" or search your location above.</span>
+                          <span className="text-amber-600 font-semibold">Awaiting GPS fix — leave the search blank and hit Locate for GPS, or type your village / town above.</span>
                         )}
                       </p>
 
@@ -682,7 +998,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                       <form
                         onSubmit={(e) => {
                           e.preventDefault();
-                          handleLocationSearch();
+                          handleLocate();
                         }}
                         className="mb-space-lg p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/60 shadow-sm"
                       >
@@ -703,11 +1019,12 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                           </div>
                           <button
                             type="submit"
-                            disabled={isSearchingLocation}
+                            disabled={isSearchingLocation || geoStatus === 'detecting'}
                             className="px-4 py-2 rounded-lg bg-secondary text-surface font-label-ui text-xs font-semibold hover:bg-secondary/90 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                            title="Search the typed place — or leave blank to use device GPS"
                           >
                             <Navigation size={13} />
-                            <span>{isSearchingLocation ? 'Locating...' : 'Locate'}</span>
+                            <span>{isSearchingLocation || geoStatus === 'detecting' ? 'Locating...' : 'Locate'}</span>
                           </button>
                         </div>
                         {/* Quick preset locations */}
@@ -831,8 +1148,8 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                                   type="number"
                                   step="0.0001"
                                   className="w-full p-2 rounded-lg bg-surface-container-lowest border border-outline-variant text-xs"
-                                  value={userCoords.lat}
-                                  onChange={(e) => setUserCoords({ ...userCoords, lat: parseFloat(e.target.value) || 0 })}
+                                  value={userCoords?.lat ?? ''}
+                                  onChange={(e) => setUserCoords({ lat: parseFloat(e.target.value) || 0, lon: userCoords?.lon ?? 0 })}
                                 />
                               </div>
                               <div>
@@ -841,8 +1158,8 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                                   type="number"
                                   step="0.0001"
                                   className="w-full p-2 rounded-lg bg-surface-container-lowest border border-outline-variant text-xs"
-                                  value={userCoords.lon}
-                                  onChange={(e) => setUserCoords({ ...userCoords, lon: parseFloat(e.target.value) || 0 })}
+                                  value={userCoords?.lon ?? ''}
+                                  onChange={(e) => setUserCoords({ lat: userCoords?.lat ?? 0, lon: parseFloat(e.target.value) || 0 })}
                                 />
                               </div>
                             </div>
@@ -852,92 +1169,29 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                     </div>
                   </div>
 
-                  {/* Right Column: GIS Sensor Map */}
+                  {/* Right Column: Live Mappls Map */}
                   <div className="lg:col-span-6 flex flex-col gap-space-md">
                     <div className="p-space-md rounded-2xl bg-surface-container border border-outline-variant/60 shadow-sm flex-1 flex flex-col justify-between">
                       <div className="flex items-center justify-between mb-space-sm px-2">
                         <div className="flex items-center gap-2">
                           <Layers size={20} className="text-primary" />
                           <span className="font-label-ui text-label-ui font-bold text-primary">
-                            Hydrological & Cluster Map Sensor
+                            Live Site Map
                           </span>
                         </div>
                         <span className="text-secondary font-label-kicker text-label-kicker uppercase font-semibold">
-                          Live PostGIS Layer
+                          Mappls Live
                         </span>
                       </div>
 
-                      {/* Custom Clean SVG GIS Cluster Visualization */}
-                      <div className="relative w-full h-[320px] rounded-xl bg-surface-container-lowest border border-outline-variant/40 overflow-hidden flex items-center justify-center p-4">
-                        <svg className="w-full h-full text-secondary/30" fill="none" stroke="currentColor" viewBox="0 0 500 320">
-                          {/* Arterial Rural Roads / Rivers */}
-                          <path
-                            d="M-10 120 C 120 140, 240 80, 520 110"
-                            fill="none"
-                            stroke="#74796e"
-                            strokeDasharray="4 4"
-                            strokeWidth="2"
-                          />
-                          <path d="M 180 -10 C 200 130, 310 210, 340 330" fill="none" stroke="#50643c" strokeWidth="3" />
-                          <path d="M 60 300 Q 190 200 480 260" fill="none" stroke="#c4c8bc" strokeWidth="1.5" />
-
-                          {/* Dynamic Radius Boundary Circle */}
-                          <circle
-                            className="transition-all duration-300 ease-out"
-                            cx="250"
-                            cy="160"
-                            fill="#50643c"
-                            fillOpacity="0.08"
-                            r={svgCircleRadius}
-                            stroke="#50643c"
-                            strokeDasharray="6 4"
-                            strokeWidth="2"
-                          />
-
-                          {/* Inner 1km core buffer */}
-                          <circle cx="250" cy="160" fill="#50643c" fillOpacity="0.12" r="38" stroke="#50643c" strokeWidth="1" />
-
-                          {/* Proposed Site Centroid Marker */}
-                          <circle cx="250" cy="160" fill="#091e03" r="8" stroke="#eeffde" strokeWidth="3" />
-
-                          {/* Render nearby peer locations from backend */}
-                          {nearbyProfiles.slice(0, 4).map((p, i) => {
-                            const offsetAngle = (i * Math.PI) / 2 + 0.5;
-                            const distFraction = Math.min(1, p.distance_m / radius);
-                            const px = 250 + Math.cos(offsetAngle) * (svgCircleRadius * distFraction);
-                            const py = 160 + Math.sin(offsetAngle) * (svgCircleRadius * distFraction);
-
-                            return (
-                              <g key={p.id} className="cursor-pointer">
-                                <circle cx={px} cy={py} fill={i === 2 ? '#ba1a1a' : '#50643c'} r="5" />
-                                <text
-                                  fill="#091e03"
-                                  fontFamily="Plus Jakarta Sans"
-                                  fontSize="9"
-                                  fontWeight="600"
-                                  x={px + 8}
-                                  y={py + 3}
-                                >
-                                  {p.name.split(' ')[0]} ({(p.distance_m / 1000).toFixed(1)}km)
-                                </text>
-                              </g>
-                            );
-                          })}
-                        </svg>
-
-                        {/* Overlay Legend Badge */}
-                        <div className="absolute bottom-3 left-3 bg-surface-container-lowest/90 backdrop-blur-sm p-2 rounded-lg border border-outline-variant/60 flex items-center gap-3">
-                          <span className="flex items-center gap-1 font-body-sm text-[11px] text-primary">
-                            <span className="w-2.5 h-2.5 rounded-full bg-primary inline-block" /> Site Centroid
-                          </span>
-                          <span className="flex items-center gap-1 font-body-sm text-[11px] text-secondary">
-                            <span className="w-2.5 h-2.5 rounded-full bg-secondary inline-block" /> Verified Peer
-                          </span>
-                          <span className="flex items-center gap-1 font-body-sm text-[11px] text-error">
-                            <span className="w-2.5 h-2.5 rounded-full bg-error inline-block" /> Competitor
-                          </span>
-                        </div>
-                      </div>
+                      {/* Live Mappls map — centered on backend-resolved coordinates */}
+                      <RealMap
+                        lat={userCoords?.lat ?? null}
+                        lon={userCoords?.lon ?? null}
+                        radiusM={radius}
+                        peers={nearbyProfiles}
+                        locationLabel={locationText}
+                      />
 
                       {/* Cadastral Survey Map Notice */}
                       <div className="mt-3 flex items-center justify-between p-3 rounded-xl bg-surface-container-lowest border border-outline-variant/40">
@@ -971,7 +1225,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
 
             {/* ==================== STEP 2: ENTERPRISE CATEGORY & SCALE ==================== */}
             {currentStep === 2 && (
-              <section className="space-y-space-xl animate-fadeIn">
+              <section className={`space-y-space-xl ${stepAnimClass}`}>
                 <div className="p-space-xl rounded-2xl bg-surface-container border border-outline-variant/60 shadow-sm">
                   <div className="max-w-2xl mb-space-lg">
                     <span className="font-label-kicker text-label-kicker uppercase text-secondary tracking-widest block mb-1 font-semibold">
@@ -985,45 +1239,60 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                     </p>
                   </div>
 
-                  {/* Enterprise Option Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-space-md mb-space-2xl">
-                    {ENTERPRISE_OPTIONS.map((opt) => {
-                      const isSelected = selectedEnterprise === opt.id;
-                      return (
-                        <div
-                          key={opt.id}
-                          onClick={() => setSelectedEnterprise(opt.id)}
-                          className={`relative flex flex-col p-space-lg rounded-2xl bg-surface-container-lowest cursor-pointer transition-all ${isSelected
-                              ? 'border-2 border-primary shadow-md ring-2 ring-primary/20'
-                              : 'border border-outline-variant/60 hover:border-primary/60 hover:shadow-sm'
-                            }`}
-                        >
-                          <div className="flex items-center justify-between mb-space-md">
-                            <div
-                              className={`w-12 h-12 rounded-xl flex items-center justify-center text-primary ${isSelected ? 'bg-secondary-container' : 'bg-surface-container'
-                                }`}
-                            >
-                              <Factory size={26} className="text-secondary" />
-                            </div>
-                            <span
-                              className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${isSelected ? 'border-primary bg-primary text-surface' : 'border-outline-variant'
-                                }`}
-                            >
-                              {isSelected && <Check size={14} className="stroke-[3]" />}
-                            </span>
-                          </div>
+                  {/* Business Idea Dropdown — full PMEGP-grounded catalog, grouped by industry family */}
+                  <div className="mb-space-2xl">
+                    <label
+                      className="font-label-ui text-label-ui font-semibold text-primary block mb-2"
+                      htmlFor="enterpriseSelect"
+                    >
+                      Choose Your Business Idea ({ENTERPRISE_OPTIONS.length} options)
+                    </label>
+                    <div className="relative">
+                      <select
+                        id="enterpriseSelect"
+                        value={selectedEnterprise}
+                        onChange={(e) => setSelectedEnterprise(e.target.value)}
+                        className="w-full appearance-none p-3.5 pr-12 rounded-xl bg-surface-container-lowest border-2 border-primary/40 text-on-surface font-label-ui text-label-ui font-semibold cursor-pointer focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      >
+                        {ENTERPRISE_GROUPS.map((group) => (
+                          <optgroup key={group} label={group}>
+                            {ENTERPRISE_OPTIONS.filter((o) => o.group === group).map((opt) => (
+                              <option key={opt.id} value={opt.id}>
+                                {opt.name} — {opt.capexLabel}
+                              </option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                      <ChevronDown
+                        size={20}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary pointer-events-none"
+                      />
+                    </div>
 
-                          <span className="font-label-ui text-label-ui font-bold text-primary mb-1">{opt.name}</span>
-                          <p className="font-body-sm text-body-sm text-on-surface-variant mb-4 flex-1">
-                            {opt.description}
-                          </p>
-                          <div className="mt-auto pt-3 border-t border-outline-variant/40 flex justify-between items-center text-[12px] font-body-sm">
-                            <span className="text-on-surface-variant">Benchmark CAPEX</span>
-                            <span className="font-bold text-primary font-mono">{opt.capexLabel}</span>
-                          </div>
+                    {/* Selected idea summary */}
+                    <div className="mt-space-md flex flex-col sm:flex-row gap-space-md p-space-lg rounded-2xl bg-surface-container-lowest border border-outline-variant/60">
+                      <div className="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center shrink-0">
+                        <Factory size={26} className="text-secondary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className="font-label-ui text-label-ui font-bold text-primary">{enterprise.name}</span>
+                          <span className="px-2 py-0.5 rounded-full bg-surface-container border border-outline-variant/60 text-secondary font-label-kicker text-[10px] uppercase font-semibold">
+                            {enterprise.group}
+                          </span>
                         </div>
-                      );
-                    })}
+                        <p className="font-body-sm text-body-sm text-on-surface-variant">
+                          {enterprise.description}
+                        </p>
+                      </div>
+                      <div className="sm:text-right shrink-0 sm:pl-4 sm:border-l border-outline-variant/40">
+                        <span className="block text-[11px] font-body-sm text-on-surface-variant uppercase tracking-wide">
+                          Benchmark CAPEX
+                        </span>
+                        <span className="font-bold text-primary font-mono text-[18px]">{enterprise.capexLabel}</span>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Margin Equity & Working Capital Slider Controls */}
@@ -1099,8 +1368,32 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
 
             {/* ==================== STEP 3: FEASIBILITY & MARKET VERDICT ==================== */}
             {currentStep === 3 && (
-              <section className="space-y-space-xl animate-fadeIn">
+              <section className={`space-y-space-xl ${stepAnimClass}`}>
                 <div className="p-space-xl rounded-2xl bg-surface-container border border-outline-variant/60 shadow-sm">
+                  {/* Full Report Header — idea + site + date + print */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-space-md mb-space-lg border-b border-outline-variant/50">
+                    <div>
+                      <span className="font-label-kicker text-label-kicker uppercase text-secondary tracking-widest font-semibold">
+                        Feasibility & Market Report • {new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                      <h2 className="font-headline-lg text-headline-lg text-primary font-bold font-playfair">
+                        {enterprise.name}
+                      </h2>
+                      <p className="font-body-sm text-body-sm text-on-surface-variant">
+                        {locationText} • {(radius / 1000).toFixed(0)} km cluster • {enterprise.capexLabel} benchmark CAPEX
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => window.print()}
+                      className="px-space-md py-2 rounded-full border border-secondary text-secondary font-label-ui text-label-ui hover:bg-secondary/10 transition-colors cursor-pointer flex items-center gap-2 shrink-0"
+                      type="button"
+                      title="Print or save this report as PDF"
+                    >
+                      <FileDown size={16} />
+                      Print / Save PDF
+                    </button>
+                  </div>
+
                   {/* High-Confidence Verdict Banner */}
                   <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-space-lg pb-space-lg border-b border-outline-variant/50">
                     <div className="flex items-center gap-space-md">
@@ -1263,6 +1556,129 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                     )}
                   </div>
 
+                  {/* Market & Demand Snapshot — live backend counts + registered peers */}
+                  <div className="mt-space-xl p-space-lg rounded-2xl bg-surface-container-lowest border border-outline-variant/60">
+                    <h3 className="font-label-kicker text-label-kicker uppercase text-secondary tracking-widest mb-space-md font-semibold">
+                      Market Snapshot • Demand vs Competition
+                    </h3>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-space-md mb-space-md">
+                      <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/40">
+                        <span className="block text-[11px] font-body-sm text-on-surface-variant uppercase">Competing units (live POI)</span>
+                        <span className="font-headline-md text-headline-md font-bold text-primary font-mono">
+                          {feasibilityResult ? feasibilityResult.poi_count : '—'}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/40">
+                        <span className="block text-[11px] font-body-sm text-on-surface-variant uppercase">Saturation score</span>
+                        <span className="font-headline-md text-headline-md font-bold text-primary font-mono">
+                          {feasibilityResult ? `${feasibilityResult.density_score.toFixed(0)}/100` : '—'}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/40">
+                        <span className="block text-[11px] font-body-sm text-on-surface-variant uppercase">Registered peers (PostGIS)</span>
+                        <span className="font-headline-md text-headline-md font-bold text-primary font-mono">
+                          {nearbyLoading ? '…' : nearbyProfiles.length}
+                        </span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/40">
+                        <span className="block text-[11px] font-body-sm text-on-surface-variant uppercase">Market verdict</span>
+                        <span className="font-headline-md text-[16px] font-bold text-primary capitalize">
+                          {feasibilityResult?.verdict?.replace('-', ' ') || 'Analysing'}
+                        </span>
+                      </div>
+                    </div>
+                    {feasibilityResult && feasibilityResult.opportunities.length > 0 ? (
+                      <div>
+                        <span className="font-label-ui text-label-ui font-semibold text-primary block mb-2">
+                          Allied gaps to pivot into (same catchment)
+                        </span>
+                        <ul className="space-y-2">
+                          {feasibilityResult.opportunities.map((o) => (
+                            <li key={o.title} className="flex items-start gap-2 font-body-sm text-body-sm text-on-surface-variant">
+                              <CheckCircle2 size={16} className="text-secondary shrink-0 mt-0.5" />
+                              <span><strong className="text-primary">{o.title}</strong> — {o.reason}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : (
+                      <p className="font-body-sm text-body-sm text-on-surface-variant">
+                        {nearbyProfiles.length === 0
+                          ? `No ${enterprise.name.toLowerCase()} competition mapped within ${(radius / 1000).toFixed(0)} km — a first-mover window. Confirm footfall with 2–3 village visits before fixing CAPEX.`
+                          : `Nearest peer: ${[...nearbyProfiles].sort((a, b) => a.distance_m - b.distance_m)[0].name} at ${([...nearbyProfiles].sort((a, b) => a.distance_m - b.distance_m)[0].distance_m / 1000).toFixed(1)} km. Differentiate on quality, packaging and credit terms rather than price.`}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Credit & Loan Snapshot — server-calculated values only */}
+                  <div className="mt-space-xl p-space-lg rounded-2xl bg-surface-container-lowest border border-outline-variant/60">
+                    <h3 className="font-label-kicker text-label-kicker uppercase text-secondary tracking-widest mb-space-md font-semibold">
+                      Loan Snapshot • Scheme-Linked Finance
+                    </h3>
+                    {schemeResult ? (
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-space-md">
+                        <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/40">
+                          <span className="block text-[11px] font-body-sm text-on-surface-variant uppercase">Scheme tier</span>
+                          <span className="font-headline-md text-[16px] font-bold text-primary capitalize">{schemeResult.tier} • {(schemeResult.rules.rate * 100).toFixed(2)}% p.a.</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/40">
+                          <span className="block text-[11px] font-body-sm text-on-surface-variant uppercase">Max loan eligible</span>
+                          <span className="font-headline-md text-[16px] font-bold text-primary font-mono">₹{schemeResult.max_loan_capped.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/40">
+                          <span className="block text-[11px] font-body-sm text-on-surface-variant uppercase">Your margin ({marginPercent}%)</span>
+                          <span className="font-headline-md text-[16px] font-bold text-primary font-mono">₹{schemeResult.margin.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="p-3 rounded-xl bg-surface-container border border-outline-variant/40">
+                          <span className="block text-[11px] font-body-sm text-on-surface-variant uppercase">Est. EQI • tenure</span>
+                          <span className="font-headline-md text-[16px] font-bold text-primary font-mono">₹{schemeResult.eqi_amount.toLocaleString('en-IN')} • {schemeResult.rules.tenure_years}yr</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="font-body-sm text-body-sm text-on-surface-variant">
+                        Loan math is being calculated against live scheme rules — full EMI schedule follows in Step 04 (Credit & Subsidy).
+                      </p>
+                    )}
+                    <p className="mt-3 text-[11px] font-body-sm text-on-surface-variant">
+                      Indicative only — final sanction per bank appraisal. Scheme rules {schemeResult ? schemeResult.rules.version : 'v2024-11'} • {schemeResult ? `${schemeResult.rules.moratorium_months}-month moratorium` : 'moratorium as per tier'}.
+                    </p>
+                  </div>
+
+                  {/* Strategy & Next Steps — verdict-driven playbook */}
+                  <div className="mt-space-xl p-space-lg rounded-2xl bg-secondary-container/50 border border-outline-variant/60">
+                    <h3 className="font-label-kicker text-label-kicker uppercase text-secondary tracking-widest mb-space-md font-semibold">
+                      Strategy • What To Do Next
+                    </h3>
+                    <ul className="space-y-2">
+                      {(feasibilityResult?.verdict === 'saturated'
+                        ? [
+                          'Do not enter head-on — pick one allied gap above (lower competition, shared customers).',
+                          'If you proceed anyway, differentiate on quality/packaging — never on price alone.',
+                          'Re-run this report with a different business idea from the Step-02 dropdown.',
+                          'Carry this report to your DIC officer for cluster-specific guidance.',
+                        ]
+                        : feasibilityResult?.verdict === 'niche-gap'
+                          ? [
+                            'First-mover window is open — move before the gap fills; lock input-supply tie-ups now.',
+                            'Start lean: keep CAPEX at benchmark or below and keep 15% working-capital buffer.',
+                            'Register Udyam MSME + apply for the licences listed in Step 04 early (FSSAI/shop-act).',
+                            'Line up 2–3 buyer off-take letters — banks weight them heavily in appraisal.',
+                          ]
+                          : [
+                            'Viability looks sound — proceed to Step 04 to lock your credit and subsidy structure.',
+                            `Keep promoter margin ready: ₹${displayMargin.toLocaleString('en-IN')} (${marginPercent}% of TPC).`,
+                            'Collect 2 machinery quotations + shed rent deed — both are mandatory DPR annexures.',
+                            'Download the bank-ready DPR dossier in Step 05 after credit structuring.',
+                          ]
+                      ).map((step) => (
+                        <li key={step} className="flex items-start gap-2 font-body-sm text-body-sm text-on-surface">
+                          <CheckCircle2 size={16} className="text-secondary shrink-0 mt-0.5" />
+                          <span>{step}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
                   {/* Section Navigation CTA */}
                   <div className="flex justify-between items-center mt-space-xl pt-space-lg border-t border-outline-variant/60">
                     <button
@@ -1287,7 +1703,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
 
             {/* ==================== STEP 4: CREDIT & SUBSIDY ==================== */}
             {currentStep === 4 && (
-              <section className="space-y-space-xl animate-fadeIn">
+              <section className={`space-y-space-xl ${stepAnimClass}`}>
                 <div className="p-space-xl rounded-2xl bg-surface-container border border-outline-variant/60 shadow-sm">
                   {/* Scheme Integration Badges Header */}
                   <div className="p-space-md rounded-xl bg-secondary-container/80 border border-outline-variant/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 mb-space-xl">
@@ -1473,17 +1889,188 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                       className="px-space-xl py-2.5 rounded-full bg-primary text-surface font-label-ui text-label-ui font-bold hover:bg-primary-container transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
                       type="button"
                     >
-                      Generate Bank Dossier
-                      <FileDown size={18} />
+                      Verify Identity
+                      <ShieldCheck size={18} />
                     </button>
                   </div>
                 </div>
               </section>
             )}
 
-            {/* ==================== STEP 5: BANK-READY DPR & DOWNLOAD DOSSIER ==================== */}
+            {/* ==================== STEP 5: DIGILOCKER SANDBOX IDENTITY ==================== */}
             {currentStep === 5 && (
-              <section className="space-y-space-xl animate-fadeIn">
+              <section className={`space-y-space-xl ${stepAnimClass}`}>
+                <div className="p-space-xl rounded-2xl bg-surface-container border border-outline-variant/60 shadow-sm">
+                  <div className="max-w-2xl mb-space-lg">
+                    <span className="font-label-kicker text-label-kicker uppercase text-secondary tracking-widest block mb-1 font-semibold">
+                      KYC • Identity Verification
+                    </span>
+                    <h2 className="font-headline-lg text-headline-lg text-primary font-bold font-playfair">
+                      Verify Identity via DigiLocker
+                    </h2>
+                    <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+                      Banks need a KYC-verified applicant on the DPR. Fetch your identity documents before generating the dossier.
+                    </p>
+                  </div>
+
+                  {/* Sandbox disclaimer — never a real DigiLocker call */}
+                  <div className="mb-space-lg p-3 rounded-xl bg-secondary-container/60 border border-dashed border-secondary flex items-start gap-2">
+                    <ShieldCheck size={18} className="text-secondary shrink-0 mt-0.5" />
+                    <p className="font-body-sm text-body-sm text-primary">
+                      <strong>DigiLocker Sandbox (MOCK).</strong> No real DigiLocker call is made and nothing leaves this browser.
+                      Press the button below to walk through a simulated DigiLocker login and consent.
+                    </p>
+                  </div>
+
+                  {digiStatus !== 'verified' ? (digiStatus === 'consent' ? (
+                      /* Mock DigiLocker consent page */
+                      <div className="max-w-lg mx-auto rounded-2xl overflow-hidden border border-outline-variant/60 shadow-sm">
+                        <div className="bg-[#5558A6] px-space-lg py-4 flex items-center gap-3">
+                          <DigiLockerMark size={44} mono />
+                          <div>
+                            <span className="text-white font-bold text-[20px] leading-none block">DigiLocker</span>
+                            <span className="text-white/70 text-[12px]">Your documents anytime, anywhere • Sandbox</span>
+                          </div>
+                        </div>
+                        <div className="p-space-lg bg-surface-container-lowest flex flex-col gap-3">
+                          <p className="font-body-md text-body-md text-primary">
+                            <strong>UdyogSaarthi</strong> is requesting access to:
+                          </p>
+                          <ul className="space-y-2">
+                            {['Aadhaar Card — Name, DOB, Address', 'PAN Card — Number & Name'].map((doc) => (
+                              <li key={doc} className="flex items-start gap-2 font-body-sm text-body-sm text-on-surface-variant p-2.5 rounded-xl bg-surface-container border border-outline-variant/40">
+                                <CheckCircle2 size={16} className="text-secondary shrink-0 mt-0.5" />
+                                <span>{doc}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <p className="text-[12px] font-body-sm text-on-surface-variant">
+                            One-time fetch for this DPR application. No documents are stored outside this demo session.
+                          </p>
+                          <div className="flex gap-3 mt-1">
+                            <button
+                              onClick={denyDigiConsent}
+                              className="flex-1 px-space-md py-2.5 rounded-full border border-secondary text-secondary font-label-ui text-label-ui hover:bg-secondary/10 transition-colors cursor-pointer"
+                              type="button"
+                            >
+                              Deny
+                            </button>
+                            <button
+                              onClick={allowDigiConsent}
+                              className="flex-1 px-space-md py-2.5 rounded-full bg-[#5558A6] text-white font-label-ui text-label-ui font-bold hover:opacity-90 transition-colors shadow-sm cursor-pointer"
+                              type="button"
+                            >
+                              Allow
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      /* DigiLocker entry — single branded button */
+                      <div className="max-w-lg mx-auto p-space-xl rounded-2xl bg-surface-container-lowest border border-outline-variant/60 flex flex-col items-center text-center gap-4">
+                        <DigiLockerMark size={64} />
+                        <div>
+                          <span className="font-bold text-[#5558A6] text-[26px] leading-none block">DigiLocker</span>
+                          <span className="text-[12px] font-body-sm text-on-surface-variant">Your documents anytime, anywhere</span>
+                        </div>
+                        {digiStatus === 'redirecting' ? (
+                          <p className="flex items-center gap-2 font-label-ui text-label-ui text-primary font-semibold">
+                            <RefreshCw size={18} className="animate-spin text-secondary" />
+                            Connecting to secure DigiLocker… (sandbox)
+                          </p>
+                        ) : (
+                          <button
+                            onClick={startDigiRedirect}
+                            className="w-full px-space-md py-3 rounded-xl bg-[#5558A6] text-white font-label-ui text-label-ui font-bold hover:opacity-90 transition-opacity shadow-sm flex items-center justify-center gap-3 cursor-pointer"
+                            type="button"
+                          >
+                            <DigiLockerMark size={30} mono />
+                            Fetch your details via DigiLocker
+                          </button>
+                        )}
+                        <p className="text-[12px] font-body-sm text-on-surface-variant">
+                          You will be taken to a simulated DigiLocker login and consent page. No real account or OTP needed.
+                        </p>
+                      </div>
+                    )
+                  ) : (
+                    /* Verified identity card */
+                    <div className="p-space-lg rounded-2xl bg-surface-container-lowest border-2 border-primary/50 flex flex-col gap-space-md">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="font-label-ui text-label-ui font-bold text-primary flex items-center gap-3">
+                          <span className="w-12 h-12 rounded-full bg-primary text-surface font-bold text-[18px] flex items-center justify-center">
+                            {digiIdentity?.name.split(' ').map((w) => w[0]).join('')}
+                          </span>
+                          {digiIdentity?.name}
+                        </span>
+                        <span className="px-3 py-1 rounded-full bg-primary text-surface font-label-kicker text-label-kicker uppercase font-bold flex items-center gap-1">
+                          <CheckCircle2 size={14} /> Identity Verified
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 font-body-sm text-body-sm">
+                        <div><span className="block text-[11px] text-on-surface-variant uppercase">Date of Birth</span><strong className="text-primary">{digiIdentity?.dob}</strong></div>
+                        <div><span className="block text-[11px] text-on-surface-variant uppercase">Gender</span><strong className="text-primary">{digiIdentity?.gender}</strong></div>
+                        <div><span className="block text-[11px] text-on-surface-variant uppercase">Aadhaar</span><strong className="text-primary font-mono">{digiIdentity?.maskedAadhaar}</strong></div>
+                        <div><span className="block text-[11px] text-on-surface-variant uppercase">PAN</span><strong className="text-primary font-mono">{digiIdentity?.pan}</strong></div>
+                        <div className="col-span-2"><span className="block text-[11px] text-on-surface-variant uppercase">Address (from Step 01)</span><strong className="text-primary">{digiIdentity?.address}</strong></div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {['Aadhaar XML', 'PAN Card', 'Udyam-linked KYC'].map((doc) => (
+                          <span key={doc} className="px-3 py-1 rounded-full bg-surface-container border border-outline-variant/60 font-body-sm text-body-sm text-primary flex items-center gap-1">
+                            <CheckCircle2 size={14} className="text-secondary" /> {doc} • Mock
+                          </span>
+                        ))}
+                      </div>
+                      <p className="font-body-sm text-body-sm text-on-surface-variant">
+                        This identity will be printed as the applicant on your DPR dossier.
+                        <button onClick={resetDigiSandbox} className="ml-2 text-secondary underline underline-offset-2 cursor-pointer" type="button">
+                          Re-verify with a different number
+                        </button>
+                      </p>
+                    </div>
+                  )}
+
+                  {digiError && (
+                    <p className="mt-space-md p-3 rounded-xl bg-red-50 border border-red-200 font-body-sm text-body-sm text-red-800">
+                      {digiError}
+                    </p>
+                  )}
+
+                  {/* Section Navigation CTA */}
+                  <div className="flex justify-between items-center mt-space-xl pt-space-lg border-t border-outline-variant/60">
+                    <button
+                      onClick={() => goToStep(4)}
+                      className="px-space-md py-2 rounded-full border border-secondary text-secondary font-label-ui text-label-ui hover:bg-secondary/10 transition-colors cursor-pointer"
+                      type="button"
+                    >
+                      ← Back to Credit
+                    </button>
+                    {digiStatus === 'verified' ? (
+                      <button
+                        onClick={() => goToStep(6)}
+                        className="px-space-xl py-2.5 rounded-full bg-primary text-surface font-label-ui text-label-ui font-bold hover:bg-primary-container transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+                        type="button"
+                      >
+                        Continue to DPR Dossier
+                        <ArrowRight size={18} />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => goToStep(6)}
+                        className="px-space-md py-2 rounded-full text-on-surface-variant font-label-ui text-label-ui underline underline-offset-4 hover:text-primary transition-colors cursor-pointer"
+                        type="button"
+                      >
+                        Skip for now →
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* ==================== STEP 6: BANK-READY DPR & DOWNLOAD DOSSIER ==================== */}
+            {currentStep === 6 && (
+              <section className={`space-y-space-xl ${stepAnimClass}`}>
                 <div className="p-space-xl rounded-2xl bg-surface-container border border-outline-variant/60 shadow-sm">
                   {/* Live Generation Status */}
                   <div className="p-space-lg rounded-xl bg-surface-container-lowest border border-outline-variant/60 mb-space-xl">
@@ -1495,6 +2082,18 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                         <h3 className="font-headline-md text-headline-md text-primary font-bold font-playfair">
                           Detailed Project Report (DPR) Ready for Submission
                         </h3>
+                        <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 flex items-center gap-1.5 flex-wrap">
+                          Applicant: <strong className="text-primary">{digiIdentity ? digiIdentity.name : 'Applicant Beneficiary'}</strong>
+                          {digiIdentity ? (
+                            <span className="px-2 py-0.5 rounded-full bg-primary text-surface text-[10px] font-bold uppercase inline-flex items-center gap-1">
+                              <CheckCircle2 size={12} /> KYC Verified (Sandbox)
+                            </span>
+                          ) : (
+                            <button onClick={() => goToStep(5)} className="text-secondary underline underline-offset-2 cursor-pointer" type="button">
+                              Verify identity in Step 05
+                            </button>
+                          )}
+                        </p>
                       </div>
                       <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-secondary-container text-on-secondary-container font-label-ui text-label-ui font-bold self-start">
                         <span className="w-2.5 h-2.5 rounded-full bg-secondary animate-pulse" />
@@ -1631,11 +2230,11 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                   {/* Section Navigation CTA */}
                   <div className="flex justify-between items-center mt-space-xl pt-space-lg border-t border-outline-variant/60">
                     <button
-                      onClick={() => goToStep(4)}
+                      onClick={() => goToStep(5)}
                       className="px-space-md py-2 rounded-full border border-secondary text-secondary font-label-ui text-label-ui hover:bg-secondary/10 transition-colors cursor-pointer"
                       type="button"
                     >
-                      ← Back to Schemes & Subvention
+                      ← Back to Identity
                     </button>
                     <button
                       onClick={() => goToStep(1)}
@@ -1648,6 +2247,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                 </div>
               </section>
             )}
+            </div>
 
             {/* ==================== SIGNATURE RURAL HELPLINE BAR ==================== */}
             <div className="mt-space-3xl w-full rounded-2xl bg-[#324622] text-[#e8f0df] p-space-xl flex flex-col md:flex-row items-center justify-between gap-space-lg shadow-md">

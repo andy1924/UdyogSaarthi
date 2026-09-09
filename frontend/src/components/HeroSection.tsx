@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Mic } from 'lucide-react';
+import PhoneLoginModal from './PhoneLoginModal';
 
 const IMAGE_LEFT =
   'src/assets/hero_left.png'
@@ -11,31 +13,42 @@ interface HeroSectionProps {
 }
 
 export default function HeroSection({ onOpenFeasibility }: HeroSectionProps) {
+  const [loginOpen, setLoginOpen] = useState(false);
+
+  const handleOpenFeasibility = () => {
+    if (onOpenFeasibility) {
+      onOpenFeasibility();
+    } else {
+      window.location.hash = 'feasibility-check';
+    }
+  };
+
   return (
     <section className="px-4 sm:px-8 lg:px-14 pt-4 sm:pt-6">
-      <h1 className="font-crimson text-[60px] sm:text-[120px] md:text-[160px] lg:text-[200px] xl:text-[230px] leading-[0.9] tracking-[-0.0425em] text-center text-black">
+      <h1 className="font-crimson text-[29px] sm:text-[58px] md:text-[76px] lg:text-[96px] xl:text-[88px] leading-[0.9] tracking-[-0.0425em] text-center text-black">
         Udyog-Saarthi
       </h1>
 
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-6 sm:mt-8">
+      <div className="relative z-20 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-6 sm:mt-8">
         <button
-          onClick={onOpenFeasibility}
-          className="flex items-center justify-center bg-olive-800 text-white font-crimson text-xl sm:text-2xl md:text-[45px] leading-[0.9] tracking-[-0.0425em] rounded-5xl px-8 sm:px-12 py-4 sm:py-5 hover:bg-olive-800/90 transition-all cursor-pointer hover:shadow-lg active:scale-95"
+          type="button"
+          onClick={() => setLoginOpen(true)}
+          className="relative z-20 flex items-center justify-center bg-olive-800 text-white font-crimson text-xl sm:text-2xl md:text-[19px] leading-[0.9] tracking-[-0.0425em] rounded-5xl px-6 sm:px-9 py-3 sm:py-4 hover:bg-olive-800/90 transition-all cursor-pointer hover:shadow-lg active:scale-95"
         >
-          Feasibility Checker
+          Get Started
         </button>
 
-        <div className="flex items-center gap-3 bg-olive-50 rounded-5xl px-8 sm:px-12 py-3 sm:py-4">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-olive-800 flex items-center justify-center flex-shrink-0">
-            <Mic size={20} className="text-white" />
+        <div className="relative z-20 flex items-center gap-3 bg-olive-50 rounded-5xl px-8 sm:px-12 py-3 sm:py-4">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-olive-800 flex items-center justify-center flex-shrink-0">
+            <Mic size={18} className="text-white" />
           </div>
-          <span className="font-crimson text-xl sm:text-2xl md:text-[50px] leading-[0.9] tracking-[-0.0425em] text-black">
+          <span className="font-crimson text-xl sm:text-2xl md:text-[29px] leading-[0.9] tracking-[-0.0425em] text-black">
             Voice-Saarthi
           </span>
         </div>
       </div>
 
-      <div className="relative mt-8 sm:mt-10 w-full">
+      <div className="relative mt-6 sm:mt-8 w-full">
         {/* Olive background */}
         <div className="rounded-4xl bg-olive-400 w-full aspect-[1305/491]" />
         {/* Images aligned on the olive background */}
@@ -60,6 +73,12 @@ export default function HeroSection({ onOpenFeasibility }: HeroSectionProps) {
           />
         </div>
       </div>
+
+      <PhoneLoginModal
+        open={loginOpen}
+        onClose={() => setLoginOpen(false)}
+        onVerified={handleOpenFeasibility}
+      />
     </section>
   );
 }

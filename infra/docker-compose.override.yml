@@ -22,7 +22,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      SECRET_KEY: dev-only-secret-key-do-not-use-in-production
+      # Must match frontend DEV_SECRET_KEY (frontend/src/lib/api.ts) and the
+      # backend config default, otherwise Layer-1 HMAC POSTs 401 in dev.
+      SECRET_KEY: change-me-in-production-udyogsaarthi-secret-key
     volumes:
       - ../backend:/app
     # Override the production entrypoint with dev-friendly reload mode.
@@ -42,13 +44,18 @@ services:
 
   # Dev Celery worker — mounts source code for live task reload
   worker:
+    # No HTTP server here — the image HEALTHCHECK (curl :8000) never passes.
+    healthcheck:
+      disable: true
     environment:
       APP_ENV: development
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/udyogsaarthi
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      SECRET_KEY: dev-only-secret-key-do-not-use-in-production
+      # Must match frontend DEV_SECRET_KEY (frontend/src/lib/api.ts) and the
+      # backend config default, otherwise Layer-1 HMAC POSTs 401 in dev.
+      SECRET_KEY: change-me-in-production-udyogsaarthi-secret-key
     volumes:
       - ../backend:/app
       - ../backend/chromadb_store:/app/chromadb_store

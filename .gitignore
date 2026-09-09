@@ -138,6 +138,9 @@ backend/generated_dprs/*
 *.db
 *.rdb
 *.aof
+backend/chromadb_store/
+.freebuff/
+*.ses
 infra/.data/
 tmp/
 temp/

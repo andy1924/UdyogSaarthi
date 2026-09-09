@@ -1,0 +1,19 @@
+[build]
+    command = "npm install && npm run build"
+  publish = "dist"
+  base = "/"
+  ignore = "false"  # Never skip build
+  force = "true"    # Force build even if no changes detected
+
+[build.environment]
+  NODE_VERSION = "18"
+  CI = "true"       # Ensure we're in CI mode
+  NETLIFY_BUILD_SKIP = "false"  # Never skip build
+
+[build.processing]
+  skip_processing = false  # Ensure processing is not skipped
+
+[dev]
+  command = "vite"
+  port = 3000
+  publish = "dist"

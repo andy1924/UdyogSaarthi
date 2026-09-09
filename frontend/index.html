@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UdyogSaarthi - Rural Enterprise Advisory Platform</title>
+
+    <meta name="description" content="UdyogSaarthi is an independent rural enterprise advisory platform empowering grassroots innovation with AI feasibility analysis, DPR generation, and concessional credit access." />
+    <meta name="author" content="UdyogSaarthi" />
+
+    <meta property="og:title" content="UdyogSaarthi - Rural Enterprise Advisory Platform" />
+    <meta property="og:description" content="UdyogSaarthi is an independent rural enterprise advisory platform empowering grassroots innovation with AI feasibility analysis, DPR generation, and concessional credit access." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://alpha.dualite.dev" />
+    <meta property="og:image" content="https://ibb.co/67X3xfSV" />
+    <meta property="og:image:width" content="960" />
+    <meta property="og:image:height" content="600" />
+    <meta property="og:image:alt" content="UdyogSaarthi Rural Enterprise Advisory Platform" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="UdyogSaarthi - Rural Enterprise Advisory Platform" />
+    <meta name="twitter:description" content="UdyogSaarthi is an independent rural enterprise advisory platform empowering grassroots innovation with AI feasibility analysis, DPR generation, and concessional credit access." />
+    <meta name="twitter:site" content="@dualitedev" />
+    <meta name="twitter:image" content="https://ibb.co/67X3xfSV" />
+
+    <link rel="canonical" href="https://alpha.dualite.dev" />
+    <link rel="icon" type="image/png" sizes="16x16" href="https://i.ibb.co/HLfD5wgf/dualite-favicon.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "AlphaProject",
+        "url": "https://alpha.dualite.dev",
+        "description": "Dualite Alpha Generated Project",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Dualite Alpha"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  
+<script id="dualite-canvas-overlay-v1">
+
+(function() {
+  if (window.__canvasOverlayInit) return;
+  window.__canvasOverlayInit = true;
+
+  try {
+
+  var enabled = false;
+  let hoveredEl = null;
+  let selectedEl = null;
+
+  function getSelector(el) {
+    if (el.id) return '#' + el.id;
+    let path = [];
+    while (el && el !== document.body && el !== document.documentElement) {
+      let tag = el.tagName.toLowerCase();
+      let sibling = el;
+      let nth = 1;
+      while (sibling.previousElementSibling) {
+        sibling = sibling.previousElementSibling;
+        if (sibling.tagName === el.tagName) nth++;
+      }
+      path.unshift(nth > 1 ? tag + ':nth-of-type(' + nth + ')' : tag);
+      el = el.parentElement;
+    }
+    return path.join(' > ');
+  }
+
+  function getRect(el) {
+    const r = el.getBoundingClientRect();
+    return { top: r.top, left: r.left, width: r.width, height: r.height };
+  }
+
+  function getComputedProps(el) {
+    var cs = window.getComputedStyle(el);
+    return {
+      tagName: el.tagName.toLowerCase(),
+      id: el.id || '',
+      className: (typeof el.className === 'string') ? el.className : '',
+      textContent: (el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) ? (el.textContent || '').slice(0, 80) : '',
+      fontSize: cs.fontSize,
+      fontWeight: cs.fontWeight,
+      fontFamily: cs.fontFamily,
+      color: cs.color,
+      backgroundColor: cs.backgroundColor,
+      opacity: cs.opacity,
+      textAlign: cs.textAlign,
+      padding: cs.padding,
+      margin: cs.margin,
+      borderRadius: cs.borderRadius,
+      borderWidth: cs.borderWidth,
+      borderColor: cs.borderColor,
+      width: cs.width,
+      height: cs.height,
+      display: cs.display,
+    };
+  }
+
+  function parseDataDs(ds) {
+    var parts = ds.split(':');
+    if (parts.length < 3) return null;
+    var col = parseInt(parts[parts.length - 1], 10);
+    var line = parseInt(parts[parts.length - 2], 10);
+    var filePath = parts.slice(0, parts.length - 2).join(':');
+    if (!filePath || isNaN(line)) return null;
+    return { sourceFilePath: filePath, sourceLine: line, sourceColumn: isNaN(col) ? null : col };
+  }
+
+  function getDebugSource(el) {
+    var node = el;
+    while (node && node !== document.documentElement) {
+      if (node.getAttribute) {
+        var ds = node.getAttribute('data-ds');
+        if (ds) {
+          var parsed = parseDataDs(ds);
+          if (parsed) return parsed;
+        }
+      }
+      node = node.parentElement;
+    }
+
+    var workDir = '/home/project/';
+    function strip(f) {
+      if (!f) return '';
+      return f.startsWith(workDir) ? f.slice(workDir.length) : f;
+    }
+
+    try {
+      var vNode = el;
+      while (vNode && vNode !== document.documentElement) {
+        var vc = vNode.__vueParentComponent;
+        if (vc && vc.type && vc.type.__file) {
+          return { sourceFilePath: strip(vc.type.__file), sourceLine: null, sourceColumn: null };
+        }
+        vNode = vNode.parentElement;
+      }
+    } catch (err) {
+      console.warn('[canvas-overlay] Vue fallback error:', err);
+    }
+
+    return null;
+  }
+
+  function clearOverlayState() {
+    hoveredEl = null;
+    selectedEl = null;
+    window.parent.postMessage({ type: 'canvas-hover-clear' }, '*');
+  }
+
+  document.addEventListener('mousemove', function(e) {
+    if (!enabled) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el || el === hoveredEl) return;
+    hoveredEl = el;
+    window.parent.postMessage({
+      type: 'canvas-hover',
+      rect: getRect(el),
+      selector: getSelector(el),
+    }, '*');
+  }, true);
+
+  document.addEventListener('click', function(e) {
+    if (!enabled) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    if (!el) return;
+    selectedEl = el;
+    var source = getDebugSource(el);
+    window.parent.postMessage({
+      type: 'canvas-select',
+      rect: getRect(el),
+      selector: getSelector(el),
+      props: getComputedProps(el),
+      source: source,
+    }, '*');
+  }, true);
+
+  var syncSelectRaf = 0;
+  function postSelectedRectIfAny() {
+    if (!selectedEl) return;
+    if (!selectedEl.isConnected) {
+      selectedEl = null;
+      return;
+    }
+    window.parent.postMessage({
+      type: 'canvas-select-rect',
+      rect: getRect(selectedEl),
+    }, '*');
+  }
+  function scheduleSelectedRectSync() {
+    if (!enabled) return;
+    if (!selectedEl) return;
+    if (syncSelectRaf) return;
+    syncSelectRaf = requestAnimationFrame(function() {
+      syncSelectRaf = 0;
+      postSelectedRectIfAny();
+    });
+  }
+  window.addEventListener('scroll', scheduleSelectedRectSync, true);
+  window.addEventListener('resize', scheduleSelectedRectSync);
+
+  document.addEventListener('mouseleave', function() {
+    if (!enabled) return;
+    hoveredEl = null;
+    window.parent.postMessage({ type: 'canvas-hover-clear' }, '*');
+  });
+
+  window.addEventListener('message', function(e) {
+    if (e.source !== window.parent) return;
+    if (!e.data) return;
+    if (e.data.type === 'canvas-enable') {
+      enabled = true;
+    } else if (e.data.type === 'canvas-disable') {
+      enabled = false;
+      clearOverlayState();
+    } else if (e.data.type === 'canvas-deselect') {
+      selectedEl = null;
+    }
+  });
+
+  window.parent.postMessage({ type: 'canvas-overlay-ready' }, '*');
+
+  } catch (err) {
+    window.parent.postMessage({ type: 'canvas-overlay-error', message: String(err) }, '*');
+  }
+})();
+
+</script>
+</body>
+</html>

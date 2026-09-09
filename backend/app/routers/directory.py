@@ -1,11 +1,9 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.directory import BusinessProfile
 from app.schemas.directory import DirectoryOut, NearbyProfile
 
 router = APIRouter(prefix="/api/directory", tags=["directory"])
@@ -20,8 +18,10 @@ async def nearby(
     db: AsyncSession = Depends(get_db),
 ):
     sql_base = """
-        SELECT id, name, category, ST_X(location::geometry) AS profile_lon, ST_Y(location::geometry) AS profile_lat,
-               ST_Distance(location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography) AS distance_m
+        SELECT id, name, category, ST_X(location::geometry) AS profile_lon,
+               ST_Y(location::geometry) AS profile_lat,
+               ST_Distance(location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography)
+                   AS distance_m
         FROM business_profiles
         WHERE ST_DWithin(location, ST_SetSRID(ST_MakePoint(:lon, :lat), 4326)::geography, :radius_m)
     """

@@ -4,10 +4,10 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, Iterable
 from uuid import UUID, uuid4
 
+import bcrypt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,8 +15,6 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.models.audit import AuditLog
 from app.models.user import User
-
-import bcrypt
 
 pwd_context = None
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")

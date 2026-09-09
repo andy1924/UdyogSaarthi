@@ -28,6 +28,14 @@ logger = logging.getLogger("udyogsaarthi.geo_service")
 class GeoUnavailableError(RuntimeError):
     """Raised when all authoritative geospatial providers are exhausted."""
 
+
+def _first_key(addr: dict, keys: list[str]) -> str:
+    """First present key's value (or ''), mirroring nested addr.get() chains."""
+    for key in keys:
+        if key in addr:
+            return addr[key] or ""
+    return ""
+
 # ── Category mappings ────────────────────────────────────────────────
 
 _MAPPLS_KEYWORDS: dict[str, str] = {
@@ -145,7 +153,9 @@ def build_overpass_ql(
 async def _query_overpass(overpass_ql: str) -> int | None:
     """Execute Overpass QL, return element count or None on failure."""
     url = settings.overpass_api_url
-    headers = {"User-Agent": "UdyogSaarthi/1.0 (https://udyogsaarthi.gov.in; contact@udyogsaarthi.gov.in)"}
+    headers = {
+        "User-Agent": "UdyogSaarthi/1.0 (https://udyogsaarthi.gov.in; contact@udyogsaarthi.gov.in)"
+    }
     try:
         async with httpx.AsyncClient(timeout=_OVERPASS_TIMEOUT, headers=headers) as client:
             resp = await client.post(url, data={"data": overpass_ql})
@@ -234,7 +244,9 @@ async def reverse_geocode(lat: float, lon: float) -> dict[str, str] | None:
                             "Reverse geocoded (%.5f, %.5f) → %s, %s, %s",
                             lat, lon, state, district, block,
                         )
-                        await cache.set_json("revgeo", result, settings.cache_ttl_revgeo, lat_s, lon_s)
+                        await cache.set_json(
+                            "revgeo", result, settings.cache_ttl_revgeo, lat_s, lon_s
+                        )
                         return result
             else:
                 logger.warning(
@@ -247,7 +259,13 @@ async def reverse_geocode(lat: float, lon: float) -> dict[str, str] | None:
     # 3. OpenStreetMap Nominatim fallback
     try:
         url = "https://nominatim.openstreetmap.org/reverse"
-        params = {"format": "json", "lat": str(lat), "lon": str(lon), "zoom": "14", "addressdetails": "1"}
+        params = {
+            "format": "json",
+            "lat": str(lat),
+            "lon": str(lon),
+            "zoom": "14",
+            "addressdetails": "1",
+        }
         headers = {"User-Agent": "UdyogSaarthi/1.0 (contact@udyogsaarthi.gov.in)"}
         async with httpx.AsyncClient(timeout=4.0) as client:
             resp = await client.get(url, params=params, headers=headers)
@@ -255,8 +273,10 @@ async def reverse_geocode(lat: float, lon: float) -> dict[str, str] | None:
             data = resp.json()
             addr = data.get("address", {})
             state = addr.get("state", "").strip()
-            district = addr.get("state_district", addr.get("county", addr.get("city", ""))).strip()
-            block = addr.get("suburb", addr.get("town", addr.get("village", addr.get("neighbourhood", addr.get("county", ""))))).strip()
+            district = _first_key(addr, ["state_district", "county", "city"]).strip()
+            block = _first_key(
+                addr, ["suburb", "town", "village", "neighbourhood", "county"]
+            ).strip()
             if state:
                 result = {
                     "state": state,
@@ -301,8 +321,10 @@ async def forward_geocode(query: str) -> dict[str, Any] | None:
                 lon = float(top["lon"])
                 addr = top.get("address", {})
                 state = addr.get("state", "").strip()
-                district = addr.get("state_district", addr.get("county", addr.get("city", ""))).strip()
-                block = addr.get("suburb", addr.get("town", addr.get("village", addr.get("neighbourhood", addr.get("county", ""))))).strip()
+                district = _first_key(addr, ["state_district", "county", "city"]).strip()
+                block = _first_key(
+                    addr, ["suburb", "town", "village", "neighbourhood", "county"]
+                ).strip()
                 result = {
                     "lat": lat,
                     "lon": lon,

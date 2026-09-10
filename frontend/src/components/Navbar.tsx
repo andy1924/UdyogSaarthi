@@ -1,78 +1,44 @@
-import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
-import LanguageSelector from './LanguageSelector';
+import { useState } from 'react';
 import { useLanguage } from '../lib/LanguageContext';
+import LanguageSelector from './LanguageSelector';
 
-const LOGO_URL =
-  'https://s3-alpha-sig.figma.com/img/9e6e/ce29/563027c2088c16dc05bbc1071b0d25ff?Expires=1789344000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=c8mL~9GPabDeNL9aIb6l46yrs6pRkcHFdoTcozn17jji-P~7chdA9T7wp5OKZZ~OSGXBrmCWUwRad3bKOH93BecR5xWiY~IdQZgTGQPZdWr5K~XbsLzK329LeT1j7-g5S3Ea46ds4ipLTJoOadv8wwkEWhRF2oM56ttZbGtxqaxz9ADmpzsE8ZI12SjkYk64ymGOR4hgI32tciYcpv2cYex96fL3Z9P5y0KZFl-W7ai1xHL-tCv-H-7fyI1rNd2q~ysjDO1W4xnIgeKZai1kA8Hv9MHirqbhKSkak29cKYjQ-Lr~VkCQO7q6QRrs86hWXzTIGK6c1aded5pm37Ygrw__';
+interface NavbarProps { onStart: () => void; }
 
-export default function Navbar() {
+export default function Navbar({ onStart }: NavbarProps) {
   const { t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const NAV_ITEMS = [
-    { key: 'navBenefits' as const, href: '#benefits' },
-    { key: 'navSpecifications' as const, href: '#specifications' },
-    { key: 'navHowTo' as const, href: '#how-to' },
-    { key: 'navContactUs' as const, href: '#contact-us' },
+  const items = [
+    { label: t('navHowTo'), href: '#how-to' },
+    { label: t('navBenefits'), href: '#benefits' },
   ];
 
   return (
-    <header className="w-full px-4 sm:px-8 lg:px-14 pt-4 pb-0">
-      <nav className="flex items-center justify-between py-4 lg:py-5 border-b border-black/10">
-        <div className="flex-shrink-0">
-          <img
-            src={LOGO_URL}
-            alt="UdyogSaarthi Logo"
-            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover"
-          />
-        </div>
+    <header className="sticky top-0 z-50 w-full border-b border-black/10 bg-white/90 px-4 backdrop-blur-xl sm:px-8 lg:px-14">
+      <nav aria-label="Main navigation" className="mx-auto flex min-h-16 max-w-[1320px] items-center justify-between gap-4 py-2">
+        <a href="#home" aria-label="UdyogSaarthi home" className="flex min-w-0 items-center gap-3 font-dm font-bold text-primary">
+          <span aria-hidden="true" className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-olive-800 text-sm text-white">US</span>
+          <span className="truncate text-base sm:text-lg">UdyogSaarthi</span>
+        </a>
 
-        <div className="hidden md:flex items-center gap-4 lg:gap-6 bg-white/40 backdrop-blur-[30px] rounded-full px-6 py-2.5">
-          {NAV_ITEMS.map((item) => (
-            <a
-              key={item.key}
-              href={item.href}
-              className="font-dm font-bold text-sm lg:text-base text-black tracking-tight hover:text-olive-800 transition-colors"
-            >
-              {t(item.key)}
-            </a>
-          ))}
+        <div className="hidden items-center gap-6 md:flex">
+          {items.map((item) => <a key={item.href} href={item.href} className="text-sm font-semibold text-primary transition-colors hover:text-olive-800">{item.label}</a>)}
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="hidden md:block">
-            <LanguageSelector variant="landing" />
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setMobileOpen((open) => !open)}
-            className="md:hidden p-2 text-black"
-            aria-label="Toggle menu"
-            aria-expanded={mobileOpen}
-            aria-controls="mobile-navigation"
-          >
-            {mobileOpen ? <X size={24} /> : <Menu size={24} />}
+          <div className="hidden lg:block"><LanguageSelector /></div>
+          <button type="button" onClick={onStart} className="hidden rounded-full bg-olive-800 px-5 py-2 text-sm font-semibold text-white transition hover:bg-olive-800/90 sm:block">{t('heroGetStarted')}</button>
+          <button type="button" onClick={() => setMobileOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-full md:hidden" aria-label={mobileOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileOpen} aria-controls="mobile-navigation">
+            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
         </div>
       </nav>
 
-      {mobileOpen && (
-        <div id="mobile-navigation" className="md:hidden bg-white border-b border-black/10 py-4 space-y-3">
-          {NAV_ITEMS.map((item) => (
-            <a
-              key={item.key}
-              href={item.href}
-              onClick={() => setMobileOpen(false)}
-              className="block font-dm font-bold text-base text-black tracking-tight px-2 py-2 hover:text-olive-800 transition-colors"
-            >
-              {t(item.key)}
-            </a>
-          ))}
-          <LanguageSelector variant="landing" className="mx-2" />
-        </div>
-      )}
+      {mobileOpen && <div id="mobile-navigation" className="mx-auto max-w-[1320px] space-y-2 border-t border-black/10 py-3 md:hidden">
+        {items.map((item) => <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)} className="block rounded-xl px-3 py-3 text-base font-semibold text-primary hover:bg-olive-50">{item.label}</a>)}
+        <div className="px-3 py-2"><LanguageSelector /></div>
+        <button type="button" onClick={() => { setMobileOpen(false); onStart(); }} className="w-full rounded-full bg-olive-800 px-5 py-3 font-semibold text-white">{t('heroGetStarted')}</button>
+      </div>}
     </header>
   );
 }

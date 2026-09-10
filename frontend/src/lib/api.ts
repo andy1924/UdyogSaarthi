@@ -161,6 +161,27 @@ async function computeHmacHeaders(
 }
 
 class ApiService {
+  async translationLanguages(): Promise<{ available: boolean; languages: string[] }> {
+    const response = await fetch('/api/translation/languages');
+    if (!response.ok) throw new Error('Language service unavailable');
+    return response.json();
+  }
+
+  async translateTexts(texts: string[], target: string, signal?: AbortSignal): Promise<string[]> {
+    const path = '/api/translation/text';
+    const body = JSON.stringify({ texts, target });
+    const headers = await computeHmacHeaders('POST', path, body);
+    const response = await fetch(path, {
+      method: 'POST', body, signal, headers: { ...headers, 'Content-Type': 'application/json' },
+    });
+    if (!response.ok) throw new Error('Translation temporarily unavailable');
+    const result = await response.json();
+    if (!Array.isArray(result.texts) || result.texts.length !== texts.length ||
+        !result.texts.every((text: unknown) => typeof text === 'string' && text.trim())) {
+      throw new Error('Incomplete translation');
+    }
+    return result.texts;
+  }
   private token: string | null = null;
 
   constructor() {
@@ -190,74 +211,39 @@ class ApiService {
   }
 
   /**
-   * Ensure user is authenticated, otherwise authenticates demo applicant account.
+   * Return the current access token. Authentication is always user-initiated.
    */
   async ensureAuthenticated(): Promise<string> {
     if (this.token) return this.token;
+    throw new Error('Sign in is required');
+  }
 
-    // First attempt login
-    const bodyStr = 'username=applicant@saarthi.gov.in&password=SecurePass123';
-    const hmacHeaders = await computeHmacHeaders('POST', '/auth/token', bodyStr);
-
-    try {
-      const res = await fetch('/auth/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          ...hmacHeaders,
-        },
-        body: bodyStr,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        this.setToken(data.access_token);
-        return data.access_token;
-      }
-    } catch {
-      // ignore, try register next
-    }
-
-    // Attempt register if user not found
-    const regPayload = JSON.stringify({
-      email: 'applicant@saarthi.gov.in',
-      password: 'SecurePass123',
-      full_name: 'Applicant User',
-      username: 'applicant_user',
-    });
-    const regHmac = await computeHmacHeaders('POST', '/auth/register', regPayload);
-
-    try {
-      await fetch('/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...regHmac,
-        },
-        body: regPayload,
-      });
-    } catch {
-      // might already exist
-    }
-
-    // Second login attempt
-    const retryHmac = await computeHmacHeaders('POST', '/auth/token', bodyStr);
-    const retryRes = await fetch('/auth/token', {
+  async login(email: string, password: string): Promise<void> {
+    const body = new URLSearchParams({ username: email, password }).toString();
+    const headers = await computeHmacHeaders('POST', '/auth/token', body);
+    const response = await fetch('/auth/token', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        ...retryHmac,
-      },
-      body: bodyStr,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...headers },
+      body,
     });
+    if (!response.ok) throw new Error(response.status === 401 ? 'Incorrect email or password' : 'Sign in is unavailable');
+    const result = await response.json();
+    this.setToken(result.access_token);
+  }
 
-    if (!retryRes.ok) {
-      throw new Error(`Authentication failed with status ${retryRes.status}`);
+  async registerApplicant(input: { email: string; password: string; fullName: string }): Promise<void> {
+    const body = JSON.stringify({ email: input.email, password: input.password, full_name: input.fullName });
+    const headers = await computeHmacHeaders('POST', '/auth/register', body);
+    const response = await fetch('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body,
+    });
+    if (!response.ok) {
+      if (response.status === 409) throw new Error('An account already exists for this email');
+      throw new Error('We could not create your account');
     }
-
-    const tokenData = await retryRes.json();
-    this.setToken(tokenData.access_token);
-    return tokenData.access_token;
+    await this.login(input.email, input.password);
   }
 
   /**
@@ -462,7 +448,15 @@ class ApiService {
 
     return res.blob();
   }
+
+  async getDpr(dprId: string): Promise<{ status: string; pdf_url?: string }> {
+    const token = await this.ensureAuthenticated();
+    const response = await fetch(`/api/dpr/${encodeURIComponent(dprId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error(`DPR status failed (${response.status})`);
+    return response.json();
+  }
 }
 
 export const api = new ApiService();
-

@@ -57,12 +57,7 @@ export default function Footer() {
               <a href="#how-to" className={columnLink}>
                 {t('footerHowItWorks')}
               </a>
-              <a href="#contact-us" className={columnLink}>
-                {t('footerContact')}
-              </a>
-              <button type="button" onClick={() => openDoc('terms')} className={columnLink}>
-                {t('footerGrievance')}
-              </button>
+              <a href="#benefits" className={columnLink}>{t('navBenefits')}</a>
             </div>
 
             <div className="flex flex-col gap-2.5">

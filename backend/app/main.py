@@ -19,6 +19,7 @@ from app.routers.directory import router as directory_router
 from app.routers.dpr import router as dpr_router
 from app.routers.feasibility import router as feasibility_router
 from app.routers.scheme import router as scheme_router
+from app.routers.translation import router as translation_router
 from app.routers.workflow import router as workflow_router
 
 app = FastAPI(
@@ -65,6 +66,7 @@ app.include_router(dpr_router)
 app.include_router(workflow_router)
 app.include_router(compliance_router)
 app.include_router(directory_router)
+app.include_router(translation_router)
 
 
 

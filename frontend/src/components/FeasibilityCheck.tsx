@@ -1,7 +1,5 @@
-import {
-  Phone,
-  RefreshCw
-} from 'lucide-react';
+import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { Text } from '../lib/LanguageContext';
 import AssessmentNavigation from './assessment/AssessmentNavigation';
 import BusinessStep from './assessment/BusinessStep';
 import DemandStep from './assessment/DemandStep';
@@ -16,23 +14,25 @@ interface FeasibilityCheckProps { onBackToLanding: () => void; }
 
 export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckProps) {
   const assessment = useAssessment();
-  const { t, currentStep, stepContentRef, loadingState, goToStep } = assessment;
+  const { t, currentStep, stepContentRef, loadingState, uiError, setUiError, goToStep } = assessment;
   return (
     <div className="assessment min-h-screen bg-surface-container-lowest text-on-surface font-body-md antialiased selection:bg-secondary-container">
       {/* ==================== HEADER ==================== */}
-      <header className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b border-outline-variant/60 shadow-[0_1px_8px_rgba(0,0,0,0.04)] bg-surface-container-lowest/95">
-        <div className="h-20 max-w-[1200px] mx-auto px-gutter-mobile lg:px-gutter-desktop flex items-center justify-between gap-space-md">
+      <header className="sticky top-0 z-50 backdrop-blur-md border-b border-outline-variant/60 bg-surface-container-lowest/95">
+        <div className="min-h-16 max-w-[1200px] mx-auto px-gutter-mobile lg:px-gutter-desktop flex items-center justify-between gap-space-md py-2">
           <div className="flex items-center gap-space-sm shrink-0">
             <button
               onClick={onBackToLanding}
               className="flex items-center gap-2 text-left cursor-pointer focus:outline-none group"
-              title="Return to Landing Page"
+              title="Return to home"
             >
+              <ArrowLeft size={18} aria-hidden="true" />
               <span className="font-headline-md text-headline-md font-bold tracking-tight text-primary leading-none font-playfair text-2xl group-hover:text-primary/80 transition-colors">
                 Udyog-Saarthi
               </span>
             </button>
           </div>
+          <LanguageSelector variant="wizard" />
         </div>
       </header>
 
@@ -41,14 +41,14 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-surface-container-lowest border border-outline-variant/80 rounded-2xl p-6 max-w-sm w-full shadow-2xl flex flex-col items-center text-center">
             <RefreshCw size={36} className="text-secondary animate-spin mb-4" />
-            <span className="font-headline-md text-primary font-bold text-lg mb-1">Processing Request</span>
+            <span className="font-headline-md text-primary font-bold text-lg mb-1"><Text>Working on your request</Text></span>
             <p className="font-body-sm text-on-surface-variant">{loadingState}</p>
           </div>
         </div>
       )}
 
       {/* ==================== MAIN CONTENT ==================== */}
-      <main className="w-full pt-20 bg-surface-container-lowest">
+      <main className="w-full bg-surface-container-lowest">
         <div className="flex flex-col w-full">
 
           {/* Main Multi-Step Container */}
@@ -57,21 +57,25 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-space-lg mb-space-2xl pb-space-lg border-b border-outline-variant/50">
               <div className="max-w-3xl">
                 <span className="font-label-kicker text-label-kicker uppercase tracking-widest text-secondary mb-2 block font-semibold">
-                  Your business, one step at a time
+                  <Text>Your business, one step at a time</Text>
                 </span>
                 <h1 className="font-headline-xl text-headline-xl text-primary font-bold tracking-tight leading-tight font-playfair">
-                  Turn your idea into a business plan
+                  <Text>Turn your idea into a business plan</Text>
                 </h1>
                 <p className="font-body-lg text-body-lg text-on-surface-variant mt-2">
-                  Explore demand nearby, understand funding, and prepare your project report.
+                  <Text>Explore demand nearby, understand funding, and prepare your project report.</Text>
                 </p>
-              </div>
-              <div className="shrink-0 self-end md:self-start md:pt-1">
-                <LanguageSelector variant="wizard" />
               </div>
             </div>
 
             <AssessmentNavigation currentStep={currentStep} onStepChange={goToStep} />
+
+            {uiError && (
+              <div role="alert" className="mb-6 flex items-start justify-between gap-4 rounded-xl border border-error/30 bg-error-container p-4 text-on-error-container">
+                <p>{uiError}</p>
+                <button type="button" onClick={() => setUiError(null)} className="min-h-0 shrink-0 underline">Dismiss</button>
+              </div>
+            )}
 
             {/* Step panels — goToStep scroll-locks to this anchor */}
             <div ref={stepContentRef} tabIndex={-1} aria-label={`Assessment step ${currentStep}`} className="scroll-mt-24">
@@ -95,36 +99,6 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
               {currentStep === 6 && <ReportStep {...assessment} />}
             </div>
 
-            {/* ==================== SIGNATURE RURAL HELPLINE BAR ==================== */}
-            <div className="mt-space-3xl w-full rounded-2xl bg-[#324622] text-[#e8f0df] p-space-xl flex flex-col md:flex-row items-center justify-between gap-space-lg shadow-md">
-              <div className="flex items-center gap-space-md">
-                <div className="w-14 h-14 rounded-full bg-surface-bright/15 flex items-center justify-center shrink-0">
-                  <Phone size={28} className="text-surface-bright" />
-                </div>
-                <div>
-                  <span className="font-label-kicker text-label-kicker uppercase tracking-widest text-[#ceebba] block font-semibold">
-                    Direct State Enterprise Mission Call Center
-                  </span>
-                  <h4 className="font-headline-md text-headline-md font-bold text-[#eeffde] font-playfair">
-                    Have questions regarding your Panchayat DPR or Subvention?
-                  </h4>
-                  <p className="font-body-sm text-body-sm text-[#ceebba]">
-                    Certified Lead District Manager (LDM) field officers are ready to assist across 36 districts.
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-wrap justify-center items-center bg-[#e8efe0] text-[#1e3314] px-space-lg py-3 rounded-2xl shadow-inner gap-3 max-w-full">
-                <div className="flex items-center gap-2">
-                  <Phone size={20} className="text-[#243b19]" />
-                  <a className="font-headline-md text-[20px] font-bold tracking-wide hover:underline" href="tel:+918983172377">
-                    +91 89831 72377
-                  </a>
-                </div>
-                <span className="font-label-ui text-[13px] font-semibold text-[#364d2b] text-center">
-                  Monday–Saturday • 09:00–19:00 hrs
-                </span>
-              </div>
-            </div>
           </div>
         </div>
       </main>

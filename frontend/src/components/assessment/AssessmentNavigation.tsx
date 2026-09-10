@@ -1,3 +1,5 @@
+import { Text } from '../../lib/LanguageContext';
+
 const STEPS = ['Location', 'Business idea', 'Local demand', 'Funding', 'Identity', 'Project report'];
 
 interface AssessmentNavigationProps {
@@ -10,7 +12,7 @@ export default function AssessmentNavigation({ currentStep, onStepChange }: Asse
   return (
     <nav aria-label="Assessment steps" className="assessment-navigation">
       <p className="mb-2 text-sm text-on-surface-variant md:hidden" aria-live="polite">
-        Step {currentStep} of {STEPS.length} · {STEPS[currentStep - 1]}
+        <Text>Step</Text> {currentStep} <Text>of</Text> {STEPS.length} · <Text>{STEPS[currentStep - 1]}</Text>
       </p>
       <ol className="grid grid-cols-3 gap-1.5 md:grid-cols-6">
         {STEPS.map((label, index) => {
@@ -25,7 +27,7 @@ export default function AssessmentNavigation({ currentStep, onStepChange }: Asse
                 className={`flex min-h-12 w-full items-center gap-2 rounded-xl px-2 py-2 text-left text-sm leading-relaxed transition-colors md:px-3 ${active ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}
               >
                 <span aria-hidden="true" className="shrink-0 font-mono text-xs opacity-70">{step}</span>
-                <span>{label}</span>
+                <span><Text>{label}</Text></span>
               </button>
             </li>
           );

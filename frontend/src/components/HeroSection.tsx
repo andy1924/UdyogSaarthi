@@ -1,6 +1,3 @@
-import { useState } from 'react';
-import { Mic } from 'lucide-react';
-import PhoneLoginModal from './PhoneLoginModal';
 import { useLanguage } from '../lib/LanguageContext';
 import IMAGE_LEFT from '../assets/hero_left.png';
 import IMAGE_RIGHT from '../assets/hero_right.png';
@@ -12,7 +9,6 @@ interface HeroSectionProps {
 
 export default function HeroSection({ onOpenFeasibility }: HeroSectionProps) {
   const { t } = useLanguage();
-  const [loginOpen, setLoginOpen] = useState(false);
 
   const handleOpenFeasibility = () => {
     if (onOpenFeasibility) {
@@ -23,7 +19,7 @@ export default function HeroSection({ onOpenFeasibility }: HeroSectionProps) {
   };
 
   return (
-    <section className="px-4 sm:px-8 lg:px-14 pt-4 sm:pt-6">
+    <section id="home" className="px-4 sm:px-8 lg:px-14 pt-6 sm:pt-10">
       <h1 className="font-crimson text-[29px] sm:text-[58px] md:text-[76px] lg:text-[96px] xl:text-[88px] leading-[0.9] tracking-[-0.0425em] text-center text-black">
         Udyog-Saarthi
       </h1>
@@ -31,20 +27,15 @@ export default function HeroSection({ onOpenFeasibility }: HeroSectionProps) {
       <div className="hero-actions relative z-20 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-6 sm:mt-8">
         <button
           type="button"
-          onClick={() => setLoginOpen(true)}
+          onClick={handleOpenFeasibility}
           className="hero-primary relative z-20 flex min-h-14 items-center justify-center bg-olive-800 text-white font-dm text-base leading-relaxed rounded-5xl px-6 sm:px-9 py-3 sm:py-4 hover:bg-olive-800/90 transition-colors cursor-pointer hover:shadow-lg"
         >
           {t('heroGetStarted')}
         </button>
 
-        <div className="relative z-20 flex items-center gap-3 bg-olive-50 rounded-5xl px-8 sm:px-12 py-3 sm:py-4">
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-olive-800 flex items-center justify-center flex-shrink-0">
-            <Mic size={18} className="text-white" />
-          </div>
-          <span className="font-crimson text-xl sm:text-2xl md:text-[29px] leading-[0.9] tracking-[-0.0425em] text-black">
-            {t('heroVoiceSaarthi')}
-          </span>
-        </div>
+        <a href="#how-to" className="relative z-20 flex min-h-14 items-center justify-center rounded-5xl bg-olive-50 px-8 py-3 font-dm text-base font-semibold text-primary transition-colors hover:bg-olive-100 sm:px-10 sm:py-4">
+          {t('navHowTo')}
+        </a>
       </div>
 
       <div className="relative mt-6 sm:mt-8 w-full">
@@ -72,12 +63,6 @@ export default function HeroSection({ onOpenFeasibility }: HeroSectionProps) {
           />
         </div>
       </div>
-
-      <PhoneLoginModal
-        open={loginOpen}
-        onClose={() => setLoginOpen(false)}
-        onVerified={handleOpenFeasibility}
-      />
     </section>
   );
 }

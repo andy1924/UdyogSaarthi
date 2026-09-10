@@ -8,7 +8,7 @@
 // (https://bhashini.gitbook.io/bhashini-apis). Codes below are ISO-639-1 where
 // one exists, otherwise ISO-639-2/3 (brx, doi, kok, mai, mni, sat).
 //
-// Translation wiring is out of scope — this file is the selector's data only.
+// The server determines which of these languages the configured pipeline supports.
 
 export interface BhashiniLanguage {
   /** ISO-639 language code (matches Bhashini API language codes). */

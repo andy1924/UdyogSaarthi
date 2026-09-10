@@ -33,10 +33,13 @@ class Settings(BaseSettings):
     lgd_api_resource_id: str = "9115b89c-b661-4d12-8a1c-6ef2dc81c7b5"
     # API key issued by data.gov.in for the LGD datastore endpoint.
     data_gov_api_key: str = ""
+    bhashini_user_id: str = ""
+    bhashini_api_key: str = ""
+    bhashini_pipeline_id: str = ""
 
     # ── DPR / AI SWOT & KYC ──────────────────────────────────────────
     openai_api_key: str = ""
-    api_setu_bearer_token: str = "b9eb74c511abde7b0b0ebcec34d6b11b6b0fc35d"
+    api_setu_bearer_token: str = ""
 
     # ── PDF Rendering ────────────────────────────────────────────────
     dpr_output_dir: str = "./generated_dprs"

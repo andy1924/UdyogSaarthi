@@ -13,22 +13,22 @@ export default function PrivacyPolicy() {
       <h3 className={sectionTitle}>1. Demo first, data minimal</h3>
       <p className={sectionBody}>
         The platform runs as a sandbox demonstration. We do not perform any real KYC, identity
-        verification, or credit appraisal. Details you type into the viability checker stay in
-        your browser unless you explicitly choose to share them.
+        credit approval. Assessment inputs are sent only to the application API when needed to
+        calculate feasibility, funding, or generate a DPR.
       </p>
 
       <h3 className={sectionTitle}>2. What we collect</h3>
       <p className={sectionBody}>
-        Only what you voluntarily enter — such as enterprise type, location text, and scheme
-        preferences — plus your cookie-consent choice stored locally. We do not ask for Aadhaar,
-        PAN, bank details, or passwords.
+        We process the account, applicant name, business, location, and scheme information you
+        provide. PAN and Aadhaar files selected in the identity step are stored locally in your
+        browser&apos;s IndexedDB draft and are not uploaded by this release.
       </p>
 
-      <h3 className={sectionTitle}>3. Mock integrations</h3>
+      <h3 className={sectionTitle}>3. Sandbox integrations</h3>
       <p className={sectionBody}>
-        DigiLocker access, OTP verification, and location lookup shown in this demo are mocked or
-        served through a Nominatim fallback. No documents are fetched, no OTP is sent, and no
-        identity is verified.
+        DigiLocker is clearly labelled as an optional sandbox connection and does not establish
+        real identity verification. Location and business-data requests use the configured
+        application services and may contact their stated data providers.
       </p>
 
       <h3 className={sectionTitle}>4. How we use inputs</h3>
@@ -61,15 +61,15 @@ export default function PrivacyPolicy() {
 
       <h3 className={sectionTitle}>8. Retention and security</h3>
       <p className={sectionBody}>
-        Browser-side entries persist only until you clear them. We apply reasonable safeguards
-        appropriate to a demo, but you should never enter sensitive personal or financial
-        information into this sandbox.
+        Assessment state persists for the browser session. Selected identity files remain in
+        IndexedDB until site data is cleared or replaced. Clear this site&apos;s storage on a shared
+        device after finishing your draft.
       </p>
 
       <h3 className={sectionTitle}>9. Contact</h3>
       <p className={sectionBody}>
-        For privacy questions about this demo, use the Contact section of the site. A production
-        rollout would publish a designated Data Protection contact here.
+        A production rollout must publish a designated Data Protection contact before accepting
+        production identity documents.
       </p>
     </div>
   );

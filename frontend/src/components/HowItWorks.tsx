@@ -1,4 +1,5 @@
 import { useLanguage } from '../lib/LanguageContext';
+import BotanicalAccent from './BotanicalAccent';
 
 export default function HowItWorks() {
   const { t } = useLanguage();
@@ -22,12 +23,13 @@ export default function HowItWorks() {
   ];
 
   return (
-    <section id="how-to" className="px-4 sm:px-8 lg:px-14 pt-7 sm:pt-9 lg:pt-11">
-      <h2 className="font-crimson text-3xl sm:text-4xl lg:text-[46px] leading-tight text-primary text-center sm:text-left mb-6 sm:mb-10">
+    <section id="how-to" className="relative isolate overflow-hidden px-4 pt-10 sm:px-8 sm:pt-14 lg:px-14 lg:pt-16">
+      <BotanicalAccent variant="bloom" className="bottom-0 rotate-6 opacity-20" />
+      <h2 className="relative z-10 mb-6 text-center font-crimson text-3xl leading-tight text-primary sm:mb-10 sm:text-left sm:text-4xl lg:text-[46px]">
         {t('howTitle')}
       </h2>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+      <div className="relative z-10 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
         {STEPS.map((step) => (
           <div key={step.number} className="bg-olive-50 rounded-4xl p-5 sm:p-6 flex flex-col h-full">
             <span className="font-crimson text-[31px] sm:text-[29px] lg:text-[46px] leading-[0.9] tracking-[-0.03em] text-black">

@@ -18,16 +18,16 @@ export default function CookiePolicy() {
 
       <h3 className={sectionTitle}>2. Strictly necessary storage</h3>
       <p className={sectionBody}>
-        Consent memory and on-device draft inputs are strictly necessary for the demo to
-        function. They never leave your device and are not transmitted to any analytics
-        provider.
+        Consent memory and on-device draft state are necessary for the workflow to survive a
+        refresh. Identity files selected for the draft are stored in IndexedDB; no analytics
+        provider receives them.
       </p>
 
       <h3 className={sectionTitle}>3. No third-party tracking</h3>
       <p className={sectionBody}>
         We do not embed advertising, social-media, or analytics beacons in this build. Fonts are
-        loaded from a CDN; map tiles and Nominatim fallback lookups follow their own
-        provider policies when you use those features.
+        loaded from a CDN; configured map and translation services follow their own provider
+        policies when you use those features.
       </p>
 
       <h3 className={sectionTitle}>4. Your consent choice</h3>
@@ -50,10 +50,6 @@ export default function CookiePolicy() {
         be updated first with a fresh consent prompt.
       </p>
 
-      <h3 className={sectionTitle}>7. Contact</h3>
-      <p className={sectionBody}>
-        Questions about storage in this demo can be sent via the Contact section of the site.
-      </p>
     </div>
   );
 }

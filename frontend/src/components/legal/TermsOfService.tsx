@@ -26,9 +26,9 @@ export default function TermsOfService() {
 
       <h3 className={sectionTitle}>3. Mock workflows</h3>
       <p className={sectionBody}>
-        DigiLocker pulls, OTP logins, and map-based directory results are simulated or served via
-        a Nominatim fallback for demonstration. No real KYC is performed and no official record
-        is created or modified.
+        DigiLocker remains an explicitly labelled sandbox connection. Map and directory results
+        come from configured application data services. No real KYC or official credit decision
+        is performed by the sandbox workflow.
       </p>
 
       <h3 className={sectionTitle}>4. Fair and lawful use</h3>

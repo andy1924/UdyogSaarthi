@@ -9,6 +9,18 @@
 
 const DEV_SECRET_KEY = 'change-me-in-production-udyogsaarthi-secret-key';
 const TOKEN_STORAGE_KEY = 'udyog_access_token';
+export const AUTH_REQUIRED_EVENT = 'udyogsaarthi:auth-required';
+
+export class ApiError extends Error {
+  constructor(message: string, public readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
+export function isAuthenticationError(reason: unknown): boolean {
+  return reason instanceof ApiError && reason.status === 401;
+}
 
 // Types from docs/apiDocs.md and backend schemas
 export interface SchemeRule {
@@ -160,7 +172,7 @@ async function computeHmacHeaders(
   }
 }
 
-class ApiService {
+export class ApiService {
   async translationLanguages(): Promise<{ available: boolean; languages: string[] }> {
     const response = await fetch('/api/translation/languages');
     if (!response.ok) throw new Error('Language service unavailable');
@@ -195,6 +207,25 @@ class ApiService {
     if (typeof window !== 'undefined') {
       localStorage.setItem(TOKEN_STORAGE_KEY, token);
     }
+  }
+
+  clearToken() {
+    this.token = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(TOKEN_STORAGE_KEY);
+    }
+  }
+
+  private async handleProtectedFailure(response: Response, fallback: string): Promise<never> {
+    if (response.status === 401) {
+      this.clearToken();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(AUTH_REQUIRED_EVENT));
+      }
+      throw new ApiError('Your session has expired. Sign in again to continue.', 401);
+    }
+    const detail = await response.text();
+    throw new ApiError(`${fallback} (${response.status})${detail ? `: ${detail}` : ''}`, response.status);
   }
 
   getToken(): string | null {
@@ -317,8 +348,7 @@ class ApiService {
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Feasibility score failed (${res.status}): ${err}`);
+      return this.handleProtectedFailure(res, 'Local demand check failed');
     }
 
     return res.json();
@@ -423,8 +453,7 @@ class ApiService {
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`DPR render failed (${res.status}): ${err}`);
+      return this.handleProtectedFailure(res, 'Project report generation failed');
     }
 
     return res.json();
@@ -442,8 +471,7 @@ class ApiService {
     });
 
     if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`DPR download failed (${res.status}): ${err}`);
+      return this.handleProtectedFailure(res, 'Project report download failed');
     }
 
     return res.blob();
@@ -454,7 +482,7 @@ class ApiService {
     const response = await fetch(`/api/dpr/${encodeURIComponent(dprId)}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    if (!response.ok) throw new Error(`DPR status failed (${response.status})`);
+    if (!response.ok) return this.handleProtectedFailure(response, 'Project report status check failed');
     return response.json();
   }
 }

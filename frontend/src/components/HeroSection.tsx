@@ -2,6 +2,7 @@ import { useLanguage } from '../lib/LanguageContext';
 import IMAGE_LEFT from '../assets/hero_left.png';
 import IMAGE_RIGHT from '../assets/hero_right.png';
 import IMAGE_CENTER from '../assets/hero_center.png';
+import BotanicalAccent from './BotanicalAccent';
 
 interface HeroSectionProps {
   onOpenFeasibility?: () => void;
@@ -19,9 +20,11 @@ export default function HeroSection({ onOpenFeasibility }: HeroSectionProps) {
   };
 
   return (
-    <section id="home" className="px-4 sm:px-8 lg:px-14 pt-6 sm:pt-10">
-      <h1 className="font-crimson text-[29px] sm:text-[58px] md:text-[76px] lg:text-[96px] xl:text-[88px] leading-[0.9] tracking-[-0.0425em] text-center text-black">
-        Udyog-Saarthi
+    <section id="home" className="relative isolate overflow-hidden px-4 pt-6 sm:px-8 sm:pt-10 lg:px-14">
+      <BotanicalAccent side="left" variant="bloom" className="top-2 -rotate-12 opacity-20" />
+      <BotanicalAccent className="top-12 rotate-12 opacity-20" />
+      <h1 className="relative z-10 text-center font-crimson text-[29px] leading-[0.9] tracking-[-0.0425em] text-black sm:text-[58px] md:text-[76px] lg:text-[96px] xl:text-[88px]">
+        UdyogSaarthi
       </h1>
 
       <div className="hero-actions relative z-20 flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-6 sm:mt-8">
@@ -38,7 +41,7 @@ export default function HeroSection({ onOpenFeasibility }: HeroSectionProps) {
         </a>
       </div>
 
-      <div className="relative mt-6 sm:mt-8 w-full">
+      <div className="relative z-10 mt-6 w-full sm:mt-8">
         {/* Olive background */}
         <div className="rounded-4xl bg-olive-400 w-full aspect-[1305/491]" />
         {/* Images aligned on the olive background */}

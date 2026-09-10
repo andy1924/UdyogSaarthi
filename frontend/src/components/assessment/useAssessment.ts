@@ -1,51 +1,188 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   api,
+  isAuthenticationError,
   type FeasibilityResult,
   type LicenseItem,
   type NearbyProfile,
   type SchemeCalculationResult,
 } from '../../lib/api';
 import { useLanguage } from '../../lib/LanguageContext';
+import { digiLockerAdapter } from '../../lib/digilocker';
+import { canGenerateDpr, clampRestoredStep, getAdvanceError } from '../../lib/assessment-workflow';
+import {
+  loadIdentityFile,
+  removeIdentityFile,
+  storeIdentityFile,
+  toDocumentState,
+  validateIdentityFile,
+  type IdentityDocumentKind,
+  type IdentityDocumentState,
+} from '../../lib/identity-documents';
 import { ENTERPRISE_OPTIONS } from './enterprise-catalog';
+
+const DRAFT_KEY = 'udyogsaarthi-assessment-draft-v1';
+
+interface AssessmentDraft {
+  currentStep: number;
+  highestStepReached: number;
+  radius: number;
+  selectedEnterprise: string;
+  marginPercent: number;
+  userCoords: { lat: number; lon: number } | null;
+  locationText: string;
+  geoResolved: { state: string; district: string; block: string; display_name?: string } | null;
+  geoStatus: 'detected' | 'manual' | 'denied' | 'idle';
+  searchLocationQuery: string;
+  feasibilityResult: FeasibilityResult | null;
+  schemeResult: SchemeCalculationResult | null;
+  nearbyProfiles: NearbyProfile[];
+  licenses: LicenseItem[];
+  applicantName: string;
+  panDocument: IdentityDocumentState | null;
+  aadhaarDocument: IdentityDocumentState | null;
+  digiLockerStatus: 'idle' | 'success' | 'error';
+  digiLockerReference: string | null;
+  reviewConfirmed: boolean;
+  dprId: string | null;
+  dprStatus: 'idle' | 'ready' | 'error';
+}
+
+function loadDraft(): Partial<AssessmentDraft> {
+  if (typeof window === 'undefined') return {};
+  try { return JSON.parse(sessionStorage.getItem(DRAFT_KEY) || '{}'); } catch { return {}; }
+}
+
+function sanitizeHighestStep(draft: Partial<AssessmentDraft>): number {
+  let highest = Math.min(6, Math.max(1, draft.highestStepReached ?? 1));
+  const state = {
+    userCoords: draft.userCoords ?? null,
+    locationText: draft.locationText ?? '',
+    selectedEnterprise: draft.selectedEnterprise ?? '',
+    feasibilityResult: draft.feasibilityResult ?? null,
+    schemeResult: draft.schemeResult ?? null,
+    applicantName: draft.applicantName ?? '',
+    panDocument: draft.panDocument ?? null,
+    aadhaarDocument: draft.aadhaarDocument ?? null,
+  };
+  for (let target = 2; target <= highest; target += 1) {
+    if (getAdvanceError(target, state)) { highest = target - 1; break; }
+  }
+  return highest;
+}
 
 export function useAssessment() {
   const { t } = useLanguage();
-  const [currentStep, setCurrentStep] = useState<number>(1);
+  const [initialDraft] = useState(loadDraft);
+  const initialHighest = sanitizeHighestStep(initialDraft);
+  const [currentStep, setCurrentStep] = useState<number>(clampRestoredStep(initialDraft.currentStep ?? 1, initialHighest));
+  const [highestStepReached, setHighestStepReached] = useState(initialHighest);
   // Slide direction for step transitions (forward = from right, back = from left)
   const [stepDirection, setStepDirection] = useState<'forward' | 'back'>('forward');
   const stepAnimClass = stepDirection === 'back' ? 'animate-step-back' : 'animate-step-forward';
   // Anchor for step transitions — goToStep scroll-locks here, not page top
   const stepContentRef = useRef<HTMLDivElement>(null);
-  const [radius, setRadius] = useState<number>(5000);
-  const [selectedEnterprise, setSelectedEnterprise] = useState<string>('agro_processing');
-  const [marginPercent, setMarginPercent] = useState<number>(10);
+  const [radius, setRadiusState] = useState<number>(initialDraft.radius ?? 5000);
+  const [selectedEnterprise, setSelectedEnterpriseState] = useState<string>(initialDraft.selectedEnterprise ?? '');
+  const [marginPercent, setMarginPercentState] = useState<number>(initialDraft.marginPercent ?? 10);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
   const [uiError, setUiError] = useState<string | null>(null);
 
   // Exact Location & Coordinate States
   // No default coordinates — stays null until GPS or search resolves
-  const [userCoords, setUserCoords] = useState<{ lat: number; lon: number } | null>(null);
-  const [locationText, setLocationText] = useState<string>('Detecting exact location...');
-  const [geoResolved, setGeoResolved] = useState<{ state: string; district: string; block: string; display_name?: string } | null>(null);
-  const [geoStatus, setGeoStatus] = useState<'detecting' | 'detected' | 'manual' | 'denied' | 'idle'>('detecting');
-  const [searchLocationQuery, setSearchLocationQuery] = useState<string>('');
+  const [userCoords, setUserCoordsState] = useState<{ lat: number; lon: number } | null>(initialDraft.userCoords ?? null);
+  const [locationText, setLocationTextState] = useState<string>(initialDraft.locationText ?? '');
+  const [geoResolved, setGeoResolved] = useState<{ state: string; district: string; block: string; display_name?: string } | null>(initialDraft.geoResolved ?? null);
+  const [geoStatus, setGeoStatus] = useState<'detecting' | 'detected' | 'manual' | 'denied' | 'idle'>(initialDraft.geoStatus ?? (initialDraft.userCoords ? 'manual' : 'detecting'));
+  const [searchLocationQuery, setSearchLocationQuery] = useState<string>(initialDraft.searchLocationQuery ?? '');
   const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
   const [manualOverrideOpen, setManualOverrideOpen] = useState<boolean>(false);
 
   // Backend Integration States
   const [loadingState, setLoadingState] = useState<string | null>(null);
-  const [feasibilityResult, setFeasibilityResult] = useState<FeasibilityResult | null>(null);
-  const [schemeResult, setSchemeResult] = useState<SchemeCalculationResult | null>(null);
+  const [feasibilityResult, setFeasibilityResult] = useState<FeasibilityResult | null>(initialDraft.feasibilityResult ?? null);
+  const [schemeResult, setSchemeResult] = useState<SchemeCalculationResult | null>(initialDraft.schemeResult ?? null);
   // Empty by default — populated only from live PostGIS API for user's real location
-  const [nearbyProfiles, setNearbyProfiles] = useState<NearbyProfile[]>([]);
+  const [nearbyProfiles, setNearbyProfiles] = useState<NearbyProfile[]>(initialDraft.nearbyProfiles ?? []);
   const [nearbyLoading, setNearbyLoading] = useState<boolean>(false);
-  const [licenses, setLicenses] = useState<LicenseItem[]>([]);
-  const [dprId, setDprId] = useState<string | null>(null);
-  const [dprStatus, setDprStatus] = useState<'idle' | 'queued' | 'ready' | 'error'>('idle');
-  const [applicantName, setApplicantName] = useState('');
+  const [licenses, setLicenses] = useState<LicenseItem[]>(initialDraft.licenses ?? []);
+  const [dprId, setDprId] = useState<string | null>(initialDraft.dprId ?? null);
+  const [dprStatus, setDprStatus] = useState<'idle' | 'queued' | 'ready' | 'error'>(initialDraft.dprStatus ?? 'idle');
+  const [applicantName, setApplicantNameState] = useState(initialDraft.applicantName ?? '');
+  const [panDocument, setPanDocument] = useState<IdentityDocumentState | null>(initialDraft.panDocument ?? null);
+  const [aadhaarDocument, setAadhaarDocument] = useState<IdentityDocumentState | null>(initialDraft.aadhaarDocument ?? null);
+  const [digiLockerStatus, setDigiLockerStatus] = useState<'idle' | 'connecting' | 'success' | 'error'>(initialDraft.digiLockerStatus ?? 'idle');
+  const [digiLockerReference, setDigiLockerReference] = useState<string | null>(initialDraft.digiLockerReference ?? null);
+  const [reviewConfirmed, setReviewConfirmed] = useState(initialHighest >= 6 && Boolean(initialDraft.reviewConfirmed));
 
   const enterprise = ENTERPRISE_OPTIONS.find((e) => e.id === selectedEnterprise) || ENTERPRISE_OPTIONS[0];
+
+  const invalidateFrom = useCallback((step: number) => {
+    setHighestStepReached((value) => Math.min(value, step));
+    setReviewConfirmed(false);
+    setDprId(null);
+    setDprStatus('idle');
+  }, []);
+
+  const setRadius = (value: number) => {
+    setRadiusState(value);
+    setFeasibilityResult(null);
+    invalidateFrom(1);
+  };
+  const setSelectedEnterprise = (value: string) => {
+    setSelectedEnterpriseState(value);
+    setFeasibilityResult(null);
+    setSchemeResult(null);
+    invalidateFrom(2);
+  };
+  const setMarginPercent = (value: number) => {
+    setMarginPercentState(value);
+    setSchemeResult(null);
+    invalidateFrom(2);
+  };
+  const setUserCoords = (value: { lat: number; lon: number } | null) => {
+    setUserCoordsState(value);
+    setFeasibilityResult(null);
+    invalidateFrom(1);
+  };
+  const setLocationText = (value: string) => {
+    setLocationTextState(value);
+    setFeasibilityResult(null);
+    invalidateFrom(1);
+  };
+  const setApplicantName = (value: string) => {
+    setApplicantNameState(value);
+    invalidateFrom(5);
+  };
+
+  const handleIdentityDocument = async (kind: IdentityDocumentKind, file: File) => {
+    const error = validateIdentityFile(file);
+    const update = kind === 'pan' ? setPanDocument : setAadhaarDocument;
+    invalidateFrom(5);
+    if (error) {
+      try { await removeIdentityFile(kind); } catch { /* The invalid state still prevents progression. */ }
+      update({ fileName: file.name, fileSize: file.size, fileType: file.type, status: 'invalid', error });
+      return;
+    }
+    try {
+      await storeIdentityFile(kind, file);
+      update(toDocumentState(file));
+    } catch {
+      update({ fileName: file.name, fileSize: file.size, fileType: file.type, status: 'invalid', error: 'This file could not be saved in your browser. Try again.' });
+    }
+  };
+
+  const connectDigiLocker = async () => {
+    setDigiLockerStatus('connecting');
+    try {
+      const result = await digiLockerAdapter.connect();
+      setDigiLockerReference(result.reference);
+      setDigiLockerStatus('success');
+    } catch {
+      setDigiLockerReference(null);
+      setDigiLockerStatus('error');
+    }
+  };
 
   // Base fallback figures
   const fallbackTpc = enterprise.capex;
@@ -54,6 +191,50 @@ export function useAssessment() {
   // Display values: prioritizes server-calculated values per standing rules
   const displayTpc = schemeResult ? schemeResult.tpc : fallbackTpc;
   const displayMargin = schemeResult ? schemeResult.margin : fallbackMargin;
+
+  useEffect(() => {
+    const draft: AssessmentDraft = {
+      currentStep, highestStepReached, radius, selectedEnterprise, marginPercent,
+      userCoords, locationText, geoResolved,
+      geoStatus: geoStatus === 'detecting' ? 'idle' : geoStatus,
+      searchLocationQuery, feasibilityResult, schemeResult, nearbyProfiles, licenses,
+      applicantName, panDocument, aadhaarDocument,
+      digiLockerStatus: digiLockerStatus === 'connecting' ? 'idle' : digiLockerStatus,
+      digiLockerReference,
+      reviewConfirmed,
+      dprId,
+      dprStatus: dprStatus === 'queued' ? 'idle' : dprStatus,
+    };
+    try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch { /* Continue without draft persistence. */ }
+  }, [currentStep, highestStepReached, radius, selectedEnterprise, marginPercent, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, feasibilityResult, schemeResult, nearbyProfiles, licenses, applicantName, panDocument, aadhaarDocument, digiLockerStatus, digiLockerReference, reviewConfirmed, dprId, dprStatus]);
+
+  useEffect(() => {
+    let active = true;
+    async function restoreDocument(kind: IdentityDocumentKind) {
+      const existing = kind === 'pan' ? panDocument : aadhaarDocument;
+      if (!existing) return;
+      const update = kind === 'pan' ? setPanDocument : setAadhaarDocument;
+      try {
+        const file = await loadIdentityFile(kind);
+        if (!active) return;
+        const error = file ? validateIdentityFile(file) : 'Select this document again to continue.';
+        update(error ? { ...existing, status: 'invalid', error } : toDocumentState(file as File));
+        if (error) {
+          setHighestStepReached((value) => Math.min(value, 5));
+          setCurrentStep((value) => Math.min(value, 5));
+        }
+      } catch {
+        if (active) {
+          update({ ...existing, status: 'invalid', error: 'Select this document again to continue.' });
+          setHighestStepReached((value) => Math.min(value, 5));
+          setCurrentStep((value) => Math.min(value, 5));
+        }
+      }
+    }
+    void restoreDocument('pan');
+    void restoreDocument('aadhaar');
+    return () => { active = false; };
+  }, []);
 
   // Mirror of geoStatus for async GPS callbacks (avoids stale closures).
   const geoStatusRef = useRef(geoStatus);
@@ -79,7 +260,7 @@ export function useAssessment() {
       handleLocationUnavailable();
       return;
     }
-    if (!force && geoStatusRef.current === 'manual') return;
+    if (!force && (geoStatusRef.current === 'manual' || geoStatusRef.current === 'detected')) return;
     if (window.isSecureContext === false) {
       // getCurrentPosition always fails off HTTPS (except localhost) — skip straight to fallback.
       console.warn('Geolocation needs HTTPS or localhost.');
@@ -148,7 +329,7 @@ export function useAssessment() {
 
     setIsSearchingLocation(true);
     setUiError(null);
-    setLoadingState(`Locating "${query}" and resolving administrative catchment...`);
+    setLoadingState(`Finding “${query}” and confirming the area…`);
     try {
       const res = await api.forwardGeocode(query);
       if (res) {
@@ -213,6 +394,7 @@ export function useAssessment() {
 
   // 5. Scheme Calculation via live backend
   const runSchemeCalculate = useCallback(async () => {
+    if (!selectedEnterprise) { setSchemeResult(null); return; }
     const marginAmt = (enterprise.capex * marginPercent) / 100;
     try {
       const res = await api.calculateScheme(marginAmt, enterprise.apiCategory);
@@ -221,7 +403,7 @@ export function useAssessment() {
       console.warn('Scheme calculation unavailable:', err);
       setSchemeResult(null);
     }
-  }, [enterprise.capex, enterprise.apiCategory, marginPercent]);
+  }, [selectedEnterprise, enterprise.capex, enterprise.apiCategory, marginPercent]);
 
   useEffect(() => {
     runSchemeCalculate();
@@ -251,11 +433,15 @@ export function useAssessment() {
 
   // 7. Feasibility Score Execution with exact user coordinates
   const executeFeasibilityAI = async () => {
+    if (!selectedEnterprise) {
+      setUiError('Choose a business idea before checking local demand.');
+      return;
+    }
     if (!userCoords) {
       setUiError('Search for your location before checking local demand.');
       return;
     }
-    setLoadingState('Connecting to geospatial engine & live POI cluster...');
+    setLoadingState('Checking local demand around your selected area…');
     setUiError(null);
     try {
       const res = await api.getFeasibilityScore({
@@ -267,25 +453,50 @@ export function useAssessment() {
         // population omitted — backend derives from LGD data
       });
       setFeasibilityResult(res);
+      setHighestStepReached((value) => Math.max(value, 3));
+      transitionToStep(3);
     } catch (err) {
       console.warn('Live feasibility endpoint unavailable:', err);
       setFeasibilityResult(null);
-      setUiError('Local demand data is temporarily unavailable. Your inputs are saved; please try again.');
+      setUiError(isAuthenticationError(err)
+        ? 'Your session expired. Sign in again, then retry the local demand check. Your inputs are saved.'
+        : 'Local demand data is temporarily unavailable. Your inputs are saved; please try again.');
     } finally {
       setLoadingState(null);
-      goToStep(3);
     }
   };
 
 
   // 6. Handle DPR PDF Generation & Download
   const handleDprDownload = async () => {
-    if (!feasibilityResult || !schemeResult) {
+    const requirements = { userCoords, locationText, selectedEnterprise, feasibilityResult, schemeResult, applicantName, panDocument, aadhaarDocument };
+    if (!feasibilityResult || !schemeResult || !canGenerateDpr(requirements, highestStepReached, reviewConfirmed)) {
       setDprStatus('error');
-      setUiError('Complete local demand and funding before generating your report.');
+      setUiError('Review every step and confirm that the information is correct before generating your report.');
       return;
     }
-    setLoadingState('Compiling bank-ready DPR dossier...');
+    const downloadPdf = async (id: string) => {
+      const blob = await api.downloadDprPdf(id);
+      const blobUrl = window.URL.createObjectURL(blob);
+      const downloadLink = document.createElement('a');
+      downloadLink.href = blobUrl;
+      downloadLink.download = `${id}.pdf`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      window.URL.revokeObjectURL(blobUrl);
+      setDownloadSuccess(true);
+      window.setTimeout(() => setDownloadSuccess(false), 4000);
+    };
+
+    if (dprStatus === 'ready' && dprId) {
+      setLoadingState('Preparing your DPR download...');
+      try { await downloadPdf(dprId); }
+      catch { setUiError('The saved report could not be downloaded. Generate a new DPR to continue.'); setDprStatus('error'); }
+      finally { setLoadingState(null); }
+      return;
+    }
+    setLoadingState('Preparing your project report…');
     setDprStatus('queued');
     setUiError(null);
 
@@ -307,20 +518,7 @@ export function useAssessment() {
       }
       if (!ready) throw new Error('PDF generation timed out');
       setDprStatus('ready');
-      const blob = await api.downloadDprPdf(res.dpr_id);
-      const blobUrl = window.URL.createObjectURL(blob);
-      const downloadLink = document.createElement('a');
-      downloadLink.href = blobUrl;
-      downloadLink.download = `${res.dpr_id}.pdf`;
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      document.body.removeChild(downloadLink);
-      window.URL.revokeObjectURL(blobUrl);
-
-      setDownloadSuccess(true);
-      setTimeout(() => {
-        setDownloadSuccess(false);
-      }, 4000);
+      await downloadPdf(res.dpr_id);
     } catch (err) {
       console.warn('DPR render/download notice:', err);
       setDprStatus('error');
@@ -339,7 +537,7 @@ export function useAssessment() {
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
 
-  const goToStep = (stepNum: number) => {
+  const transitionToStep = (stepNum: number) => {
     setStepDirection(stepNum < currentStep ? 'back' : 'forward');
     setCurrentStep(stepNum);
     // Lock scroll onto the step content (below the stepper), offset for fixed header
@@ -354,7 +552,25 @@ export function useAssessment() {
     });
   };
 
-  return { t, currentStep, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, downloadSuccess, uiError, setUiError, userCoords, setUserCoords, locationText, setLocationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, manualOverrideOpen, setManualOverrideOpen, loadingState, feasibilityResult, schemeResult, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep };
+  const goToStep = (stepNum: number) => {
+    if (stepNum > highestStepReached) {
+      setUiError('Complete the current step before moving ahead.');
+      return;
+    }
+    setUiError(null);
+    transitionToStep(stepNum);
+  };
+
+  const advanceToStep = (stepNum: number) => {
+    const error = getAdvanceError(stepNum, { userCoords, locationText, selectedEnterprise, feasibilityResult, schemeResult, applicantName, panDocument, aadhaarDocument });
+    if (error) { setUiError(error); return false; }
+    setUiError(null);
+    setHighestStepReached((value) => Math.max(value, stepNum));
+    transitionToStep(stepNum);
+    return true;
+  };
+
+  return { t, currentStep, highestStepReached, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, downloadSuccess, uiError, setUiError, userCoords, setUserCoords, locationText, setLocationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, manualOverrideOpen, setManualOverrideOpen, loadingState, feasibilityResult, schemeResult, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, panDocument, aadhaarDocument, handleIdentityDocument, digiLockerStatus, digiLockerReference, connectDigiLocker, reviewConfirmed, setReviewConfirmed, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep, advanceToStep };
 }
 
 export type AssessmentState = ReturnType<typeof useAssessment>;

@@ -2,14 +2,13 @@ import { ArrowRight } from 'lucide-react';
 import { Text } from '../../lib/LanguageContext';
 import type { AssessmentState } from './useAssessment';
 
-type Props = Pick<AssessmentState, 'stepAnimClass' | 'schemeResult' | 'licenses' | 'goToStep'>;
+type Props = Pick<AssessmentState, 'stepAnimClass' | 'schemeResult' | 'licenses' | 'marginPercent' | 'goToStep' | 'advanceToStep'>;
 const rupees = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 const percent = new Intl.NumberFormat('en-IN', { style: 'percent', maximumFractionDigits: 2 });
 
-export default function FundingStep({ stepAnimClass, schemeResult, licenses, goToStep }: Props) {
+export default function FundingStep({ stepAnimClass, schemeResult, licenses, marginPercent, goToStep, advanceToStep }: Props) {
   const figures = schemeResult ? [
     ['Project budget', rupees.format(schemeResult.tpc)],
-    ['Your contribution', rupees.format(schemeResult.margin)],
     ['Loan amount', rupees.format(schemeResult.max_loan_capped)],
     ['Quarterly repayment', rupees.format(schemeResult.eqi_amount)],
   ] : [];
@@ -20,6 +19,14 @@ export default function FundingStep({ stepAnimClass, schemeResult, licenses, goT
         <h2 id="funding-title" className="font-headline-md text-headline-md font-bold text-primary"><Text>Plan your funding</Text></h2>
         <p className="mt-2 text-on-surface-variant"><Text>Understand your contribution and repayments before taking the next step.</Text></p>
       </div>
+
+      <section aria-labelledby="contribution-title" className="rounded-2xl border-2 border-primary/20 bg-secondary-container/40 p-5 sm:p-6">
+        <h3 id="contribution-title" className="text-lg font-bold text-primary"><Text>Your contribution</Text></h3>
+        {schemeResult ? <div className="mt-4 flex flex-wrap items-end gap-x-10 gap-y-3">
+          <div><span className="block text-sm text-on-surface-variant"><Text>Contribution percentage</Text></span><strong className="mt-1 block font-mono text-2xl text-primary">{marginPercent}%</strong></div>
+          <div><span className="block text-sm text-on-surface-variant"><Text>Contribution amount</Text></span><strong className="mt-1 block font-mono text-2xl text-primary">{rupees.format(schemeResult.margin)}</strong></div>
+        </div> : <p className="mt-3 text-base leading-7 text-on-surface-variant"><Text>Your contribution will be shown once eligibility details are available.</Text></p>}
+      </section>
 
       {schemeResult ? (
         <>
@@ -63,7 +70,7 @@ export default function FundingStep({ stepAnimClass, schemeResult, licenses, goT
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant pt-5">
         <button type="button" onClick={() => goToStep(3)} className="rounded-full border border-secondary px-5 py-3 text-secondary"><Text>Back to local demand</Text></button>
-        <button type="button" onClick={() => goToStep(5)} className="flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-on-primary"><Text>Continue to applicant details</Text> <ArrowRight size={18} aria-hidden="true" /></button>
+        <button type="button" onClick={() => advanceToStep(5)} disabled={!schemeResult} className="flex items-center gap-2 rounded-full bg-primary px-5 py-3 text-on-primary"><Text>Next: Applicant details</Text> <ArrowRight size={18} aria-hidden="true" /></button>
       </div>
     </section>
   );

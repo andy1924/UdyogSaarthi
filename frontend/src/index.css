@@ -11,7 +11,7 @@
   }
   button { white-space: normal; }
   button:disabled { cursor: not-allowed; opacity: .6; }
-  :focus-visible { outline: 2px solid #50643c; outline-offset: 4px; }
+  :focus-visible { outline: 2px solid #485C11; outline-offset: 4px; }
   p { overflow-wrap: break-word; }
 }
 
@@ -32,7 +32,7 @@
 .assessment-navigation {
   margin-bottom: 24px;
   padding: 8px;
-  border: 1px solid #c4c8bc;
+  border: 1px solid #C8CEBC;
   border-radius: 16px;
   background: white;
 }

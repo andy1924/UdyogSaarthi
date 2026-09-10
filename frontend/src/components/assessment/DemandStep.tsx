@@ -4,7 +4,7 @@ import type { AssessmentState } from './useAssessment';
 
 type Props = Pick<AssessmentState,
   'stepAnimClass' | 'radius' | 'locationText' | 'feasibilityResult' |
-  'nearbyProfiles' | 'nearbyLoading' | 'enterprise' | 'goToStep' | 'executeFeasibilityAI'
+  'nearbyProfiles' | 'nearbyLoading' | 'enterprise' | 'goToStep' | 'advanceToStep' | 'executeFeasibilityAI'
 >;
 
 const verdictCopy = {
@@ -15,7 +15,7 @@ const verdictCopy = {
 
 export default function DemandStep({
   stepAnimClass, radius, locationText, feasibilityResult, nearbyProfiles,
-  nearbyLoading, enterprise, goToStep, executeFeasibilityAI,
+  nearbyLoading, enterprise, goToStep, advanceToStep, executeFeasibilityAI,
 }: Props) {
   if (!feasibilityResult) {
     return (
@@ -93,7 +93,7 @@ export default function DemandStep({
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant pt-5">
         <button type="button" onClick={() => goToStep(2)} className="rounded-full border border-secondary px-5 py-3 text-secondary"><Text>Back to business idea</Text></button>
-        <button type="button" onClick={() => goToStep(4)} className="flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-semibold text-on-primary"><Text>Plan funding</Text><ArrowRight size={18} aria-hidden="true" /></button>
+        <button type="button" onClick={() => advanceToStep(4)} className="flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-semibold text-on-primary"><Text>Next: Plan funding</Text><ArrowRight size={18} aria-hidden="true" /></button>
       </div>
     </section>
   );

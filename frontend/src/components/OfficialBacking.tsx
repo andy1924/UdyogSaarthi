@@ -1,5 +1,6 @@
 import { FileText, IndianRupee, MapPinned } from 'lucide-react';
 import { Text } from '../lib/LanguageContext';
+import BotanicalAccent from './BotanicalAccent';
 
 const benefits = [
   { icon: MapPinned, title: 'Understand local demand', body: 'Compare your idea with mapped businesses and location data near you.' },
@@ -9,8 +10,9 @@ const benefits = [
 
 export default function OfficialBacking() {
   return (
-    <section id="benefits" className="px-4 pb-12 pt-14 sm:px-8 sm:pb-16 sm:pt-20 lg:px-14">
-      <div className="mx-auto max-w-[1320px]">
+    <section id="benefits" className="relative isolate overflow-hidden px-4 pb-12 pt-14 sm:px-8 sm:pb-16 sm:pt-20 lg:px-14">
+      <BotanicalAccent className="top-12" />
+      <div className="relative mx-auto max-w-[1320px]">
         <div className="max-w-2xl">
           <p className="text-sm font-bold uppercase tracking-widest text-olive-800"><Text>Built for confident decisions</Text></p>
           <h2 className="mt-3 font-crimson text-4xl leading-tight text-primary sm:text-5xl"><Text>Useful answers, without the paperwork maze</Text></h2>

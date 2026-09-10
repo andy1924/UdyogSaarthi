@@ -9,12 +9,13 @@ import LocationStep from './assessment/LocationStep';
 import ReportStep from './assessment/ReportStep';
 import { useAssessment } from './assessment/useAssessment';
 import LanguageSelector from './LanguageSelector';
+import BotanicalAccent from './BotanicalAccent';
 
 interface FeasibilityCheckProps { onBackToLanding: () => void; }
 
 export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckProps) {
   const assessment = useAssessment();
-  const { t, currentStep, stepContentRef, loadingState, uiError, setUiError, goToStep } = assessment;
+  const { t, currentStep, highestStepReached, stepContentRef, loadingState, uiError, setUiError, goToStep } = assessment;
   return (
     <div className="assessment min-h-screen bg-surface-container-lowest text-on-surface font-body-md antialiased selection:bg-secondary-container">
       {/* ==================== HEADER ==================== */}
@@ -28,7 +29,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
             >
               <ArrowLeft size={18} aria-hidden="true" />
               <span className="font-headline-md text-headline-md font-bold tracking-tight text-primary leading-none font-playfair text-2xl group-hover:text-primary/80 transition-colors">
-                Udyog-Saarthi
+                UdyogSaarthi
               </span>
             </button>
           </div>
@@ -48,7 +49,9 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
       )}
 
       {/* ==================== MAIN CONTENT ==================== */}
-      <main className="w-full bg-surface-container-lowest">
+      <main className="relative isolate w-full overflow-hidden bg-surface-container-lowest">
+        <BotanicalAccent className="top-28" />
+        <BotanicalAccent side="left" className="top-[46rem]" />
         <div className="flex flex-col w-full">
 
           {/* Main Multi-Step Container */}
@@ -68,7 +71,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
               </div>
             </div>
 
-            <AssessmentNavigation currentStep={currentStep} onStepChange={goToStep} />
+            <AssessmentNavigation currentStep={currentStep} highestStepReached={highestStepReached} onStepChange={goToStep} />
 
             {uiError && (
               <div role="alert" className="mb-6 flex items-start justify-between gap-4 rounded-xl border border-error/30 bg-error-container p-4 text-on-error-container">
@@ -113,13 +116,12 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
                   <span className="font-bold">UdyogSaarthi</span>
                 </div>
                 <p className="font-body-md text-body-md text-on-surface-variant">
-                  A digital public utility built to remove friction from institutional credit and state subsidy adoption
-                  for rural innovators, self-help clusters, and micro-enterprises.
+                  Clear local-demand, funding, and project-report guidance for rural entrepreneurs and small businesses.
                 </p>
               </div>
               <div className="shrink-0">
                 <span className="inline-block px-space-md py-space-xs rounded-full text-secondary border border-outline-variant font-label-kicker text-label-kicker uppercase tracking-wider bg-surface-container-low font-semibold">
-                  Autonomous Advisory Mission
+                  Independent advisory platform
                 </span>
               </div>
             </div>
@@ -130,12 +132,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
             <div className="flex flex-wrap items-center gap-space-md">
               <button onClick={onBackToLanding} className="hover:text-on-surface underline underline-offset-4 transition-colors">{t('wizardBackToLanding')}
               </button>
-              <span className="hover:text-on-surface underline underline-offset-4 cursor-pointer">
-                Data Privacy Charter
-              </span>
-              <span className="hover:text-on-surface underline underline-offset-4 cursor-pointer">
-                Advisory Terms
-              </span>
+              <span>Advisory estimates only</span>
             </div>
           </div>
         </div>

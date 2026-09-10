@@ -9,9 +9,9 @@ import RealMap from '../RealMap';
 import { Text } from '../../lib/LanguageContext';
 import type { AssessmentState } from './useAssessment';
 
-type Props = Pick<AssessmentState, "stepAnimClass" | "radius" | "setRadius" | "userCoords" | "setUserCoords" | "locationText" | "setLocationText" | "geoResolved" | "geoStatus" | "searchLocationQuery" | "setSearchLocationQuery" | "isSearchingLocation" | "manualOverrideOpen" | "setManualOverrideOpen" | "nearbyProfiles" | "handleLocate" | "goToStep">;
+type Props = Pick<AssessmentState, "stepAnimClass" | "radius" | "setRadius" | "userCoords" | "setUserCoords" | "locationText" | "setLocationText" | "geoResolved" | "geoStatus" | "searchLocationQuery" | "setSearchLocationQuery" | "isSearchingLocation" | "manualOverrideOpen" | "setManualOverrideOpen" | "nearbyProfiles" | "handleLocate" | "advanceToStep">;
 
-export default function LocationStep({ stepAnimClass, radius, setRadius, userCoords, setUserCoords, locationText, setLocationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, manualOverrideOpen, setManualOverrideOpen, nearbyProfiles, handleLocate, goToStep }: Props) {
+export default function LocationStep({ stepAnimClass, radius, setRadius, userCoords, setUserCoords, locationText, setLocationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, manualOverrideOpen, setManualOverrideOpen, nearbyProfiles, handleLocate, advanceToStep }: Props) {
   return (<section className={`space-y-space-xl ${stepAnimClass}`}>
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-xl">
       {/* Left Column: Configuration */}
@@ -196,12 +196,12 @@ export default function LocationStep({ stepAnimClass, radius, setRadius, userCoo
           <div className="mt-4 flex flex-col gap-3 rounded-xl bg-surface-container-lowest p-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm leading-relaxed text-on-surface-variant"><Text>Confirm the selected area before choosing your business idea.</Text></p>
             <button
-              onClick={() => goToStep(2)}
+              onClick={() => advanceToStep(2)}
               disabled={!userCoords}
               className="px-space-md py-3 rounded-full bg-primary text-surface font-label-ui text-label-ui font-bold hover:bg-primary-container transition-colors shadow-sm flex items-center justify-center gap-1 cursor-pointer"
               type="button"
             >
-              <Text>Continue</Text>
+              <Text>Next: Business idea</Text>
               <ArrowRight size={16} />
             </button>
           </div>

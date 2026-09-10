@@ -24,15 +24,16 @@ export default function BusinessStep({
         <label className="block text-base font-semibold text-primary" htmlFor="enterpriseSelect"><Text>Choose a business idea</Text></label>
         <div className="relative mt-2">
           <select id="enterpriseSelect" value={selectedEnterprise} onChange={(event) => setSelectedEnterprise(event.target.value)} className="w-full appearance-none rounded-xl border border-outline-variant bg-surface-container-lowest p-3.5 pr-12 text-base font-semibold text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
+            <option value="" disabled>Choose a business idea</option>
             {ENTERPRISE_GROUPS.map((group) => <optgroup key={group} label={group}>{ENTERPRISE_OPTIONS.filter((option) => option.group === group).map((option) => <option key={option.id} value={option.id}>{option.name} — {option.capexLabel}</option>)}</optgroup>)}
           </select>
           <ChevronDown size={20} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-secondary" aria-hidden="true" />
         </div>
 
-        <div className="mt-4 flex items-start gap-4 rounded-xl bg-surface-container-lowest p-4">
+        {selectedEnterprise ? <div className="mt-4 flex items-start gap-4 rounded-xl bg-surface-container-lowest p-4">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-secondary-container text-secondary"><Factory size={22} aria-hidden="true" /></span>
           <div className="min-w-0"><p className="font-semibold text-primary">{enterprise.name}</p><p className="mt-1 text-sm leading-6 text-on-surface-variant">{enterprise.description}</p></div>
-        </div>
+        </div> : <p className="mt-4 rounded-xl bg-surface-container-lowest p-4 text-sm text-on-surface-variant"><Text>Select an idea to see its project-cost estimate.</Text></p>}
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -43,14 +44,14 @@ export default function BusinessStep({
         </div>
         <div className="rounded-2xl border border-outline-variant p-5">
           <p className="text-sm text-on-surface-variant"><Text>Estimated project budget</Text></p>
-          <p className="mt-2 break-words font-mono text-2xl font-semibold text-primary">₹{displayTpc.toLocaleString('en-IN')}</p>
+          <p className="mt-2 break-words font-mono text-2xl font-semibold text-primary">{selectedEnterprise ? `₹${displayTpc.toLocaleString('en-IN')}` : '—'}</p>
           <p className="mt-3 text-sm leading-6 text-on-surface-variant">{schemeResult ? <><Text>Calculated using scheme rules</Text> <span className="font-mono">{schemeResult.rules.version}</span>.</> : <Text>Live funding rules are still loading.</Text>}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant pt-5">
         <button type="button" onClick={() => goToStep(1)} className="rounded-full border border-secondary px-5 py-3 text-secondary"><Text>Back to location</Text></button>
-        <button type="button" onClick={executeFeasibilityAI} className="flex items-center gap-2 rounded-full bg-primary px-5 py-3 font-semibold text-on-primary"><Text>Check local demand</Text><ArrowRight size={18} aria-hidden="true" /></button>
+        <button type="button" onClick={executeFeasibilityAI} aria-disabled={!selectedEnterprise} className={`flex items-center gap-2 rounded-full px-5 py-3 font-semibold ${selectedEnterprise ? 'bg-primary text-on-primary' : 'bg-surface-container-high text-on-surface-variant'}`}><Text>Next: Check local demand</Text><ArrowRight size={18} aria-hidden="true" /></button>
       </div>
     </section>
   );

@@ -5,6 +5,7 @@ import TermsOfService from './legal/TermsOfService';
 import CookiePolicy from './legal/CookiePolicy';
 import CookieNotice from './legal/CookieNotice';
 import { useLanguage } from '../lib/LanguageContext';
+import BotanicalAccent from './BotanicalAccent';
 
 type LegalDoc = 'privacy' | 'terms' | 'cookies';
 
@@ -37,8 +38,9 @@ export default function Footer() {
 
   return (
     <>
-      <footer className="px-4 sm:px-8 lg:px-14 pt-7 sm:pt-9 lg:pt-11 pb-6 sm:pb-8">
-        <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
+      <footer className="relative isolate overflow-hidden px-4 pb-6 pt-10 sm:px-8 sm:pb-8 sm:pt-14 lg:px-14 lg:pt-16">
+        <BotanicalAccent side="left" className="bottom-8 rotate-6 opacity-20" />
+        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:gap-10">
           <div className="flex-1">
             <h3 className="font-crimson text-[19px] sm:text-[24px] lg:text-[29px] leading-[0.9] tracking-[-0.03em] text-black">
               {t('footerBrand')}
@@ -75,7 +77,7 @@ export default function Footer() {
           </nav>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-7 sm:mt-9 pt-6 border-t border-black/10 gap-3">
+        <div className="relative z-10 mt-7 flex flex-col items-start justify-between gap-3 border-t border-black/10 pt-6 sm:mt-9 sm:flex-row sm:items-center">
           <p className="font-roboto text-sm lg:text-base leading-[1.33] text-neutral-750">
             {t('footerCopyright')}
           </p>

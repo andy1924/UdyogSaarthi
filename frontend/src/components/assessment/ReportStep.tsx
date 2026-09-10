@@ -1,20 +1,24 @@
 import { CheckCircle2, FileDown, RefreshCw, Share2 } from 'lucide-react';
 import { Text } from '../../lib/LanguageContext';
+import { canGenerateDpr } from '../../lib/assessment-workflow';
 import type { AssessmentState } from './useAssessment';
 
 type Props = Pick<AssessmentState,
   'stepAnimClass' | 'downloadSuccess' | 'dprId' | 'dprStatus' | 'applicantName' |
   'enterprise' | 'locationText' | 'feasibilityResult' | 'schemeResult' |
-  'handleDprDownload' | 'handleShareWhatsApp' | 'goToStep'
+  'panDocument' | 'aadhaarDocument' | 'highestStepReached' | 'reviewConfirmed' |
+  'setReviewConfirmed' | 'handleDprDownload' | 'handleShareWhatsApp' | 'goToStep'
 >;
 
 const rupees = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
 
 export default function ReportStep({
   stepAnimClass, downloadSuccess, dprId, dprStatus, applicantName, enterprise,
-  locationText, feasibilityResult, schemeResult, handleDprDownload, handleShareWhatsApp, goToStep,
+  locationText, feasibilityResult, schemeResult, panDocument, aadhaarDocument,
+  highestStepReached, reviewConfirmed, setReviewConfirmed,
+  handleDprDownload, handleShareWhatsApp, goToStep,
 }: Props) {
-  const canGenerate = Boolean(applicantName.trim() && feasibilityResult && schemeResult);
+  const canGenerate = canGenerateDpr({ userCoords: { lat: feasibilityResult?.lgd.lat ?? 0, lon: feasibilityResult?.lgd.lon ?? 0 }, locationText, selectedEnterprise: enterprise.id, feasibilityResult, schemeResult, applicantName, panDocument, aadhaarDocument }, highestStepReached, true);
   const ready = dprStatus === 'ready';
   const statusLabel = dprStatus === 'queued' ? 'Generating report' : dprStatus === 'ready' ? 'Report ready' : dprStatus === 'error' ? 'Generation failed' : 'Ready to generate';
   const summary = [
@@ -24,6 +28,8 @@ export default function ReportStep({
     ['Market verdict', feasibilityResult?.verdict.replace('-', ' ') || '—'],
     ['Project budget', schemeResult ? rupees.format(schemeResult.tpc) : '—'],
     ['Estimated loan', schemeResult ? rupees.format(schemeResult.max_loan_capped) : '—'],
+    ['PAN document', panDocument?.status === 'valid' ? 'Upload complete' : 'Missing'],
+    ['Aadhaar document', aadhaarDocument?.status === 'valid' ? 'Upload complete' : 'Missing'],
   ];
 
   return (
@@ -52,15 +58,22 @@ export default function ReportStep({
       {!canGenerate && <p role="status" className="rounded-xl border border-outline-variant bg-surface-container-low p-4 text-sm leading-6 text-on-surface-variant"><Text>Complete applicant details, local demand, and funding before generating the report.</Text></p>}
       {dprId && <p className="break-all rounded-xl bg-surface-container p-4 font-mono text-sm text-on-surface-variant">Reference: {dprId}</p>}
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <button type="button" onClick={handleDprDownload} disabled={!canGenerate || dprStatus === 'queued'} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-on-primary shadow-sm transition hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-45">
-          {dprStatus === 'queued' ? <RefreshCw size={20} className="animate-spin" aria-hidden="true" /> : <FileDown size={20} aria-hidden="true" />}
-          <Text>{ready ? 'Download report again' : 'Generate and download PDF'}</Text>
-        </button>
-        <button type="button" onClick={handleShareWhatsApp} disabled={!ready} className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-secondary px-6 py-3 font-semibold text-secondary disabled:cursor-not-allowed disabled:opacity-45">
-          <Share2 size={19} aria-hidden="true" /><Text>Share reference</Text>
-        </button>
-      </div>
+      {canGenerate && <section aria-labelledby="confirm-title" className="rounded-2xl border-2 border-primary/20 bg-secondary-container/30 p-5 sm:p-6">
+        <h3 id="confirm-title" className="text-xl font-bold text-primary"><Text>Confirm and generate</Text></h3>
+        <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl bg-surface-container-lowest p-4 text-sm leading-6 text-on-surface">
+          <input type="checkbox" checked={reviewConfirmed} onChange={(event) => setReviewConfirmed(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-primary" />
+          <span><Text>I have reviewed the applicant, location, business, demand, funding, and document details above.</Text></span>
+        </label>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+          <button type="button" onClick={handleDprDownload} disabled={!reviewConfirmed || dprStatus === 'queued'} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-on-primary shadow-sm transition hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-45">
+            {dprStatus === 'queued' ? <RefreshCw size={20} className="animate-spin" aria-hidden="true" /> : <FileDown size={20} aria-hidden="true" />}
+            <Text>{ready ? 'Download report again' : 'Generate DPR'}</Text>
+          </button>
+          <button type="button" onClick={handleShareWhatsApp} disabled={!ready} className="flex min-h-12 items-center justify-center gap-2 rounded-full border border-secondary px-6 py-3 font-semibold text-secondary disabled:cursor-not-allowed disabled:opacity-45">
+            <Share2 size={19} aria-hidden="true" /><Text>Share reference</Text>
+          </button>
+        </div>
+      </section>}
 
       {downloadSuccess && <p role="status" className="text-center text-sm font-semibold text-secondary"><Text>Your PDF download has started.</Text></p>}
       <button type="button" onClick={() => goToStep(5)} className="rounded-full border border-secondary px-5 py-3 text-secondary"><Text>Back to applicant details</Text></button>

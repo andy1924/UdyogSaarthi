@@ -28,6 +28,7 @@ import {
 } from '../lib/api';
 import RealMap from './RealMap';
 import LanguageSelector from './LanguageSelector';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface FeasibilityCheckProps {
   onBackToLanding: () => void;
@@ -289,6 +290,7 @@ function DigiLockerMark({ size = 40, mono = false }: { size?: number; mono?: boo
 // No mock/fallback peer data — only real PostGIS results are shown
 
 export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckProps) {
+  const { t } = useLanguage();
   const [currentStep, setCurrentStep] = useState<number>(1);
   // Slide direction for step transitions (forward = from right, back = from left)
   const [stepDirection, setStepDirection] = useState<'forward' | 'back'>('forward');
@@ -793,12 +795,12 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
               className="flex flex-wrap items-center gap-1 p-1 mb-space-lg rounded-full border border-outline-variant/40 bg-surface-container-lowest w-fit max-w-full"
             >
               {[
-                { num: 1, label: '01 Location' },
-                { num: 2, label: '02 Enterprise' },
-                { num: 3, label: '03 Feasibility' },
+                { num: 1, label: `01 ${t('wizardStep2Label')}` },
+                { num: 2, label: `02 ${t('wizardStep1Label')}` },
+                { num: 3, label: `03 ${t('wizardStep3Label')}` },
                 { num: 4, label: '04 Credit & Subsidy' },
                 { num: 5, label: '05 Identity' },
-                { num: 6, label: '06 DPR Dossier' },
+                { num: 6, label: `06 ${t('wizardStep4Label')}` },
               ].map((s) => (
                 <button
                   key={s.num}
@@ -2309,8 +2311,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
           <div className="pt-space-lg border-t border-outline-variant/50 flex flex-col sm:flex-row items-center justify-between gap-space-sm text-on-surface-variant font-body-sm text-body-sm">
             <div>© 2026 UdyogSaarthi Rural Enterprise Advisory.</div>
             <div className="flex flex-wrap items-center gap-space-md">
-              <button onClick={onBackToLanding} className="hover:text-on-surface underline underline-offset-4 transition-colors">
-                Back to Landing Page
+              <button onClick={onBackToLanding} className="hover:text-on-surface underline underline-offset-4 transition-colors">{t('wizardBackToLanding')}
               </button>
               <span className="hover:text-on-surface underline underline-offset-4 cursor-pointer">
                 Data Privacy Charter

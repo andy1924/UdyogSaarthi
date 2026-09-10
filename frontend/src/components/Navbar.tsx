@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import LanguageSelector from './LanguageSelector';
-
-const NAV_ITEMS = ['Benefits', 'Specifications', 'How-to', 'Contact Us'];
+import { useLanguage } from '../lib/LanguageContext';
 
 const LOGO_URL =
   'https://s3-alpha-sig.figma.com/img/9e6e/ce29/563027c2088c16dc05bbc1071b0d25ff?Expires=1789344000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=c8mL~9GPabDeNL9aIb6l46yrs6pRkcHFdoTcozn17jji-P~7chdA9T7wp5OKZZ~OSGXBrmCWUwRad3bKOH93BecR5xWiY~IdQZgTGQPZdWr5K~XbsLzK329LeT1j7-g5S3Ea46ds4ipLTJoOadv8wwkEWhRF2oM56ttZbGtxqaxz9ADmpzsE8ZI12SjkYk64ymGOR4hgI32tciYcpv2cYex96fL3Z9P5y0KZFl-W7ai1xHL-tCv-H-7fyI1rNd2q~ysjDO1W4xnIgeKZai1kA8Hv9MHirqbhKSkak29cKYjQ-Lr~VkCQO7q6QRrs86hWXzTIGK6c1aded5pm37Ygrw__';
@@ -13,7 +12,15 @@ interface NavbarProps {
 
 export default function Navbar({ onOpenFeasibility: _onOpenFeasibility }: NavbarProps) {
   void _onOpenFeasibility;
+  const { t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const NAV_ITEMS = [
+    { key: 'navBenefits' as const, href: '#benefits' },
+    { key: 'navSpecifications' as const, href: '#specifications' },
+    { key: 'navHowTo' as const, href: '#how-to' },
+    { key: 'navContactUs' as const, href: '#contact-us' },
+  ];
 
   return (
     <header className="w-full px-4 sm:px-8 lg:px-14 pt-4 pb-0">
@@ -29,11 +36,11 @@ export default function Navbar({ onOpenFeasibility: _onOpenFeasibility }: Navbar
         <div className="hidden md:flex items-center gap-4 lg:gap-6 bg-white/40 backdrop-blur-[30px] rounded-full px-6 py-2.5">
           {NAV_ITEMS.map((item) => (
             <a
-              key={item}
-              href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
+              key={item.key}
+              href={item.href}
               className="font-dm font-bold text-sm lg:text-base text-black tracking-tight hover:text-olive-800 transition-colors"
             >
-              {item}
+              {t(item.key)}
             </a>
           ))}
         </div>
@@ -57,12 +64,12 @@ export default function Navbar({ onOpenFeasibility: _onOpenFeasibility }: Navbar
         <div className="md:hidden bg-white border-b border-black/10 py-4 space-y-3">
           {NAV_ITEMS.map((item) => (
             <a
-              key={item}
-              href={`#${item.toLowerCase().replace(/\s+/g, '-')}`}
+              key={item.key}
+              href={item.href}
               onClick={() => setMobileOpen(false)}
               className="block font-dm font-bold text-base text-black tracking-tight px-2 py-2 hover:text-olive-800 transition-colors"
             >
-              {item}
+              {t(item.key)}
             </a>
           ))}
           <LanguageSelector variant="landing" className="mx-2" />

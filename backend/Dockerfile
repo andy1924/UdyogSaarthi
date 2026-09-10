@@ -46,8 +46,10 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
     libcairo2 \
+    libglib2.0-0 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
+    libpangoft2-1.0-0 \
     libgdk-pixbuf-2.0-0 \
     # curl for Docker HEALTHCHECK
     curl \

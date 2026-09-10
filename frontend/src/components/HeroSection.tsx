@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { Mic } from 'lucide-react';
 import PhoneLoginModal from './PhoneLoginModal';
+import { useLanguage } from '../lib/LanguageContext';
 
-const IMAGE_LEFT =
-  'src/assets/hero_left.png'
-const IMAGE_RIGHT =
-  'src/assets/hero_right.png'
-const IMAGE_CENTER =
-  'src/assets/hero_center.png'
+const IMAGE_LEFT = 'src/assets/hero_left.png';
+const IMAGE_RIGHT = 'src/assets/hero_right.png';
+const IMAGE_CENTER = 'src/assets/hero_center.png';
+
 interface HeroSectionProps {
   onOpenFeasibility?: () => void;
 }
 
 export default function HeroSection({ onOpenFeasibility }: HeroSectionProps) {
+  const { t } = useLanguage();
   const [loginOpen, setLoginOpen] = useState(false);
 
   const handleOpenFeasibility = () => {
@@ -35,7 +35,7 @@ export default function HeroSection({ onOpenFeasibility }: HeroSectionProps) {
           onClick={() => setLoginOpen(true)}
           className="relative z-20 flex items-center justify-center bg-olive-800 text-white font-crimson text-xl sm:text-2xl md:text-[19px] leading-[0.9] tracking-[-0.0425em] rounded-5xl px-6 sm:px-9 py-3 sm:py-4 hover:bg-olive-800/90 transition-all cursor-pointer hover:shadow-lg active:scale-95"
         >
-          Get Started
+          {t('heroGetStarted')}
         </button>
 
         <div className="relative z-20 flex items-center gap-3 bg-olive-50 rounded-5xl px-8 sm:px-12 py-3 sm:py-4">
@@ -43,7 +43,7 @@ export default function HeroSection({ onOpenFeasibility }: HeroSectionProps) {
             <Mic size={18} className="text-white" />
           </div>
           <span className="font-crimson text-xl sm:text-2xl md:text-[29px] leading-[0.9] tracking-[-0.0425em] text-black">
-            Voice-Saarthi
+            {t('heroVoiceSaarthi')}
           </span>
         </div>
       </div>

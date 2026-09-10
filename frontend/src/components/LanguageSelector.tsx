@@ -3,24 +3,13 @@ import { ChevronDown, Check } from 'lucide-react';
 import {
   BHASHINI_LANGUAGES,
   DEFAULT_LANGUAGE_CODE,
-  SAARTHI_LANG_STORAGE_KEY,
 } from '../lib/bhashini-languages';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface LanguageSelectorProps {
   /** 'landing' matches the Navbar olive-50 pill; 'wizard' matches the FeasibilityCheck header tokens. */
   variant?: 'landing' | 'wizard';
   className?: string;
-}
-
-function readStoredLanguage(): string {
-  if (typeof window === 'undefined') return DEFAULT_LANGUAGE_CODE;
-  try {
-    const stored = window.localStorage.getItem(SAARTHI_LANG_STORAGE_KEY);
-    if (stored && BHASHINI_LANGUAGES.some((l) => l.code === stored)) return stored;
-  } catch {
-    // localStorage unavailable (private mode) — fall through to default.
-  }
-  return DEFAULT_LANGUAGE_CODE;
 }
 
 /** Short pill tag: EN for English, first two chars of the autonym otherwise (e.g. हिं-style). */
@@ -37,22 +26,11 @@ const BUTTON_STYLES: Record<NonNullable<LanguageSelectorProps['variant']>, strin
 };
 
 export default function LanguageSelector({ variant = 'landing', className = '' }: LanguageSelectorProps) {
-  const [code, setCode] = useState<string>(DEFAULT_LANGUAGE_CODE);
+  const { lang, setLang } = useLanguage();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    setCode(readStoredLanguage());
-  }, []);
-
-  // Keep selectors on different pages in sync (same tab via event, other tabs via storage).
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === SAARTHI_LANG_STORAGE_KEY && e.newValue) setCode(e.newValue);
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  const code = lang || DEFAULT_LANGUAGE_CODE;
 
   // Backdrop-click / Escape to close.
   useEffect(() => {
@@ -69,17 +47,12 @@ export default function LanguageSelector({ variant = 'landing', className = '' }
       document.removeEventListener('pointerdown', onPointerDown);
       document.removeEventListener('keydown', onKeyDown);
     };
-  }, [open ]);
+  }, [open]);
 
   const current = BHASHINI_LANGUAGES.find((l) => l.code === code) ?? BHASHINI_LANGUAGES[0];
 
   const select = (next: string) => {
-    setCode(next);
-    try {
-      window.localStorage.setItem(SAARTHI_LANG_STORAGE_KEY, next);
-    } catch {
-      // Ignore persistence failures — selection still applies for this session.
-    }
+    setLang(next);
     setOpen(false);
   };
 

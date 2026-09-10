@@ -4,6 +4,7 @@ import PrivacyPolicy from './legal/PrivacyPolicy';
 import TermsOfService from './legal/TermsOfService';
 import CookiePolicy from './legal/CookiePolicy';
 import CookieNotice from './legal/CookieNotice';
+import { useLanguage } from '../lib/LanguageContext';
 
 type LegalDoc = 'privacy' | 'terms' | 'cookies';
 
@@ -12,26 +13,27 @@ const columnTitle =
 const columnLink =
   'font-dm font-bold text-base lg:text-lg leading-[1.5] tracking-[-0.025em] text-black/75 hover:text-olive-800 transition-colors text-left';
 
-const DOC_META: Record<LegalDoc, { title: string; subtitle: string }> = {
-  privacy: {
-    title: 'Privacy Policy',
-    subtitle: 'DPDP Act 2023-aligned · demo/sandbox notice',
-  },
-  terms: {
-    title: 'Terms of Service',
-    subtitle: 'Demo use · indicative outputs · grievance redressal',
-  },
-  cookies: {
-    title: 'Cookie Policy',
-    subtitle: 'Minimal local storage · no trackers',
-  },
-};
-
 export default function Footer() {
+  const { t } = useLanguage();
   const [activeDoc, setActiveDoc] = useState<LegalDoc | null>(null);
 
   const openDoc = (doc: LegalDoc) => setActiveDoc(doc);
   const closeDoc = () => setActiveDoc(null);
+
+  const DOC_META: Record<LegalDoc, { title: string; subtitle: string }> = {
+    privacy: {
+      title: t('footerPrivacy'),
+      subtitle: 'DPDP Act 2023-aligned · demo/sandbox notice',
+    },
+    terms: {
+      title: t('footerTerms'),
+      subtitle: 'Demo use · indicative outputs · grievance redressal',
+    },
+    cookies: {
+      title: t('footerCookies'),
+      subtitle: 'Minimal local storage · no trackers',
+    },
+  };
 
   return (
     <>
@@ -39,40 +41,40 @@ export default function Footer() {
         <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
           <div className="flex-1">
             <h3 className="font-crimson text-[19px] sm:text-[24px] lg:text-[29px] leading-[0.9] tracking-[-0.03em] text-black">
-              UdyogSaarthi
+              {t('footerBrand')}
             </h3>
             <p className="font-crimson text-[14px] sm:text-[16px] lg:text-[20px] leading-[0.9] tracking-[-0.03em] text-black/75 mt-3">
-              Independent Rural Enterprise Advisory Platform
+              {t('footerSubtitle')}
             </p>
             <p className="font-crimson text-base sm:text-lg lg:text-xl leading-[1] tracking-[-0.03em] text-black/95 mt-6 max-w-[420px]">
-              A digital public utility that demystifies credit and subsidies for rural innovators.
+              {t('footerDesc')}
             </p>
           </div>
 
           <nav aria-label="Footer" className="grid grid-cols-2 gap-8 lg:gap-12 lg:pt-2">
             <div className="flex flex-col gap-2.5">
-              <h4 className={columnTitle}>Resources</h4>
+              <h4 className={columnTitle}>{t('footerResources')}</h4>
               <a href="#how-to" className={columnLink}>
-                How It Works
+                {t('footerHowItWorks')}
               </a>
               <a href="#contact-us" className={columnLink}>
-                Contact
+                {t('footerContact')}
               </a>
               <button type="button" onClick={() => openDoc('terms')} className={columnLink}>
-                Grievance Redressal
+                {t('footerGrievance')}
               </button>
             </div>
 
             <div className="flex flex-col gap-2.5">
-              <h4 className={columnTitle}>Legal</h4>
+              <h4 className={columnTitle}>{t('footerLegal')}</h4>
               <button type="button" onClick={() => openDoc('privacy')} className={columnLink}>
-                Privacy Policy
+                {t('footerPrivacy')}
               </button>
               <button type="button" onClick={() => openDoc('terms')} className={columnLink}>
-                Terms of Service
+                {t('footerTerms')}
               </button>
               <button type="button" onClick={() => openDoc('cookies')} className={columnLink}>
-                Cookie Policy
+                {t('footerCookies')}
               </button>
             </div>
           </nav>
@@ -80,10 +82,10 @@ export default function Footer() {
 
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-7 sm:mt-9 pt-6 border-t border-black/10 gap-3">
           <p className="font-roboto text-sm lg:text-base leading-[1.33] text-neutral-750">
-            &copy; 2026 UdyogSaarthi
+            {t('footerCopyright')}
           </p>
           <p className="font-roboto-mono text-xs leading-[1.4] tracking-[-0.01em] text-olive-800">
-            Built as a Digital Public Good demo
+            {t('footerBuiltAs')}
           </p>
         </div>
       </footer>

@@ -38,18 +38,17 @@ function readStoredLanguage(): string {
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<string>(DEFAULT_LANGUAGE_CODE);
+  const [lang, setLangState] = useState(readStoredLanguage);
 
-  // Hydrate from localStorage after mount (avoids SSR mismatch)
   useEffect(() => {
-    setLangState(readStoredLanguage());
-  }, []);
+    document.documentElement.lang = lang;
+  }, [lang]);
 
   // Listen for changes made in other tabs / by the LanguageSelector
   useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === SAARTHI_LANG_STORAGE_KEY && e.newValue) {
-        setLangState(e.newValue);
+      if (e.key === SAARTHI_LANG_STORAGE_KEY || e.key === null) {
+        setLangState(readStoredLanguage());
       }
     };
     window.addEventListener('storage', onStorage);
@@ -57,14 +56,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setLang = (code: string) => {
+    if (!BHASHINI_LANGUAGES.some((language) => language.code === code)) return;
     setLangState(code);
     try {
       window.localStorage.setItem(SAARTHI_LANG_STORAGE_KEY, code);
-      // Dispatch a custom event so LanguageSelector can sync even within same tab
-      window.dispatchEvent(new StorageEvent('storage', {
-        key: SAARTHI_LANG_STORAGE_KEY,
-        newValue: code,
-      }));
     } catch {
       // ignore
     }

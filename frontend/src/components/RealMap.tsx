@@ -15,6 +15,19 @@ interface RealMapProps {
 
 const MAPPLS_KEY = import.meta.env.VITE_MAPPLS_KEY as string | undefined;
 
+interface MapInstance {
+  remove(): void;
+  on(event: string, callback: () => void): void;
+  setCenter(position: { lat: number; lng: number }): void;
+  setZoom(zoom: number): void;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (character) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  })[character]!);
+}
+
 // Singleton client + init promise: StrictMode double-mounts must not load the SDK twice.
 const mapplsClient = new mappls();
 let initPromise: Promise<void> | null = null;
@@ -57,10 +70,9 @@ function MapNotice({ title, body }: { title: string; body: string }) {
 }
 
 export default function RealMap({ lat, lon, radiusM, peers, locationLabel }: RealMapProps) {
-  const mapRef = useRef<any>(null);
-  const layersRef = useRef<any[]>([]);
+  const mapRef = useRef<MapInstance | null>(null);
+  const layersRef = useRef<unknown[]>([]);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  const [errorMsg, setErrorMsg] = useState<string>('');
   const hasFix = lat != null && lon != null;
 
   const clearOverlays = () => {
@@ -69,8 +81,11 @@ export default function RealMap({ lat, lon, radiusM, peers, locationLabel }: Rea
     layersRef.current.forEach((layer) => {
       try {
         // Official docs use `remove({map, layer})`; the npm typings expose `removeLayer`.
-        const remover = (mapplsClient as any).remove ?? mapplsClient.removeLayer.bind(mapplsClient);
-        remover({ map, layer });
+        const client = mapplsClient as unknown as {
+          remove?: (options: { map: MapInstance; layer: unknown }) => void;
+        };
+        if (client.remove) client.remove({ map, layer });
+        else mapplsClient.removeLayer({ map, layer });
       } catch {
         /* layer already gone — ignore */
       }
@@ -78,7 +93,7 @@ export default function RealMap({ lat, lon, radiusM, peers, locationLabel }: Rea
     layersRef.current = [];
   };
 
-  const drawOverlays = (map: any) => {
+  const drawOverlays = (map: MapInstance) => {
     if (lat == null || lon == null) return;
     clearOverlays();
     // Proposed site pin
@@ -86,7 +101,7 @@ export default function RealMap({ lat, lon, radiusM, peers, locationLabel }: Rea
       mapplsClient.Marker({
         map,
         position: { lat, lng: lon },
-        popupHtml: `<strong>Proposed site</strong><br/>${locationLabel}`,
+        popupHtml: `<strong>Proposed site</strong><br/>${escapeHtml(locationLabel)}`,
       }),
     );
     // Survey radius (meters)
@@ -108,15 +123,16 @@ export default function RealMap({ lat, lon, radiusM, peers, locationLabel }: Rea
         mapplsClient.Marker({
           map,
           position: { lat: p.lat, lng: p.lon },
-          popupHtml: `<strong>${p.name}</strong><br/>${p.category} · ${(p.distance_m / 1000).toFixed(1)} km`,
+          popupHtml: `<strong>${escapeHtml(p.name)}</strong><br/>${escapeHtml(p.category)} · ${(p.distance_m / 1000).toFixed(1)} km`,
         }),
       );
     });
   };
 
-  // Init once per mount; module-level initPromise survives StrictMode remounts.
+  // Initialize when a location becomes available, including after first mount.
   useEffect(() => {
     if (!MAPPLS_KEY || !hasFix) return;
+    setStatus('loading');
     let cancelled = false;
     ensureInitialized()
       .then(() => {
@@ -144,13 +160,11 @@ export default function RealMap({ lat, lon, radiusM, peers, locationLabel }: Rea
         mapRef.current = map;
         map.on('load', () => {
           if (cancelled) return;
-          drawOverlays(map);
           setStatus('ready');
         });
       })
-      .catch((err: unknown) => {
+      .catch(() => {
         if (cancelled) return;
-        setErrorMsg(err instanceof Error ? err.message : 'Failed to load the Mappls map.');
         setStatus('error');
       });
     return () => {
@@ -165,8 +179,7 @@ export default function RealMap({ lat, lon, radiusM, peers, locationLabel }: Rea
         mapRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hasFix]);
 
   // Re-center + redraw when the backend-resolved location, radius, or peers change.
   useEffect(() => {
@@ -179,14 +192,13 @@ export default function RealMap({ lat, lon, radiusM, peers, locationLabel }: Rea
       /* map not fully ready — overlays redraw on load */
     }
     drawOverlays(map);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lat, lon, radiusM, peers, locationLabel, status]);
 
   if (!MAPPLS_KEY) {
     return (
       <MapNotice
-        title="Mappls key missing"
-        body="Set VITE_MAPPLS_KEY in frontend/.env (get a key at auth.mappls.com/console) to load the live Mappls map."
+        title="Map preview unavailable"
+        body="You can still select your location using the search field above."
       />
     );
   }
@@ -211,7 +223,7 @@ export default function RealMap({ lat, lon, radiusM, peers, locationLabel }: Rea
         <div className="absolute inset-0 bg-surface-container-lowest flex flex-col items-center justify-center gap-2 p-6 text-center">
           <p className="font-label-ui text-label-ui font-bold text-error">Map failed to load</p>
           <p className="font-body-sm text-body-sm text-on-surface-variant max-w-[320px]">
-            {errorMsg} Check VITE_MAPPLS_KEY and your Mappls console domain whitelist.
+            The map could not connect. Your selected location is kept; try again later.
           </p>
         </div>
       )}

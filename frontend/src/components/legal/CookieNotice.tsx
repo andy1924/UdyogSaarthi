@@ -36,7 +36,7 @@ export default function CookieNotice({ onOpenCookiePolicy }: CookieNoticeProps) 
     <div
       role="region"
       aria-label="Cookie consent"
-      className="fixed bottom-4 inset-x-4 sm:inset-x-6 lg:inset-x-auto lg:right-8 lg:max-w-md z-40 bg-white rounded-4xl shadow-2xl border border-black/10 p-5 sm:p-6"
+      className="cookie-notice fixed bottom-4 inset-x-4 sm:inset-x-6 lg:inset-x-auto lg:right-8 lg:max-w-md z-40 bg-white rounded-4xl shadow-2xl border border-black/10 p-5 sm:p-6"
     >
       <p className="font-crimson text-xl leading-tight tracking-[-0.02em] text-black">
         A quick note on cookies

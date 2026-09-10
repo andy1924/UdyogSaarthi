@@ -6,12 +6,7 @@ import { useLanguage } from '../lib/LanguageContext';
 const LOGO_URL =
   'https://s3-alpha-sig.figma.com/img/9e6e/ce29/563027c2088c16dc05bbc1071b0d25ff?Expires=1789344000&Key-Pair-Id=APKAQ4GOSFWCW27IBOMQ&Signature=c8mL~9GPabDeNL9aIb6l46yrs6pRkcHFdoTcozn17jji-P~7chdA9T7wp5OKZZ~OSGXBrmCWUwRad3bKOH93BecR5xWiY~IdQZgTGQPZdWr5K~XbsLzK329LeT1j7-g5S3Ea46ds4ipLTJoOadv8wwkEWhRF2oM56ttZbGtxqaxz9ADmpzsE8ZI12SjkYk64ymGOR4hgI32tciYcpv2cYex96fL3Z9P5y0KZFl-W7ai1xHL-tCv-H-7fyI1rNd2q~ysjDO1W4xnIgeKZai1kA8Hv9MHirqbhKSkak29cKYjQ-Lr~VkCQO7q6QRrs86hWXzTIGK6c1aded5pm37Ygrw__';
 
-interface NavbarProps {
-  onOpenFeasibility?: () => void;
-}
-
-export default function Navbar({ onOpenFeasibility: _onOpenFeasibility }: NavbarProps) {
-  void _onOpenFeasibility;
+export default function Navbar() {
   const { t } = useLanguage();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -51,9 +46,12 @@ export default function Navbar({ onOpenFeasibility: _onOpenFeasibility }: Navbar
           </div>
 
           <button
-            onClick={() => setMobileOpen(!mobileOpen)}
+            type="button"
+            onClick={() => setMobileOpen((open) => !open)}
             className="md:hidden p-2 text-black"
             aria-label="Toggle menu"
+            aria-expanded={mobileOpen}
+            aria-controls="mobile-navigation"
           >
             {mobileOpen ? <X size={24} /> : <Menu size={24} />}
           </button>
@@ -61,7 +59,7 @@ export default function Navbar({ onOpenFeasibility: _onOpenFeasibility }: Navbar
       </nav>
 
       {mobileOpen && (
-        <div className="md:hidden bg-white border-b border-black/10 py-4 space-y-3">
+        <div id="mobile-navigation" className="md:hidden bg-white border-b border-black/10 py-4 space-y-3">
           {NAV_ITEMS.map((item) => (
             <a
               key={item.key}

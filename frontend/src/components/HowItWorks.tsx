@@ -23,7 +23,7 @@ export default function HowItWorks() {
 
   return (
     <section id="how-to" className="px-4 sm:px-8 lg:px-14 pt-7 sm:pt-9 lg:pt-11">
-      <h2 className="font-crimson text-[19px] sm:text-[31px] md:text-[29px] lg:text-[46px] leading-[0.9] tracking-[-0.03em] text-black text-center sm:text-left mb-10 sm:mb-14">
+      <h2 className="font-crimson text-3xl sm:text-4xl lg:text-[46px] leading-tight text-primary text-center sm:text-left mb-6 sm:mb-10">
         {t('howTitle')}
       </h2>
 
@@ -34,15 +34,11 @@ export default function HowItWorks() {
               {step.number}
             </span>
 
-            <div className="w-full h-px bg-black/80 mt-4 mb-4" />
-
-            <h3 className="font-crimson text-[14px] sm:text-[16px] lg:text-[20px] leading-[1.05] tracking-[-0.04em] text-black">
+            <h3 className="font-dm text-lg font-bold leading-relaxed text-primary mt-5">
               {step.title}
             </h3>
 
-            <div className="w-full h-px bg-black/80 mt-4 mb-4" />
-
-            <p className="font-crimson text-base sm:text-lg lg:text-xl leading-[1] tracking-[-0.03em] text-black">
+            <p className="font-dm text-base leading-relaxed text-on-surface-variant mt-3">
               {step.description}
             </p>
           </div>

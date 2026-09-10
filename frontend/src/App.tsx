@@ -52,11 +52,14 @@ function App() {
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden">
-      <Navbar onOpenFeasibility={openFeasibility} />
+      <a href="#main-content" className="skip-link">Skip to content</a>
+      <Navbar />
+      <main id="main-content">
       <HeroSection onOpenFeasibility={openFeasibility} />
       <HowItWorks />
       <PhoneGuidance />
       <OfficialBacking />
+      </main>
       <Footer />
     </div>
   );

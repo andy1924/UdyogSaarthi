@@ -18,6 +18,9 @@ class DPRGenerateIn(BaseModel):
     funding_preference: Literal[
         "scheme_linked_loan", "standard_bank_loan", "need_guidance"
     ] = "scheme_linked_loan"
+    identity_simulation: dict | None = Field(
+        None, description="Sandbox-only PAN/income/override metadata for test workflows"
+    )
 
 
 class DPRGenerateOut(BaseModel):

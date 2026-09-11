@@ -19,7 +19,8 @@ services:
   # ── PostgreSQL (PostGIS) ─────────────────────────────────────────────────
   db:
     image: postgis/postgis:16-3.4
-    platform: linux/amd64
+    # Let Docker select the host architecture (important on Apple Silicon and
+    # ARM Linux; forcing amd64 causes slow emulation and flaky DB startup).
     container_name: udyogsaarthi-db
     restart: unless-stopped
     environment:

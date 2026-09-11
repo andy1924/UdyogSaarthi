@@ -32,6 +32,9 @@ interface AssessmentDraft {
   nearbyProfiles: NearbyProfile[];
   licenses: LicenseItem[];
   applicantName: string;
+  simulatedPan: string;
+  incomeTier: 'low' | 'middle' | 'high';
+  overrideScheme: string;
   fundingPreference: FundingPreference | '';
   digiLockerStatus: 'idle' | 'success' | 'error';
   digiLockerReference: string | null;
@@ -101,6 +104,9 @@ export function useAssessment() {
   const [dprId, setDprId] = useState<string | null>(initialDraft.dprId ?? null);
   const [dprStatus, setDprStatus] = useState<'idle' | 'queued' | 'ready' | 'error'>(initialDraft.dprStatus ?? 'idle');
   const [applicantName, setApplicantNameState] = useState(initialDraft.applicantName ?? '');
+  const [simulatedPan, setSimulatedPanState] = useState(initialDraft.simulatedPan ?? '');
+  const [incomeTier, setIncomeTierState] = useState<'low' | 'middle' | 'high'>(initialDraft.incomeTier ?? 'middle');
+  const [overrideScheme, setOverrideSchemeState] = useState(initialDraft.overrideScheme ?? '');
   const [fundingPreference, setFundingPreferenceState] = useState<FundingPreference | ''>(initialDraft.fundingPreference ?? '');
   const [digiLockerStatus, setDigiLockerStatus] = useState<'idle' | 'connecting' | 'success' | 'error'>(initialDraft.digiLockerStatus ?? 'idle');
   const [digiLockerReference, setDigiLockerReference] = useState<string | null>(initialDraft.digiLockerReference ?? null);
@@ -187,7 +193,7 @@ export function useAssessment() {
       userCoords, locationText, geoResolved,
       geoStatus: geoStatus === 'detecting' ? 'idle' : geoStatus,
       searchLocationQuery, feasibilityResult, schemeResult, nearbyProfiles, licenses,
-      applicantName, fundingPreference,
+      applicantName, simulatedPan, incomeTier, overrideScheme, fundingPreference,
       digiLockerStatus: digiLockerStatus === 'connecting' ? 'idle' : digiLockerStatus,
       digiLockerReference,
       digiLockerVerified,
@@ -196,7 +202,7 @@ export function useAssessment() {
       dprStatus: dprStatus === 'queued' ? 'idle' : dprStatus,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch { /* Continue without draft persistence. */ }
-  }, [currentStep, highestStepReached, radius, selectedEnterprise, marginPercent, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, feasibilityResult, schemeResult, nearbyProfiles, licenses, applicantName, fundingPreference, digiLockerStatus, digiLockerReference, digiLockerVerified, reviewConfirmed, dprId, dprStatus]);
+  }, [currentStep, highestStepReached, radius, selectedEnterprise, marginPercent, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, feasibilityResult, schemeResult, nearbyProfiles, licenses, applicantName, simulatedPan, incomeTier, overrideScheme, fundingPreference, digiLockerStatus, digiLockerReference, digiLockerVerified, reviewConfirmed, dprId, dprStatus]);
 
   // Mirror of geoStatus for async GPS callbacks (avoids stale closures).
   const geoStatusRef = useRef(geoStatus);
@@ -489,6 +495,7 @@ export function useAssessment() {
           feasibility: feasibilityResult,
           scheme: schemeResult,
           funding_preference: fundingPreference as FundingPreference,
+          identity_simulation: { pan: simulatedPan, income_tier: incomeTier, override_scheme: overrideScheme },
           verified: digiLockerVerified ? 'aa-verified' : 'self-reported',
         });
       setDprId(res.dpr_id);
@@ -556,7 +563,7 @@ export function useAssessment() {
     return true;
   };
 
-  return { t, currentStep, highestStepReached, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, fundingPreference, setFundingPreference, downloadSuccess, uiError, setUiError, userCoords, setUserCoords, locationText, setLocationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, manualOverrideOpen, setManualOverrideOpen, loadingState, feasibilityResult, schemeResult, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, digiLockerStatus, digiLockerReference, digiLockerVerified, connectDigiLocker, reviewConfirmed, setReviewConfirmed, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep, advanceToStep };
+  return { t, currentStep, highestStepReached, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, fundingPreference, setFundingPreference, downloadSuccess, uiError, setUiError, userCoords, setUserCoords, locationText, setLocationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, manualOverrideOpen, setManualOverrideOpen, loadingState, feasibilityResult, schemeResult, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, simulatedPan, setSimulatedPan: setSimulatedPanState, incomeTier, setIncomeTier: setIncomeTierState, overrideScheme, setOverrideScheme: setOverrideSchemeState, digiLockerStatus, digiLockerReference, digiLockerVerified, connectDigiLocker, reviewConfirmed, setReviewConfirmed, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep, advanceToStep };
 }
 
 export type AssessmentState = ReturnType<typeof useAssessment>;

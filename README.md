@@ -14,8 +14,9 @@
 ---
 
 ## Architecture & Tech Stack
-The project is currently focused on the **Backend MVP**.
+The repository contains the production-wired backend and Vite/React frontend.
 - **Backend Framework:** FastAPI (Python 3.11+)
+- **Frontend:** Vite + React + TypeScript + Tailwind CSS
 - **Database:** PostgreSQL with PostGIS + Redis for caching and Celery queues
 - **Document Generation:** Jinja2 + WeasyPrint through Celery
 - **External Integrations:** Mappls (geocoding/POI), Data.gov.in (LGD API), OSM Overpass (POI fallback), OpenAI (SWOT/compliance), and DigiLocker/API Setu-compatible KYC settings
@@ -23,13 +24,19 @@ The project is currently focused on the **Backend MVP**.
 ---
 
 ## Directory Structure
-- `backend/app`: FastAPI application (routers, schemas, services, core, models)
-- `backend/db`: Database and migrations
-- `backend/tests`: Test suite for the backend application
-- `docs/`: Product, design, frontend specs, and API documentation
-- `infra/`: Docker and deployment configurations
-- `frontend/`: *(Currently removed from active scope)*
-- `mobile/`: *(Planned for Phase 2)*
+
+```text
+backend/       FastAPI app, migrations, tests, and Python packaging
+frontend/      Vite/React app, UI components, assets, and npm lockfile
+infra/         Docker Compose, secrets templates, and deployment config
+scripts/       Cross-platform development, health-check, and stop scripts
+docs/          Product, API, design, security, and runbook documentation
+graphify-out/  Generated architecture reports (regenerated when needed)
+```
+
+Use `scripts/` for developer commands. The root `start-dev.bat` and
+`stop-dev.bat` remain Windows compatibility launchers; application source
+stays inside `backend/` and `frontend/`.
 
 ---
 

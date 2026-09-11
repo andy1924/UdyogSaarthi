@@ -507,6 +507,7 @@ export class ApiService {
     capex_opex?: { capex: number; opex: number; notes?: string };
     verified?: 'self-reported' | 'aa-verified';
     funding_preference: FundingPreference;
+    identity_simulation?: { pan?: string; income_tier?: string; override_scheme?: string };
   }): Promise<{ dpr_id: string; pdf_url: string; status: string; verified: string }> {
     const token = await this.ensureAuthenticated();
     const path = '/api/dpr/render';
@@ -518,6 +519,7 @@ export class ApiService {
       capex_opex: payload.capex_opex,
       verified: payload.verified ?? 'self-reported',
       funding_preference: payload.funding_preference,
+      identity_simulation: payload.identity_simulation,
     });
 
     const res = await fetch(path, {

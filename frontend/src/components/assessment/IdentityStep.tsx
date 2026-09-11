@@ -6,7 +6,8 @@ import type { AssessmentState } from './useAssessment';
 
 type Props = Pick<AssessmentState,
   'stepAnimClass' | 'applicantName' | 'setApplicantName' | 'digiLockerStatus' |
-  'digiLockerReference' | 'connectDigiLocker' | 'goToStep' | 'advanceToStep'
+  'digiLockerReference' | 'connectDigiLocker' | 'goToStep' | 'advanceToStep' |
+  'simulatedPan' | 'setSimulatedPan' | 'incomeTier' | 'setIncomeTier' | 'overrideScheme' | 'setOverrideScheme'
 > & {
   holderName: string;
 };
@@ -16,12 +17,17 @@ const FALLBACK_HOLDER = 'Asha Patil';
 export default function IdentityStep({
   stepAnimClass, applicantName, setApplicantName, digiLockerStatus,
   digiLockerReference, connectDigiLocker, goToStep, advanceToStep, holderName,
+  simulatedPan, setSimulatedPan, incomeTier, setIncomeTier, overrideScheme, setOverrideScheme,
 }: Props) {
   const [selected, setSelected] = useState<string[]>([]);
   const [accessGranted, setAccessGranted] = useState(false);
   const [showBlockedHint, setShowBlockedHint] = useState(false);
   const nameError = validateApplicantName(applicantName);
   const displayHolder = holderName.trim() || FALLBACK_HOLDER;
+  const panValid = /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(simulatedPan);
+  const eligibleSchemes = incomeTier === 'low'
+    ? ['PMEGP subsidy-linked loan', 'MUDRA Shishu']
+    : incomeTier === 'middle' ? ['MUDRA Kishor', 'Standard bank loan'] : ['Standard bank loan'];
 
   const sandboxDocuments = [
     { id: 'pan', label: 'PAN Card', issuer: 'Income Tax Department', number: 'XXXXX1234F', holder: displayHolder, Icon: CreditCard },
@@ -136,6 +142,34 @@ export default function IdentityStep({
             </button>
           </div>
         )}
+      </section>
+
+      <section aria-labelledby="sandbox-controls-title" className="rounded-2xl border border-outline-variant bg-surface-container p-5 sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-secondary">Tester controls</p>
+            <h3 id="sandbox-controls-title" className="mt-1 text-xl font-bold text-primary">Simulated eligibility</h3>
+            <p className="mt-1 text-sm leading-6 text-on-surface-variant">Use mock values to inspect scheme matching without sending real identity data.</p>
+          </div>
+          <span className="rounded-full bg-secondary-container px-3 py-1 text-xs font-semibold text-primary">Sandbox only</span>
+        </div>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <label className="block text-sm font-semibold text-primary">Mock PAN
+            <input value={simulatedPan} onChange={(e) => setSimulatedPan(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))} placeholder="ABCDE1234F" className="mt-2 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-3 font-mono outline-none focus:ring-2 focus:ring-primary/20" aria-invalid={Boolean(simulatedPan) && !panValid} />
+            {simulatedPan && !panValid && <span className="mt-1 block text-xs font-normal text-error">Enter a valid mock PAN format.</span>}
+          </label>
+          <label className="block text-sm font-semibold text-primary">Income tier
+            <select value={incomeTier} onChange={(e) => setIncomeTier(e.target.value as typeof incomeTier)} className="mt-2 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-3 outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="low">Low income</option><option value="middle">Middle income</option><option value="high">High income</option>
+            </select>
+          </label>
+          <label className="block text-sm font-semibold text-primary">Force-select scheme <span className="font-normal text-on-surface-variant">(optional)
+            <select value={overrideScheme} onChange={(e) => setOverrideScheme(e.target.value)} className="mt-2 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-3 outline-none focus:ring-2 focus:ring-primary/20">
+              <option value="">Use eligibility result</option>{eligibleSchemes.map((scheme) => <option key={scheme} value={scheme}>{scheme}</option>)}
+            </select>
+          </span></label>
+        </div>
+        {panValid && <p className="mt-4 rounded-xl bg-secondary-container/60 p-3 text-sm text-primary"><strong>Eligible schemes:</strong> {overrideScheme || eligibleSchemes.join(', ')}</p>}
       </section>
 
       {showBlockedHint && nameError && <p role="alert" className="rounded-xl border border-error/30 bg-error-container p-4 text-sm font-semibold text-on-error-container"><Text>Connect DigiLocker Sandbox and allow document access to continue.</Text></p>}

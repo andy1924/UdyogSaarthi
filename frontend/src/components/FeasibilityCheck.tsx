@@ -13,6 +13,7 @@ import BotanicalAccent from './BotanicalAccent';
 import DprPreview from './assessment/DprPreview';
 import BrandLogo from './BrandLogo';
 import type { SessionUser } from '../lib/api';
+import ReadAloudButton from './ReadAloudButton';
 
 interface FeasibilityCheckProps {
   onBackToLanding: () => void;
@@ -40,6 +41,7 @@ export default function FeasibilityCheck({ onBackToLanding, onLogout, user }: Fe
             </button>
           </div>
           <div className="flex items-center gap-2">
+            <ReadAloudButton />
             <LanguageSelector variant="wizard" />
             <button type="button" onClick={onLogout} title={user?.email} className="rounded-full px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container">Sign out</button>
           </div>
@@ -158,5 +160,4 @@ export default function FeasibilityCheck({ onBackToLanding, onLogout, user }: Fe
     </div>
   );
 }
-
 

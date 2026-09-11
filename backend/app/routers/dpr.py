@@ -50,6 +50,7 @@ async def render(
         "capex_opex": inp.capex_opex,
         "verified": inp.verified,
         "funding_preference": inp.funding_preference,
+        "identity_simulation": inp.identity_simulation,
     }
     await log_audit_action(
         db_session=db,
@@ -97,6 +98,7 @@ async def render(
         "capex_opex": inp.capex_opex,
         "verified": verified,
         "funding_preference": inp.funding_preference,
+        "identity_simulation": inp.identity_simulation,
         "kyc": kyc_result.model_dump(),
         "swot": swot_result.model_dump(),
         "sections": [

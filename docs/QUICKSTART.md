@@ -15,6 +15,25 @@ Before starting, ensure you have the following installed on your machine:
 
 ## ⚙️ Environment Configuration
 
+### Cross-platform one-command workflow (recommended)
+
+Use Docker Desktop on macOS, Windows (WSL2), or Linux, Node.js 20+, and Git.
+The repository includes platform-neutral checks and launchers:
+
+```sh
+./scripts/doctor.sh   # verify Docker, Node, secrets and lockfiles
+./scripts/dev.sh      # start backend stack and Vite
+./scripts/stop.sh     # stop backend containers (keeps volumes)
+```
+
+On Windows PowerShell run `./scripts/dev.ps1` (or the existing
+`start-dev.bat`). Always use `npm ci`, not `npm install`, so every contributor
+gets the exact versions in `frontend/package-lock.json`. Do not commit either
+`.env` file; copy the examples and keep API keys local.
+
+Docker Compose now selects the host CPU architecture automatically, avoiding
+amd64 emulation failures on Apple Silicon and ARM Linux.
+
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>

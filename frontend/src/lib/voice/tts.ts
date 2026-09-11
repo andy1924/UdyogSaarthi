@@ -1,150 +1,219 @@
-import type { RawProgressEvent } from './download-progress';
+import { synthesizeSpeech, warmTts } from './engine';
 import type { VoiceLanguage } from './languages';
-import { hasWebGPU as detectWebGPU } from './stt';
-import {
-  authHeaders, readTtsConfig, type RemoteTtsConfig,
-} from './providers';
+import { hasWebGPU, MMS_TTS_OPTIONS, pickTtsOptions, type TtsOptions } from './models';
+import { speechPlan } from './spoken';
 import { encodeWav } from './wav';
+import type { RawProgressEvent } from './download-progress';
 
-export const KOKORO_MODEL = 'onnx-community/Kokoro-82M-v1.0-ONNX';
-export const MMS_HINDI_MODEL = 'Xenova/mms-tts-hin';
-
-export interface TtsOptions {
-  device: 'webgpu' | 'wasm';
-  dtype: 'fp32' | 'q8';
-}
-
-export function pickTtsOptions(hasWebGPU: boolean): TtsOptions {
-  return hasWebGPU ? { device: 'webgpu', dtype: 'fp32' } : { device: 'wasm', dtype: 'q8' };
-}
-
-type Synth = (text: string) => Promise<{ samples: Float32Array; sampleRate: number }>;
+export { KOKORO_MODEL, MMS_HINDI_MODEL, MMS_TTS_OPTIONS, pickTtsOptions } from './models';
+export type { TtsOptions } from './models';
 
 /**
- * Kokoro speaks English. kokoro-js phonemizes with an English-only eSpeak
- * build, so this engine is never used for Hindi.
+ * Ten minutes of speech, after which the speaker stops.
+ *
+ * The engine itself has no limit once the text is cut into pieces the tokenizer
+ * cannot truncate - see `SPEECH_CHUNK_CHARS` - so this is only a stop for a
+ * reply that would otherwise keep talking after the reader has walked away.
  */
-async function createKokoroSynth(
-  voice: string,
-  progress?: (event: RawProgressEvent) => void,
-): Promise<Synth> {
-  const { KokoroTTS } = await import('kokoro-js');
-  const tts = await KokoroTTS.from_pretrained(KOKORO_MODEL, {
-    ...pickTtsOptions(detectWebGPU()),
-    ...(progress ? { progress_callback: progress } : {}),
-  } as never);
-  return async (text) => {
-    const audio = await tts.generate(text, { voice } as never);
-    return { samples: audio.audio, sampleRate: audio.sampling_rate };
-  };
-}
+export const SPEAK_MAX_MS = 10 * 60 * 1000;
 
-/** MMS-TTS is a VITS model with a Devanagari vocabulary, so it needs no G2P. */
-async function createMmsSynth(
-  progress?: (event: RawProgressEvent) => void,
-): Promise<Synth> {
-  const { pipeline, env } = await import('@huggingface/transformers');
-  env.allowLocalModels = false;
-  const tts = await pipeline('text-to-speech', MMS_HINDI_MODEL, {
-    ...pickTtsOptions(detectWebGPU()),
-    ...(progress ? { progress_callback: progress } : {}),
-  } as never);
-  return async (text) => {
-    const output = await tts(text, {});
-    return { samples: output.audio, sampleRate: output.sampling_rate };
-  };
+/**
+ * Start the audio context, or give up on it quickly.
+ *
+ * `resume()` never settles while the browser is still waiting for a user
+ * gesture, and awaiting that promise left the speaker stuck on its first clip
+ * with the orb on "speaking" and nothing to hear. A short race puts playback
+ * back on the plain element, which is the path that works without the analyser.
+ */
+const isRunning = (context: AudioContext) => context.state === 'running';
+
+async function resume(context: AudioContext): Promise<boolean> {
+  if (isRunning(context)) return true;
+  const started = await Promise.race([
+    context.resume().then(() => true).catch(() => false),
+    new Promise<boolean>((resolve) => { setTimeout(() => resolve(false), 400); }),
+  ]);
+  return started && isRunning(context);
 }
 
 export interface Speaker {
-  /** Speak `text` aloud; resolves when playback ends or is stopped. */
-  speak(text: string): Promise<void>;
+  /**
+   * Speak the lines in order. `onSentence` fires with the index of the line
+   * whose audio has just started, which is what keeps the panel and the voice
+   * on the same sentence instead of guessing from a playback fraction.
+   */
+  speak(lines: string[]): Promise<void>;
   stop(): void;
+  /** Live RMS of whatever is being spoken, so the orb can follow the voice. */
+  onLevel(callback: (rms: number) => void): void;
+  /** Index of the line now being spoken, in the array handed to `speak`. */
+  onSentence(callback: (index: number) => void): void;
 }
 
-/** Turns text into playable audio: local synthesis or a remote endpoint. */
-type Render = (text: string) => Promise<Blob>;
-
-async function renderRemote(
-  config: RemoteTtsConfig,
-  language: VoiceLanguage,
-  text: string,
-  signal: AbortSignal,
-): Promise<Blob> {
-  const response = await fetch(config.url, {
-    method: 'POST',
-    signal,
-    headers: { 'Content-Type': 'application/json', ...authHeaders(config.key) },
-    body: JSON.stringify({
-      model: config.model,
-      input: text,
-      voice: config.voice || language.voice || 'af_heart',
-      response_format: 'wav',
-    }),
-  });
-  if (!response.ok) throw new Error(`tts ${response.status}`);
-  return response.blob();
+/**
+ * MMS-TTS is a VITS model and VITS does not run on WebGPU. Its duration
+ * predictor gathers with an int64 tensor and the backend rejects the kernel
+ * outright:
+ *
+ *   [WebGPU] Kernel "[GatherND] /duration_predictor/flows.4/GatherND" failed.
+ *   Error: Unsupported data type: 7
+ *
+ * English never noticed, because Kokoro is a different architecture and does run
+ * on the GPU. Hindi failed on every WebGPU browser, which reads as "the Hindi
+ * voice does not work". WASM is slower, but it is the one backend that speaks
+ * Hindi at all, and the quantized checkpoint is a third of the fp32 download.
+ */
+function ttsOptions(language: VoiceLanguage): TtsOptions {
+  return language.engine === 'mms' ? MMS_TTS_OPTIONS : pickTtsOptions(hasWebGPU());
 }
 
+/**
+ * Turns text into playable audio with an on-device model.
+ *
+ * The model is loaded in the voice worker (see `engine.ts`), so a first run
+ * downloads a few hundred megabytes without freezing the page, and every clip
+ * after the first is synthesised off the main thread while the previous one is
+ * still playing.
+ */
 export async function createSpeaker(
   language: VoiceLanguage,
   progress?: (event: RawProgressEvent) => void,
-  config: RemoteTtsConfig | null = readTtsConfig(import.meta.env),
 ): Promise<Speaker> {
-  let abort: AbortController | null = null;
-  let render: Render;
-  if (config) {
-    render = (text) => {
-      abort = new AbortController();
-      return renderRemote(config, language, text, abort.signal);
-    };
-  } else {
-    const synth = language.engine === 'mms'
-      ? await createMmsSynth(progress)
-      : await createKokoroSynth(language.voice ?? 'af_heart', progress);
-    render = async (text) => {
-      const { samples, sampleRate } = await synth(text);
-      return encodeWav(samples, sampleRate);
-    };
-  }
+  const options = ttsOptions(language);
+  await warmTts(language.engine, language.voice, options, progress);
 
+  let context: AudioContext | null = null;
   let element: HTMLAudioElement | null = null;
+  let source: MediaElementAudioSourceNode | null = null;
+  let analyser: AnalyserNode | null = null;
+  let frame = 0;
+  let endPlayback: (() => void) | null = null;
   let objectUrl: string | null = null;
-  let finish: (() => void) | null = null;
   let cancelled = false;
+  // Bumped on every stop, so a clip that finishes late cannot restart the loop.
+  let token = 0;
+  let levelSink: (rms: number) => void = () => {};
+  let sentenceSink: (index: number) => void = () => {};
 
-  const release = () => {
+  const releaseClip = () => {
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+    levelSink(0);
+    source?.disconnect();
+    source = null;
+    analyser?.disconnect();
+    analyser = null;
+    element = null;
     if (objectUrl) URL.revokeObjectURL(objectUrl);
     objectUrl = null;
-    element = null;
-    finish = null;
+    endPlayback = null;
   };
 
+  /**
+   * Route playback through an analyser so the orb can follow the spoken voice.
+   * Returns false when that is unavailable for any reason, and the caller then
+   * plays the element normally. The context is created on first playback, well
+   * after the click that started the turn, so `resume` only ever confirms a
+   * sticky user activation.
+   */
+  const playThroughAnalyser = async (audio: HTMLAudioElement): Promise<boolean> => {
+    try {
+      context ??= new AudioContext();
+      if (!(await resume(context))) return false;
+      analyser = context.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.connect(context.destination);
+      source = context.createMediaElementSource(audio);
+      source.connect(analyser);
+      const buffer = new Float32Array(analyser.fftSize);
+      const sample = () => {
+        analyser!.getFloatTimeDomainData(buffer);
+        let sum = 0;
+        for (const value of buffer) sum += value * value;
+        levelSink(Math.sqrt(sum / buffer.length));
+        frame = requestAnimationFrame(sample);
+      };
+      sample();
+      await audio.play();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const play = (blob: Blob) => new Promise<void>((resolve) => {
+    objectUrl = URL.createObjectURL(blob);
+    const audio = new Audio(objectUrl);
+    element = audio;
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      audio.pause();
+      releaseClip();
+      resolve();
+    };
+    endPlayback = done;
+    audio.onended = done;
+    audio.onerror = done;
+    void playThroughAnalyser(audio).then((played) => {
+      if (!played) void audio.play().catch(() => done());
+    });
+  });
+
   return {
-    async speak(text) {
+    async speak(lines) {
+      const id = (token += 1);
       cancelled = false;
-      let blob: Blob;
-      try {
-        blob = await render(text);
-      } catch (reason) {
-        // stop() aborts an in-flight request; that is a cancel, not a failure.
-        if (cancelled) return;
-        throw reason;
+      const plan = speechPlan(lines);
+      if (!plan.length) return;
+
+      // At most two clips are alive: the one about to play and the next one.
+      // One ahead is what hides synthesis behind playback, and one only keeps a
+      // long reply from pinning a dozen clips in memory.
+      const renders = new Map<number, Promise<Blob>>();
+      const request = (index: number) => {
+        if (index >= plan.length || renders.has(index)) return;
+        const rendered = synthesizeSpeech(plan[index].text, language.engine, language.voice, options)
+          .then(({ samples, sampleRate }) => encodeWav(samples, sampleRate));
+        // A rejected prefetch nobody awaits must not surface as an unhandled
+        // rejection; the loop still sees the same promise where it awaits it.
+        rendered.catch(() => {});
+        renders.set(index, rendered);
+      };
+      request(0);
+      request(1);
+
+      const startedAt = Date.now();
+      let announced = -1;
+      for (let index = 0; index < plan.length; index += 1) {
+        const rendered = renders.get(index);
+        let blob: Blob;
+        try {
+          blob = await rendered!;
+        } catch (reason) {
+          // stop() during synthesis is a cancel, not a failure.
+          if (cancelled || token !== id) return;
+          throw reason;
+        }
+        renders.delete(index);
+        if (cancelled || token !== id) return;
+        if (Date.now() - startedAt >= SPEAK_MAX_MS) return;
+        if (plan[index].line !== announced) {
+          announced = plan[index].line;
+          sentenceSink(announced);
+        }
+        request(index + 2);
+        await play(blob);
       }
-      objectUrl = URL.createObjectURL(blob);
-      const audio = new Audio(objectUrl);
-      element = audio;
-      await new Promise<void>((resolve) => {
-        finish = () => { release(); resolve(); };
-        audio.onended = () => finish?.();
-        audio.onerror = () => finish?.();
-        void audio.play().catch(() => finish?.());
-      });
     },
     stop() {
+      token += 1;
       cancelled = true;
-      abort?.abort();
       element?.pause();
-      finish?.();
+      endPlayback?.();
     },
+    onLevel(callback) { levelSink = callback; },
+    onSentence(callback) { sentenceSink = callback; },
   };
 }

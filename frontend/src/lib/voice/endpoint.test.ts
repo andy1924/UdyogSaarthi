@@ -34,7 +34,7 @@ describe('Endpointer', () => {
 
   it('emits timeout at the hard turn limit', () => {
     const endpointer = new Endpointer({ ...DEFAULT_ENDPOINTER, maxTurnMs: 200, frameMs: 20 });
-    speak(endpointer, 10);
+    speak(endpointer, 9);
     expect(silence(endpointer, 1)).toBe('timeout');
   });
 

@@ -1,0 +1,12 @@
+# Line endings, pinned so a checkout behaves the same on every platform.
+#
+# A shell script stored with CRLF endings will not run on macOS or Linux: the
+# kernel reads the shebang as "#!/usr/bin/env sh\r" and fails to find it.
+# Windows launchers are the mirror image - cmd.exe is happiest with CRLF.
+*.sh   text eol=lf
+*.bat  text eol=crlf
+*.ps1  text eol=crlf
+
+# Everything else is normalised to LF in the repository and left alone in the
+# working tree, so a Windows checkout does not rewrite every file as a diff.
+* text=auto

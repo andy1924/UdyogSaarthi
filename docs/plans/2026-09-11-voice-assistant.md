@@ -1854,3 +1854,20 @@ and the live-gateway findings.
       answer 403 "account balance is insufficient" on the current key, so free
       credit covers chat only.
 - [ ] Real microphone, both languages, against a funded speech endpoint.
+
+---
+
+## Addendum 2026-09-11 (later): speech is local only again
+
+Reversed by the product owner: **"keep stt and tts local only STRICTLY."** The
+remote speech providers added above were **removed**, not disabled:
+
+- `src/lib/voice/providers.ts` reads only `VITE_VOICE_STT_DEVICE`; there is no
+  speech URL to set.
+- `createTranscriber` and `createSpeaker` have no remote branch, and `wav.ts` is
+  used for playback only.
+- The orb's privacy line has two states (local speech + local brain, local
+  speech + remote brain) instead of three.
+- `docs/frontend/voice-assistant.md` and `docs/frontend/voice-stack.md` are
+  updated and are the current reference; the hosted/topology sections above are
+  historical.

@@ -1,9 +1,18 @@
+import { normalizePeak } from './gain';
 import { downsampleTo16k } from './resample';
 
 export interface Recorder {
-  start(): Promise<void>;
+  /** Acquire the microphone. Resolves once the browser has granted access. */
+  arm(): Promise<void>;
+  /** Start capturing a turn. Only meaningful after `arm`. */
+  begin(): Promise<void>;
+  /**
+   * Finish the turn and hand back its audio. The caller releases the microphone
+   * straight afterwards, so it is not left open while the reply is spoken.
+   */
   stop(): Promise<Float32Array>;
-  cancel(): void;
+  /** Give the microphone back to the browser. */
+  release(): void;
   onLevel(callback: (rms: number) => void): void;
 }
 
@@ -16,6 +25,9 @@ export function createRecorder(): Recorder {
   const chunks: Blob[] = [];
 
   const teardown = () => {
+    // Release is called from several paths (turn end, error, close, unmount),
+    // so it has to survive running twice.
+    if (!stream && !recorder && !context) return;
     if (frame) cancelAnimationFrame(frame);
     frame = 0;
     recorder?.stream.getTracks().forEach((track) => track.stop());
@@ -26,31 +38,39 @@ export function createRecorder(): Recorder {
     context = null;
   };
 
+  const arm = async () => {
+    if (stream) return;
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    context = new AudioContext();
+    const source = context.createMediaStreamSource(stream);
+    const analyser = context.createAnalyser();
+    analyser.fftSize = 1024;
+    source.connect(analyser);
+    const buffer = new Float32Array(analyser.fftSize);
+
+    const sample = () => {
+      analyser.getFloatTimeDomainData(buffer);
+      let sum = 0;
+      for (const value of buffer) sum += value * value;
+      levelCallback(Math.sqrt(sum / buffer.length));
+      frame = requestAnimationFrame(sample);
+    };
+    sample();
+  };
+
+  const begin = async () => {
+    await arm();
+    const live = stream as MediaStream;
+    chunks.length = 0;
+    recorder = new MediaRecorder(live);
+    recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
+    recorder.start();
+  };
+
   return {
     onLevel(callback) { levelCallback = callback; },
-    async start() {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      context = new AudioContext();
-      const source = context.createMediaStreamSource(stream);
-      const analyser = context.createAnalyser();
-      analyser.fftSize = 1024;
-      source.connect(analyser);
-      const buffer = new Float32Array(analyser.fftSize);
-
-      const sample = () => {
-        analyser.getFloatTimeDomainData(buffer);
-        let sum = 0;
-        for (const value of buffer) sum += value * value;
-        levelCallback(Math.sqrt(sum / buffer.length));
-        frame = requestAnimationFrame(sample);
-      };
-      sample();
-
-      chunks.length = 0;
-      recorder = new MediaRecorder(stream);
-      recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
-      recorder.start();
-    },
+    arm,
+    begin,
     async stop() {
       const active = recorder;
       if (!active) return new Float32Array(0);
@@ -59,15 +79,15 @@ export function createRecorder(): Recorder {
       });
       active.stop();
       const blob = await finished;
+      recorder = null;
       // Decode on the recording context when there is one, so a long session
       // does not leak a fresh AudioContext per turn.
       const owned = context ?? new AudioContext();
       const decoded = await owned.decodeAudioData(await blob.arrayBuffer());
       const samples = downsampleTo16k(decoded.getChannelData(0), decoded.sampleRate);
       if (!context) void owned.close();
-      teardown();
-      return samples;
+      return normalizePeak(samples);
     },
-    cancel() { teardown(); },
+    release() { teardown(); },
   };
 }

@@ -54,7 +54,16 @@ html.scrollbar-reveal::-webkit-scrollbar-thumb:hover {
 }
 
 .language-control { display: flex; align-items: center; gap: 8px; }
-.language-status { display: inline-flex; align-items: center; }
+.language-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* The spinner comes and goes on every language switch; the room it needs may
+     not, or the whole navbar jitters sideways. */
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
 
 /* Custom language dropdown: the trigger is 20% shorter than the old 44px select. */
 .language-dropdown { position: relative; }
@@ -223,12 +232,128 @@ body {
   animation: step-shift-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+/* -- Voice orb -------------------------------------------------
+   The orb is a WebGL field of strands (see components/voice/Strands.tsx). The
+   live voice level is read by that render loop straight off the voice layer, so
+   it never re-renders React, and `data-state` stays on the wrapper so the
+   stylesheet can still tell listening from speaking. `data-state` is also the
+   hook a test or a browser check reads the state from. */
+
+.voice-orb {
+  width: 84px;
+  height: 84px;
+  /* Dark liquid glass: the same pine the pills under the orb use, so the orb
+     belongs to the caption it sits above. The pane is nearly opaque because the
+     dark green filaments need a dark field to be read against, and it is still
+     glass - it blurs and tints whatever passes behind it. */
+  background: linear-gradient(
+    152deg,
+    rgba(23, 33, 13, 0.93) 0%,
+    rgba(49, 64, 15, 0.9) 48%,
+    rgba(15, 22, 8, 0.95) 100%
+  );
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid rgba(223, 236, 198, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(223, 236, 198, 0.42),
+    inset 0 -12px 22px -14px rgba(0, 0, 0, 0.8),
+    0 12px 30px -16px rgba(23, 33, 13, 0.7);
+  transition: filter 0.3s ease;
+}
+
+.voice-orb:hover {
+  filter: brightness(1.18);
+}
+
+.voice-orb:active {
+  filter: brightness(0.9);
+}
+
+.voice-orb:focus-visible {
+  outline: 2px solid #485C11;
+  outline-offset: 6px;
+}
+
+/* A specular arc across the top-left, so the pane reads as glass and not as a
+   flat sticker. */
+.voice-orb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  background: linear-gradient(148deg, rgba(255, 255, 255, 0.42) 0%, rgba(223, 236, 198, 0.14) 26%, rgba(255, 255, 255, 0) 56%);
+  -webkit-mask: radial-gradient(circle, transparent 0 88%, #000 92%);
+  mask: radial-gradient(circle, transparent 0 88%, #000 92%);
+}
+
+/* The canvas is clipped to the disc, so the strands never square off the orb. */
+.voice-orb__field {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+/* One-time model download: a conic ring once bytes are known, a spinner arc
+   before that, because an honest "working" beats a stalled "0%". */
+.voice-orb__ring {
+  position: absolute;
+  inset: -7px;
+  border-radius: 9999px;
+  background: conic-gradient(#61733C var(--orb-progress, 0%), rgba(72, 92, 17, 0.16) 0);
+  -webkit-mask: radial-gradient(circle, transparent 0 66%, #000 67%);
+  mask: radial-gradient(circle, transparent 0 66%, #000 67%);
+}
+
+.voice-orb__ring--waiting {
+  background: conic-gradient(
+    from 0deg,
+    rgba(72, 92, 17, 0) 0%,
+    rgba(72, 92, 17, 0.85) 30%,
+    rgba(72, 92, 17, 0) 60%
+  );
+  animation: orb-spin 1.1s linear infinite;
+}
+
+/* The download percentage lives inside the field, so a multi-minute first run
+   is not a dead dot. */
+.voice-orb__percent {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  /* The pane is dark now, so the percentage reads as olive-50 on pine. */
+  color: #DFECC6;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+}
+
+@keyframes orb-spin {
+  to { transform: rotate(1turn); }
+}
+
+@media (max-width: 480px) {
+  .voice-orb {
+    width: 72px;
+    height: 72px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+  /* A spinner is a status indicator, not decoration. Stopped, a first-run
+     model download reads as a button that did nothing at all. */
+  .animate-spin {
+    animation: spin 1s linear infinite !important;
   }
   /* Route and step changes keep a short cross-fade: opacity only, no movement. */
   .animate-page-enter {

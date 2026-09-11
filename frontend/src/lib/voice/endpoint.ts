@@ -14,10 +14,16 @@ export interface EndpointerOptions {
 export type EndpointerEvent = 'speech-start' | 'speech-end' | 'timeout' | null;
 
 export const DEFAULT_ENDPOINTER: EndpointerOptions = {
-  speechThreshold: 0.02,
-  minSpeechMs: 200,
+  // Quiet speech into a laptop mic sits well under the old 0.02 threshold, so
+  // the turn never started and every attempt ended as a blank recording.
+  speechThreshold: 0.008,
+  minSpeechMs: 150,
   silenceMs: 900,
-  maxTurnMs: 20_000,
+  // Ten minutes. Twenty seconds cut people off mid-explanation and three was
+  // still tighter than a long page read aloud; the cap is only here so a
+  // forgotten microphone still closes the turn on its own, and the silence
+  // timeout is what normally ends a turn.
+  maxTurnMs: 600_000,
   frameMs: 20,
 };
 

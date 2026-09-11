@@ -31,7 +31,7 @@ frontend/      Vite/React app, UI components, assets, and npm lockfile
 infra/         Docker Compose, secrets templates, and deployment config
 scripts/       Cross-platform development, health-check, and stop scripts
 docs/          Product, API, design, security, and runbook documentation
-graphify-out/  Generated architecture reports (regenerated when needed)
+graft/         Local context graph: linked markdown nodes (git-ignored; run `graft build`)
 ```
 
 Use `scripts/` for developer commands, including the Windows `start-dev.bat`

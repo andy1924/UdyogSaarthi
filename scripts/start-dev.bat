@@ -12,7 +12,9 @@ set DOCKER_HOST=npipe:////./pipe/docker_engine
 docker info >nul 2>&1
 if %errorlevel%==0 goto dockerup
 echo Docker daemon not reachable - starting Docker Desktop...
-start "" "C:\Program Files\Docker\Docker\Docker Desktop.exe"
+REM %ProgramFiles% keeps this drive-independent, so a non-default install
+REM location or system drive does not break the launcher.
+start "" "%ProgramFiles%\Docker\Docker\Docker Desktop.exe"
 call :waitdocker
 if %errorlevel% neq 0 (
   echo Docker Desktop did not start in time. Aborting.

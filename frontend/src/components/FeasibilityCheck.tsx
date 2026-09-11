@@ -14,7 +14,6 @@ import DprPreview from './assessment/DprPreview';
 import BrandLogo from './BrandLogo';
 import type { SessionUser } from '../lib/api';
 import { useVoice } from '../lib/voice/VoiceContext';
-import VoiceOrb from './voice/VoiceOrb';
 
 const STEP_TITLES = ['Location', 'Business', 'Demand', 'Credit & subsidy', 'Identity', 'Report'];
 
@@ -31,16 +30,39 @@ export default function FeasibilityCheck({ onBackToLanding, user }: FeasibilityC
   // Ground the voice assistant in whatever step the wizard is showing.
   const { setContext } = useVoice();
   useEffect(() => {
+    const feasibility = assessment.feasibilityResult;
+    // The fast feasibility path returns one SWOT sentence per box and the
+    // enriched DPR returns arrays; normalise both so the snapshot is never
+    // blank and the assistant can quote what is actually on screen.
+    const list = (detailed?: string[], concise?: string) => {
+      if (detailed?.length) return detailed;
+      return concise?.trim() ? [concise] : undefined;
+    };
     setContext({
       step: currentStep,
       stepTitle: STEP_TITLES[currentStep - 1] ?? 'Location',
       locationText: assessment.locationText || undefined,
       enterprise: assessment.selectedEnterprise || undefined,
-      feasibilityVerdict: assessment.feasibilityResult?.verdict,
+      feasibilityVerdict: feasibility?.verdict,
       marginPercent: assessment.marginPercent,
+      radiusMeters: assessment.radius,
+      nearbyUnits: feasibility?.poi_count,
+      competitionScore: feasibility ? Math.round(feasibility.density_score) : undefined,
+      feasibilityScore: feasibility ? Math.max(0, Math.round(100 - feasibility.density_score)) : undefined,
+      district: feasibility?.lgd.district,
+      swot: feasibility ? {
+        strengths: list(feasibility.swot?.strengths, feasibility.swot?.strength),
+        weaknesses: list(feasibility.swot?.weaknesses, feasibility.swot?.weakness),
+        opportunities: list(feasibility.swot?.opportunities, feasibility.swot?.opportunity),
+        threats: list(feasibility.swot?.threats, feasibility.swot?.threat),
+      } : undefined,
+      opportunities: feasibility?.opportunities,
+      identityVerified: assessment.digiLockerVerified,
+      reportReady: Boolean(assessment.dprId),
     });
   }, [currentStep, assessment.locationText, assessment.selectedEnterprise,
-      assessment.feasibilityResult, assessment.marginPercent, setContext]);
+      assessment.feasibilityResult, assessment.marginPercent, assessment.radius,
+      assessment.digiLockerVerified, assessment.dprId, setContext]);
 
   // Lock page scroll while the loading overlay is open so the page behind it
   // cannot be scrolled with the wheel, touch, or keyboard.
@@ -162,8 +184,6 @@ export default function FeasibilityCheck({ onBackToLanding, user }: FeasibilityC
           </div>
         </div>
       </footer>
-
-      <VoiceOrb />
     </div>
   );
 }

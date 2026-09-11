@@ -9,10 +9,27 @@ import ReviewPage from './pages/ReviewPage';
 import AuditPage from './pages/AuditPage';
 import AccountPage from './pages/AccountPage';
 import { api, AUTH_REQUIRED_EVENT, type SessionUser } from './lib/api';
-import { navigateTo, parseHash, type ShellRoute } from './lib/routes';
+import { navigateTo, parseHash, type ShellRoute, type ShellRouteName } from './lib/routes';
 import { clearLegacyIdentityFiles } from './lib/identity-documents';
+import { useVoice } from './lib/voice/VoiceContext';
+
+/**
+ * What each page is, in the words the assistant should use. The wizard sets its
+ * own step context from the assessment; every other route only needs to say
+ * where the user is, so a question like "what is this page?" has an answer.
+ */
+const PAGE_TITLES: Record<ShellRouteName, string> = {
+  overview: 'Overview - the UdyogSaarthi home page, with the way in to a new business plan',
+  apply: 'Apply - the business plan wizard',
+  applications: 'My applications - the saved project reports for this applicant',
+  'application-detail': 'Application detail - one saved project report',
+  review: 'Review - the officer queue for submitted applications',
+  audit: 'Audit - the audit console of decisions already taken',
+  account: 'Account - the signed-in user profile',
+};
 
 function App() {
+  const { setContext } = useVoice();
   const [route, setRoute] = useState<ShellRoute>(() =>
     typeof window === 'undefined' ? { name: 'overview' } : parseHash(window.location.hash),
   );
@@ -52,6 +69,12 @@ function App() {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, [route]);
+
+  // The wizard keeps its own step snapshot, so it is left alone here.
+  useEffect(() => {
+    if (route.name === 'apply') return;
+    setContext({ step: 0, stepTitle: 'Not in the wizard', page: PAGE_TITLES[route.name] });
+  }, [route.name, setContext]);
 
   // Reveal the page scrollbar only while the pointer is near the right edge.
   useEffect(() => {

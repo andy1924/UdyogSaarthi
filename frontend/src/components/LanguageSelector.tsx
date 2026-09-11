@@ -8,11 +8,15 @@ interface LanguageSelectorProps {
   className?: string;
 }
 
+/** A fast language switch should not flash a spinner on its way out. */
+const SPINNER_DELAY_MS = 400;
+
 /** Custom fluid language picker — replaces the OS-native select dropdown. */
 export default function LanguageSelector({ variant = 'landing', className = '' }: LanguageSelectorProps) {
   const { lang, setLang, languages, status, retry } = useLanguage();
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [showSpinner, setShowSpinner] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
   const labelFor = (code: string) => BHASHINI_LANGUAGES.find((item) => item.code === code)?.nativeLabel ?? code;
@@ -58,6 +62,14 @@ export default function LanguageSelector({ variant = 'landing', className = '' }
     rootRef.current?.querySelector(`#${optionId(languages[activeIndex])}`)?.scrollIntoView({ block: 'nearest' });
   }, [open, activeIndex, languages]);
 
+  // Only admit to loading once it is actually slow, so a service that answers
+  // in milliseconds never flickers the icon in and out.
+  useEffect(() => {
+    if (status !== 'loading') { setShowSpinner(false); return; }
+    const timer = window.setTimeout(() => setShowSpinner(true), SPINNER_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [status]);
+
   return (
     <div className="language-control" ref={rootRef}>
       <div className="language-dropdown">
@@ -99,7 +111,7 @@ export default function LanguageSelector({ variant = 'landing', className = '' }
         )}
       </div>
       <span role="status" className="language-status">
-        {status === 'loading' && <LoaderCircle size={15} className="animate-spin text-secondary" aria-label="Loading languages" />}
+        {showSpinner && <LoaderCircle size={15} className="animate-spin text-secondary" aria-label="Loading languages" />}
         {(status === 'error' || status === 'unavailable') && <button type="button" onClick={retry} className="sr-only" aria-label="Language service unavailable. Retry">Language service unavailable. Retry</button>}
       </span>
     </div>

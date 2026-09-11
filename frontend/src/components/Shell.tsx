@@ -16,6 +16,7 @@ import BrandLogo from './BrandLogo';
 import LanguageSelector from './LanguageSelector';
 import ReadAloudButton from './ReadAloudButton';
 import MicButton from './voice/MicButton';
+import VoiceOrb from './voice/VoiceOrb';
 
 interface NavItem {
   name: ShellRouteName;
@@ -184,6 +185,11 @@ export default function Shell({ active, user, onSignIn, onLogout, children }: Sh
           })}
         </ol>
       </nav>}
+
+      {/* One assistant for the whole app: the navbar mic, the read-aloud button
+          and the orb all drive the same voice layer, so the orb lives here
+          rather than inside the page that happened to need it first. */}
+      <VoiceOrb />
     </div>
   );
 }

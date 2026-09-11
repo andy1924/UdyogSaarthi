@@ -16,62 +16,74 @@ The suite uses an in-memory Redis fake for deterministic nonce, rate-limit, and 
 
 ## Run From VS Code Terminal
 
-Open the integrated terminal at the repository root:
+Open the integrated terminal at the repository root (the directory that
+contains `backend/` and `frontend/`):
 
-```powershell
-cd C:\Users\Sarvesh\Desktop\udyog_sarthi_sih\UdyogSaarthi
+```sh
+cd /path/to/UdyogSaarthi   # omit this if you are already at the repo root
 ```
 
 Create or activate the backend environment and install dependencies:
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
-python -m pip install -r backend\requirements.txt
+python -m pip install -r backend/requirements.txt
 ```
+
+On macOS or Linux the activation step is `source .venv/bin/activate` instead;
+every other command on this page is identical.
 
 Run only the cybersecurity overlay suite from the repository root:
 
 ```powershell
-python -m pytest backend\tests\test_security_overlay.py -v -s
+python -m pytest backend/tests/test_security_overlay.py -v -s
 ```
 
 Run only Layer 1 checks from the repository root:
 
 ```powershell
-python -m pytest backend\tests\test_security_overlay.py -k "test_layer1" -v -s
+python -m pytest backend/tests/test_security_overlay.py -k "test_layer1" -v -s
 ```
 
 Run only Layer 2 checks:
 
 ```powershell
-python -m pytest backend\tests\test_security_overlay.py -k "test_layer2" -v -s
+python -m pytest backend/tests/test_security_overlay.py -k "test_layer2" -v -s
 ```
 
 Run only Layer 3 checks:
 
 ```powershell
-python -m pytest backend\tests\test_security_overlay.py -k "test_layer3" -v -s
+python -m pytest backend/tests/test_security_overlay.py -k "test_layer3" -v -s
 ```
 
 Run only Layer 4 checks:
 
 ```powershell
-python -m pytest backend\tests\test_security_overlay.py -k "test_layer4" -v -s
+python -m pytest backend/tests/test_security_overlay.py -k "test_layer4" -v -s
 ```
 
 Run it from the backend directory instead:
 
 ```powershell
 cd backend
-python -m pytest tests\test_security_overlay.py -v -s
+python -m pytest tests/test_security_overlay.py -v -s
 ```
 
-From `frontend/` or any unrelated directory, a relative path such as `tests\test_security_overlay.py` points to that current directory and will fail. Use the absolute path instead:
+From `frontend/` or any unrelated directory, a relative path such as
+`tests/test_security_overlay.py` points to that current directory and will fail.
 
-The test file resolves `backend/` from its own absolute location before importing `app.*`, so both commands use the same import path. From any other directory, invoke pytest with the absolute test path:
+The test file resolves `backend/` from its own absolute location before
+importing `app.*`, so both commands use the same import path. From any other
+directory, invoke pytest with the absolute path to the test file in your
+checkout:
 
-```powershell
-python -m pytest C:\Users\Sarvesh\Desktop\udyog_sarthi_sih\UdyogSaarthi\backend\tests\test_security_overlay.py -v -s
+```sh
+# from the repository root
+python -m pytest backend/tests/test_security_overlay.py -v -s
+
+# or from anywhere, with the absolute path to this checkout
+python -m pytest /path/to/UdyogSaarthi/backend/tests/test_security_overlay.py -v -s
 ```
 
 Run lint and compilation checks:

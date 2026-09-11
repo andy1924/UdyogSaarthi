@@ -444,15 +444,22 @@ export function useAssessment() {
     setLoadingState('Checking local demand around your selected area…');
     setUiError(null);
     try {
-      const res = await api.getFeasibilityScore({
+      const [res, directory] = await Promise.all([
+        api.getFeasibilityScore({
         location_text: locationText,
         business_category: enterprise.apiCategory,
         lat: userCoords.lat,
         lon: userCoords.lon,
         radius_m: radius,
         // population omitted — backend derives from LGD data
-      });
+        }),
+        api.getNearbyDirectory(userCoords.lat, userCoords.lon, radius, enterprise.apiCategory)
+          .catch(() => null),
+      ]);
       setFeasibilityResult(res);
+      if (directory) {
+        setNearbyProfiles((directory.profiles || []).filter((profile) => profile.distance_m <= radius));
+      }
       setHighestStepReached((value) => Math.max(value, 3));
       transitionToStep(3);
     } catch (err) {
@@ -496,7 +503,20 @@ export function useAssessment() {
       finally { setLoadingState(null); }
       return;
     }
-    setLoadingState('Preparing your project report…');
+    if (dprStatus === 'error' && dprId) {
+      setLoadingState('Retrying PDF conversion…');
+      setUiError(null);
+      try {
+        await downloadPdf(dprId);
+        setDprStatus('ready');
+      } catch {
+        setUiError('PDF conversion is still unavailable. Your complete report remains saved on this screen; try the export again shortly.');
+      } finally {
+        setLoadingState(null);
+      }
+      return;
+    }
+    setLoadingState('Converting your reviewed plan to PDF…');
     setDprStatus('queued');
     setUiError(null);
 
@@ -508,21 +528,22 @@ export function useAssessment() {
           scheme: schemeResult,
         });
       setDprId(res.dpr_id);
-      if (res.status === 'pdf_failed') throw new Error('PDF worker rejected the report');
       let ready = false;
-      for (let attempt = 0; attempt < 20; attempt += 1) {
+      if (res.status === 'queued') for (let attempt = 0; attempt < 10; attempt += 1) {
         const record = await api.getDpr(res.dpr_id);
         if (['ready', 'generated', 'verified'].includes(record.status)) { ready = true; break; }
-        if (record.status === 'pdf_failed') throw new Error('PDF generation failed');
-        await new Promise((resolve) => window.setTimeout(resolve, 1500));
+        if (record.status === 'pdf_failed') break;
+        await new Promise((resolve) => window.setTimeout(resolve, 1000));
       }
-      if (!ready) throw new Error('PDF generation timed out');
+      // The download endpoint has an on-demand renderer. It is the resilient
+      // fallback when the queue is unavailable or slower than the short poll.
+      if (!ready) setLoadingState('Finishing your PDF securely…');
       setDprStatus('ready');
       await downloadPdf(res.dpr_id);
     } catch (err) {
       console.warn('DPR render/download notice:', err);
       setDprStatus('error');
-      setUiError('We could not generate the report. Please try again; your assessment is still saved on this screen.');
+      setUiError('We could not convert the report to PDF. Your complete report remains saved on this screen; try the export again.');
     } finally {
       setLoadingState(null);
     }

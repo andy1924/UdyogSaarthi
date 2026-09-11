@@ -10,6 +10,7 @@ import ReportStep from './assessment/ReportStep';
 import { useAssessment } from './assessment/useAssessment';
 import LanguageSelector from './LanguageSelector';
 import BotanicalAccent from './BotanicalAccent';
+import DprPreview from './assessment/DprPreview';
 
 interface FeasibilityCheckProps { onBackToLanding: () => void; }
 
@@ -81,7 +82,9 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
             )}
 
             {/* Step panels — goToStep scroll-locks to this anchor */}
-            <div ref={stepContentRef} tabIndex={-1} aria-label={`Assessment step ${currentStep}`} className="scroll-mt-24">
+            <div ref={stepContentRef} tabIndex={-1} aria-label={`Assessment step ${currentStep}`} className={`scroll-mt-24 ${currentStep >= 3 && currentStep <= 5 ? 'grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_340px]' : ''}`}>
+
+              <div className="min-w-0">
 
               {/* ==================== STEP 1: GEOLOCATION & RADIUS ==================== */}
               {currentStep === 1 && <LocationStep {...assessment} />}
@@ -100,6 +103,13 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
 
               {/* ==================== STEP 6: BANK-READY DPR & DOWNLOAD DOSSIER ==================== */}
               {currentStep === 6 && <ReportStep {...assessment} />}
+              </div>
+
+              {currentStep >= 3 && currentStep <= 5 && (
+                <div className={currentStep === 3 ? 'hidden lg:block' : ''}>
+                  <DprPreview {...assessment} compact />
+                </div>
+              )}
             </div>
 
           </div>

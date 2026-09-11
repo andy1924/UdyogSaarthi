@@ -83,6 +83,12 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/udyogsaarthi
       REDIS_URL: redis://redis:6379/0
+      # The API publishes PDF jobs; localhost would point back into the API
+      # container and make every DPR dispatch fail.
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
+      XDG_CACHE_HOME: /tmp/.cache
+      PYTHONPATH: /app
       APP_ENV: production
       # Pool tuning — tune for your workload.
       DB_POOL_SIZE: "10"
@@ -141,6 +147,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
+      XDG_CACHE_HOME: /tmp/.cache
+      # Celery prefork children must retain the top-level db package path.
+      PYTHONPATH: /app
       APP_ENV: production
       DB_POOL_SIZE: "4"
       DB_MAX_OVERFLOW: "8"
@@ -154,13 +163,14 @@ services:
         SECRET_KEY=$$(cat /run/secrets/app_secret_key)
         export SECRET_KEY
         echo '[worker] Starting Celery worker...'
-        exec celery -A app.worker.celery_app worker \
-          -Q pdf,ai,default \
-          -c 4 \
-          --loglevel=info \
-          --without-heartbeat \
-          --without-gossip
+        exec celery -A app.worker.celery_app worker -Q pdf,ai,default -c 4 --loglevel=info --without-heartbeat --without-gossip
       "
+    healthcheck:
+      test: ["CMD-SHELL", "export SECRET_KEY=$$(cat /run/secrets/app_secret_key) && celery -A app.worker.celery_app inspect ping --timeout 5 | grep -q pong"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     deploy:
       resources:
         limits:
@@ -189,4 +199,3 @@ volumes:
   redis_data:
   dpr_output:
   chromadb_store:
-

@@ -6,6 +6,7 @@ import CookiePolicy from './legal/CookiePolicy';
 import CookieNotice from './legal/CookieNotice';
 import { useLanguage } from '../lib/LanguageContext';
 import BotanicalAccent from './BotanicalAccent';
+import BrandLogo from './BrandLogo';
 
 type LegalDoc = 'privacy' | 'terms' | 'cookies';
 
@@ -42,9 +43,7 @@ export default function Footer() {
         <BotanicalAccent side="left" className="bottom-8 rotate-6 opacity-20" />
         <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:gap-10">
           <div className="flex-1">
-            <h3 className="font-crimson text-[19px] sm:text-[24px] lg:text-[29px] leading-[0.9] tracking-[-0.03em] text-black">
-              {t('footerBrand')}
-            </h3>
+            <BrandLogo />
             <p className="font-crimson text-[14px] sm:text-[16px] lg:text-[20px] leading-[0.9] tracking-[-0.03em] text-black/75 mt-3">
               {t('footerSubtitle')}
             </p>

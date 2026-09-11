@@ -4,10 +4,13 @@ import type { AssessmentState } from './useAssessment';
 
 type PreviewData = Pick<AssessmentState,
   'applicantName' | 'enterprise' | 'locationText' | 'feasibilityResult' |
-  'schemeResult' | 'panDocument' | 'aadhaarDocument'
+  'schemeResult' | 'fundingPreference' | 'digiLockerStatus'
 >;
 
-interface Props extends PreviewData { compact?: boolean; }
+interface Props extends PreviewData {
+  compact?: boolean;
+  showSwot?: boolean;
+}
 
 const rupees = new Intl.NumberFormat('en-IN', {
   style: 'currency',
@@ -21,23 +24,28 @@ const verdictCopy = {
   saturated: 'High competition',
 } as const;
 
+const fundingPreferenceCopy = {
+  scheme_linked_loan: 'Scheme-linked bank loan',
+  standard_bank_loan: 'Standard bank loan',
+  need_guidance: 'Funding guidance requested',
+} as const;
+
 export default function DprPreview({
   applicantName, enterprise, locationText, feasibilityResult, schemeResult,
-  panDocument, aadhaarDocument, compact = false,
+  fundingPreference, digiLockerStatus, compact = false, showSwot = false,
 }: Props) {
   const completed = [
     Boolean(locationText),
     Boolean(feasibilityResult),
-    Boolean(schemeResult),
+    Boolean(schemeResult && fundingPreference),
     Boolean(applicantName.trim()),
-    panDocument?.status === 'valid' && aadhaarDocument?.status === 'valid',
   ].filter(Boolean).length;
   const score = feasibilityResult ? Math.max(0, Math.round(100 - feasibilityResult.density_score)) : null;
   const swot = feasibilityResult ? [
-    ['Strength', feasibilityResult.swot.strength],
-    ['Watch out', feasibilityResult.swot.weakness],
-    ['Opportunity', feasibilityResult.swot.opportunity],
-    ['Risk', feasibilityResult.swot.threat],
+    ['S', 'Strengths', feasibilityResult.swot.strength],
+    ['W', 'Weaknesses', feasibilityResult.swot.weakness],
+    ['O', 'Opportunities', feasibilityResult.swot.opportunity],
+    ['T', 'Threats', feasibilityResult.swot.threat],
   ] : [];
 
   return (
@@ -64,10 +72,10 @@ export default function DprPreview({
         <section aria-label="Report readiness">
           <div className="flex items-center justify-between text-sm">
             <span className="font-semibold text-primary"><Text>Report readiness</Text></span>
-            <span className="font-mono text-on-surface-variant">{completed}/5</span>
+            <span className="font-mono text-on-surface-variant">{completed}/4</span>
           </div>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-high" role="progressbar" aria-valuemin={0} aria-valuemax={5} aria-valuenow={completed}>
-            <div className="h-full rounded-full bg-secondary transition-[width]" style={{ width: `${completed * 20}%` }} />
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-surface-container-high" role="progressbar" aria-valuemin={0} aria-valuemax={4} aria-valuenow={completed}>
+            <div className="h-full rounded-full bg-secondary transition-[width]" style={{ width: `${completed * 25}%` }} />
           </div>
         </section>
 
@@ -90,27 +98,27 @@ export default function DprPreview({
           </div>}
         </div>
 
-        {feasibilityResult ? (
+        {showSwot && feasibilityResult ? (
           <section aria-labelledby={compact ? 'preview-swot-title' : 'report-swot-title'}>
             <div className="flex items-center justify-between gap-3">
               <h3 id={compact ? 'preview-swot-title' : 'report-swot-title'} className="font-bold text-primary"><Text>Local SWOT analysis</Text></h3>
               <span className="rounded-full bg-secondary-container px-2.5 py-1 text-xs font-semibold text-on-secondary-container">{feasibilityResult.poi_count} <Text>nearby</Text></span>
             </div>
             <div className={`mt-3 grid gap-2 ${compact ? '' : 'sm:grid-cols-2'}`}>
-              {swot.map(([label, value]) => (
-                <div key={label} className="rounded-xl border border-outline-variant/70 p-3.5">
-                  <p className="text-xs font-bold uppercase tracking-wider text-secondary"><Text>{label}</Text></p>
+              {swot.map(([letter, label, value]) => (
+                <div key={letter} className="rounded-xl border border-outline-variant/70 p-3.5">
+                  <p className="text-xs font-bold uppercase tracking-wider text-secondary"><span aria-hidden="true">{letter} — </span><Text>{label}</Text></p>
                   <p className={`mt-1.5 text-sm leading-6 text-on-surface-variant ${compact ? 'line-clamp-2' : ''}`}>{value}</p>
                 </div>
               ))}
             </div>
           </section>
-        ) : (
+        ) : showSwot ? (
           <div className="rounded-2xl border border-dashed border-outline-variant p-5 text-center">
             <Building2 size={22} className="mx-auto text-secondary" aria-hidden="true" />
             <p className="mt-2 text-sm leading-6 text-on-surface-variant"><Text>Your local demand and SWOT analysis will appear here after the business check.</Text></p>
           </div>
-        )}
+        ) : null}
 
         {!compact && schemeResult && (
           <section aria-labelledby="report-funding-title">
@@ -123,16 +131,18 @@ export default function DprPreview({
               ].map(([label, value]) => <div key={label} className="rounded-xl border border-outline-variant/70 p-4"><dt className="text-xs text-on-surface-variant"><Text>{label}</Text></dt><dd className="mt-1 break-words font-mono font-semibold text-primary">{value}</dd></div>)}
             </dl>
             <p className="mt-3 text-xs text-on-surface-variant">Scheme rules {schemeResult.rules.version} · <Text>Advisory estimate, not a loan approval.</Text></p>
+            {fundingPreference && <p className="mt-2 text-sm font-semibold text-primary"><Text>Funding preference</Text>: {fundingPreferenceCopy[fundingPreference]}</p>}
           </section>
         )}
 
         {!compact && (
           <div className="flex flex-wrap gap-2 text-xs font-semibold text-on-surface-variant">
-            {[['Location', Boolean(locationText)], ['Demand', Boolean(feasibilityResult)], ['Funding', Boolean(schemeResult)], ['Applicant', Boolean(applicantName.trim())], ['Documents', panDocument?.status === 'valid' && aadhaarDocument?.status === 'valid']].map(([label, done]) => (
+            {[['Location', Boolean(locationText)], ['Demand', Boolean(feasibilityResult)], ['Funding', Boolean(schemeResult && fundingPreference)], ['Applicant', Boolean(applicantName.trim())]].map(([label, done]) => (
               <span key={String(label)} className={`inline-flex items-center gap-1.5 rounded-full px-3 py-2 ${done ? 'bg-secondary-container text-on-secondary-container' : 'bg-surface-container'}`}>
                 {done && <Check size={13} aria-hidden="true" />}<Text>{String(label)}</Text>
               </span>
             ))}
+            {digiLockerStatus === 'success' && <span className="inline-flex items-center gap-1.5 rounded-full bg-secondary-container px-3 py-2 text-on-secondary-container"><Check size={13} aria-hidden="true" /><Text>DigiLocker Sandbox connected</Text></span>}
           </div>
         )}
       </div>

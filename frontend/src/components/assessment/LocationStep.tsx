@@ -70,12 +70,12 @@ export default function LocationStep({ stepAnimClass, radius, setRadius, userCoo
               </div>
               <button
                 type="submit"
-                disabled={isSearchingLocation || geoStatus === 'detecting'}
+                disabled={isSearchingLocation}
                 className="px-4 py-2 rounded-lg bg-secondary text-surface font-label-ui text-xs font-semibold hover:bg-secondary/90 transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
                 title="Search the typed place — or leave blank to use device GPS"
               >
                 <Navigation size={13} />
-                <span><Text>{isSearchingLocation || geoStatus === 'detecting' ? 'Finding…' : 'Find location'}</Text></span>
+                <span><Text>{isSearchingLocation ? 'Finding…' : 'Find location'}</Text></span>
               </button>
             </div>
           </form>

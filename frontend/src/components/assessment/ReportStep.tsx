@@ -7,19 +7,19 @@ import DprPreview from './DprPreview';
 type Props = Pick<AssessmentState,
   'stepAnimClass' | 'downloadSuccess' | 'dprId' | 'dprStatus' | 'applicantName' |
   'enterprise' | 'locationText' | 'feasibilityResult' | 'schemeResult' |
-  'panDocument' | 'aadhaarDocument' | 'highestStepReached' | 'reviewConfirmed' |
+  'fundingPreference' | 'digiLockerStatus' | 'highestStepReached' | 'reviewConfirmed' |
   'setReviewConfirmed' | 'handleDprDownload' | 'handleShareWhatsApp' | 'goToStep'
 >;
 
 export default function ReportStep({
   stepAnimClass, downloadSuccess, dprId, dprStatus, applicantName, enterprise,
-  locationText, feasibilityResult, schemeResult, panDocument, aadhaarDocument,
+  locationText, feasibilityResult, schemeResult, fundingPreference, digiLockerStatus,
   highestStepReached, reviewConfirmed, setReviewConfirmed,
   handleDprDownload, handleShareWhatsApp, goToStep,
 }: Props) {
-  const canGenerate = canGenerateDpr({ userCoords: { lat: feasibilityResult?.lgd.lat ?? 0, lon: feasibilityResult?.lgd.lon ?? 0 }, locationText, selectedEnterprise: enterprise.id, feasibilityResult, schemeResult, applicantName, panDocument, aadhaarDocument }, highestStepReached, true);
+  const canGenerate = canGenerateDpr({ userCoords: { lat: feasibilityResult?.lgd.lat ?? 0, lon: feasibilityResult?.lgd.lon ?? 0 }, locationText, selectedEnterprise: enterprise.id, feasibilityResult, schemeResult, applicantName, fundingPreference }, highestStepReached, true);
   const ready = dprStatus === 'ready';
-  const statusLabel = dprStatus === 'queued' ? 'Generating report' : dprStatus === 'ready' ? 'Report ready' : dprStatus === 'error' ? 'Generation failed' : 'Ready to generate';
+  const statusLabel = dprStatus === 'queued' ? 'Converting PDF' : dprStatus === 'ready' ? 'PDF ready' : dprStatus === 'error' ? 'PDF export failed' : 'Ready to export';
   return (
     <section className={`mx-auto max-w-5xl space-y-7 ${stepAnimClass}`} aria-labelledby="report-title">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -34,7 +34,7 @@ export default function ReportStep({
         </span>
       </div>
 
-      <DprPreview applicantName={applicantName} enterprise={enterprise} locationText={locationText} feasibilityResult={feasibilityResult} schemeResult={schemeResult} panDocument={panDocument} aadhaarDocument={aadhaarDocument} />
+      <DprPreview applicantName={applicantName} enterprise={enterprise} locationText={locationText} feasibilityResult={feasibilityResult} schemeResult={schemeResult} fundingPreference={fundingPreference} digiLockerStatus={digiLockerStatus} />
 
       {!canGenerate && <p role="status" className="rounded-xl border border-outline-variant bg-surface-container-low p-4 text-sm leading-6 text-on-surface-variant"><Text>Complete applicant details, local demand, and funding before generating the report.</Text></p>}
       {dprId && <p className="break-all rounded-xl bg-surface-container p-4 font-mono text-sm text-on-surface-variant">Reference: {dprId}</p>}
@@ -43,7 +43,7 @@ export default function ReportStep({
         <h3 id="confirm-title" className="text-xl font-bold text-primary"><Text>Confirm and export</Text></h3>
         <label className="mt-4 flex cursor-pointer items-start gap-3 rounded-xl bg-surface-container-lowest p-4 text-sm leading-6 text-on-surface">
           <input type="checkbox" checked={reviewConfirmed} onChange={(event) => setReviewConfirmed(event.target.checked)} className="mt-1 h-5 w-5 shrink-0 accent-primary" />
-          <span><Text>I have reviewed the applicant, location, business, demand, funding, and document details above.</Text></span>
+          <span><Text>I have reviewed the applicant, location, business, demand, funding, and verification details above.</Text></span>
         </label>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <button type="button" onClick={handleDprDownload} disabled={!reviewConfirmed || dprStatus === 'queued'} className="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 font-semibold text-on-primary shadow-sm transition hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-45">

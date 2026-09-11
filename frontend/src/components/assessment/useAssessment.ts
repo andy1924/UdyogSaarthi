@@ -3,6 +3,7 @@ import {
   api,
   isAuthenticationError,
   type FeasibilityResult,
+  type FundingPreference,
   type LicenseItem,
   type NearbyProfile,
   type SchemeCalculationResult,
@@ -10,15 +11,6 @@ import {
 import { useLanguage } from '../../lib/LanguageContext';
 import { digiLockerAdapter } from '../../lib/digilocker';
 import { canGenerateDpr, clampRestoredStep, getAdvanceError } from '../../lib/assessment-workflow';
-import {
-  loadIdentityFile,
-  removeIdentityFile,
-  storeIdentityFile,
-  toDocumentState,
-  validateIdentityFile,
-  type IdentityDocumentKind,
-  type IdentityDocumentState,
-} from '../../lib/identity-documents';
 import { ENTERPRISE_OPTIONS } from './enterprise-catalog';
 
 const DRAFT_KEY = 'udyogsaarthi-assessment-draft-v1';
@@ -39,10 +31,10 @@ interface AssessmentDraft {
   nearbyProfiles: NearbyProfile[];
   licenses: LicenseItem[];
   applicantName: string;
-  panDocument: IdentityDocumentState | null;
-  aadhaarDocument: IdentityDocumentState | null;
+  fundingPreference: FundingPreference | '';
   digiLockerStatus: 'idle' | 'success' | 'error';
   digiLockerReference: string | null;
+  digiLockerVerified: boolean;
   reviewConfirmed: boolean;
   dprId: string | null;
   dprStatus: 'idle' | 'ready' | 'error';
@@ -62,8 +54,7 @@ function sanitizeHighestStep(draft: Partial<AssessmentDraft>): number {
     feasibilityResult: draft.feasibilityResult ?? null,
     schemeResult: draft.schemeResult ?? null,
     applicantName: draft.applicantName ?? '',
-    panDocument: draft.panDocument ?? null,
-    aadhaarDocument: draft.aadhaarDocument ?? null,
+    fundingPreference: draft.fundingPreference ?? '',
   };
   for (let target = 2; target <= highest; target += 1) {
     if (getAdvanceError(target, state)) { highest = target - 1; break; }
@@ -109,10 +100,10 @@ export function useAssessment() {
   const [dprId, setDprId] = useState<string | null>(initialDraft.dprId ?? null);
   const [dprStatus, setDprStatus] = useState<'idle' | 'queued' | 'ready' | 'error'>(initialDraft.dprStatus ?? 'idle');
   const [applicantName, setApplicantNameState] = useState(initialDraft.applicantName ?? '');
-  const [panDocument, setPanDocument] = useState<IdentityDocumentState | null>(initialDraft.panDocument ?? null);
-  const [aadhaarDocument, setAadhaarDocument] = useState<IdentityDocumentState | null>(initialDraft.aadhaarDocument ?? null);
+  const [fundingPreference, setFundingPreferenceState] = useState<FundingPreference | ''>(initialDraft.fundingPreference ?? '');
   const [digiLockerStatus, setDigiLockerStatus] = useState<'idle' | 'connecting' | 'success' | 'error'>(initialDraft.digiLockerStatus ?? 'idle');
   const [digiLockerReference, setDigiLockerReference] = useState<string | null>(initialDraft.digiLockerReference ?? null);
+  const [digiLockerVerified, setDigiLockerVerified] = useState(initialDraft.digiLockerVerified ?? false);
   const [reviewConfirmed, setReviewConfirmed] = useState(initialHighest >= 6 && Boolean(initialDraft.reviewConfirmed));
 
   const enterprise = ENTERPRISE_OPTIONS.find((e) => e.id === selectedEnterprise) || ENTERPRISE_OPTIONS[0];
@@ -154,22 +145,9 @@ export function useAssessment() {
     setApplicantNameState(value);
     invalidateFrom(5);
   };
-
-  const handleIdentityDocument = async (kind: IdentityDocumentKind, file: File) => {
-    const error = validateIdentityFile(file);
-    const update = kind === 'pan' ? setPanDocument : setAadhaarDocument;
-    invalidateFrom(5);
-    if (error) {
-      try { await removeIdentityFile(kind); } catch { /* The invalid state still prevents progression. */ }
-      update({ fileName: file.name, fileSize: file.size, fileType: file.type, status: 'invalid', error });
-      return;
-    }
-    try {
-      await storeIdentityFile(kind, file);
-      update(toDocumentState(file));
-    } catch {
-      update({ fileName: file.name, fileSize: file.size, fileType: file.type, status: 'invalid', error: 'This file could not be saved in your browser. Try again.' });
-    }
+  const setFundingPreference = (value: FundingPreference | '') => {
+    setFundingPreferenceState(value);
+    invalidateFrom(4);
   };
 
   const connectDigiLocker = async () => {
@@ -177,9 +155,11 @@ export function useAssessment() {
     try {
       const result = await digiLockerAdapter.connect();
       setDigiLockerReference(result.reference);
+      setDigiLockerVerified(result.verified);
       setDigiLockerStatus('success');
     } catch {
       setDigiLockerReference(null);
+      setDigiLockerVerified(false);
       setDigiLockerStatus('error');
     }
   };
@@ -198,43 +178,16 @@ export function useAssessment() {
       userCoords, locationText, geoResolved,
       geoStatus: geoStatus === 'detecting' ? 'idle' : geoStatus,
       searchLocationQuery, feasibilityResult, schemeResult, nearbyProfiles, licenses,
-      applicantName, panDocument, aadhaarDocument,
+      applicantName, fundingPreference,
       digiLockerStatus: digiLockerStatus === 'connecting' ? 'idle' : digiLockerStatus,
       digiLockerReference,
+      digiLockerVerified,
       reviewConfirmed,
       dprId,
       dprStatus: dprStatus === 'queued' ? 'idle' : dprStatus,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch { /* Continue without draft persistence. */ }
-  }, [currentStep, highestStepReached, radius, selectedEnterprise, marginPercent, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, feasibilityResult, schemeResult, nearbyProfiles, licenses, applicantName, panDocument, aadhaarDocument, digiLockerStatus, digiLockerReference, reviewConfirmed, dprId, dprStatus]);
-
-  useEffect(() => {
-    let active = true;
-    async function restoreDocument(kind: IdentityDocumentKind) {
-      const existing = kind === 'pan' ? panDocument : aadhaarDocument;
-      if (!existing) return;
-      const update = kind === 'pan' ? setPanDocument : setAadhaarDocument;
-      try {
-        const file = await loadIdentityFile(kind);
-        if (!active) return;
-        const error = file ? validateIdentityFile(file) : 'Select this document again to continue.';
-        update(error ? { ...existing, status: 'invalid', error } : toDocumentState(file as File));
-        if (error) {
-          setHighestStepReached((value) => Math.min(value, 5));
-          setCurrentStep((value) => Math.min(value, 5));
-        }
-      } catch {
-        if (active) {
-          update({ ...existing, status: 'invalid', error: 'Select this document again to continue.' });
-          setHighestStepReached((value) => Math.min(value, 5));
-          setCurrentStep((value) => Math.min(value, 5));
-        }
-      }
-    }
-    void restoreDocument('pan');
-    void restoreDocument('aadhaar');
-    return () => { active = false; };
-  }, []);
+  }, [currentStep, highestStepReached, radius, selectedEnterprise, marginPercent, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, feasibilityResult, schemeResult, nearbyProfiles, licenses, applicantName, fundingPreference, digiLockerStatus, digiLockerReference, digiLockerVerified, reviewConfirmed, dprId, dprStatus]);
 
   // Mirror of geoStatus for async GPS callbacks (avoids stale closures).
   const geoStatusRef = useRef(geoStatus);
@@ -476,7 +429,7 @@ export function useAssessment() {
 
   // 6. Handle DPR PDF Generation & Download
   const handleDprDownload = async () => {
-    const requirements = { userCoords, locationText, selectedEnterprise, feasibilityResult, schemeResult, applicantName, panDocument, aadhaarDocument };
+    const requirements = { userCoords, locationText, selectedEnterprise, feasibilityResult, schemeResult, applicantName, fundingPreference };
     if (!feasibilityResult || !schemeResult || !canGenerateDpr(requirements, highestStepReached, reviewConfirmed)) {
       setDprStatus('error');
       setUiError('Review every step and confirm that the information is correct before generating your report.');
@@ -526,6 +479,8 @@ export function useAssessment() {
           business_name: `${enterprise.name} Unit`,
           feasibility: feasibilityResult,
           scheme: schemeResult,
+          funding_preference: fundingPreference as FundingPreference,
+          verified: digiLockerVerified ? 'aa-verified' : 'self-reported',
         });
       setDprId(res.dpr_id);
       let ready = false;
@@ -583,7 +538,7 @@ export function useAssessment() {
   };
 
   const advanceToStep = (stepNum: number) => {
-    const error = getAdvanceError(stepNum, { userCoords, locationText, selectedEnterprise, feasibilityResult, schemeResult, applicantName, panDocument, aadhaarDocument });
+    const error = getAdvanceError(stepNum, { userCoords, locationText, selectedEnterprise, feasibilityResult, schemeResult, applicantName, fundingPreference });
     if (error) { setUiError(error); return false; }
     setUiError(null);
     setHighestStepReached((value) => Math.max(value, stepNum));
@@ -591,7 +546,7 @@ export function useAssessment() {
     return true;
   };
 
-  return { t, currentStep, highestStepReached, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, downloadSuccess, uiError, setUiError, userCoords, setUserCoords, locationText, setLocationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, manualOverrideOpen, setManualOverrideOpen, loadingState, feasibilityResult, schemeResult, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, panDocument, aadhaarDocument, handleIdentityDocument, digiLockerStatus, digiLockerReference, connectDigiLocker, reviewConfirmed, setReviewConfirmed, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep, advanceToStep };
+  return { t, currentStep, highestStepReached, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, fundingPreference, setFundingPreference, downloadSuccess, uiError, setUiError, userCoords, setUserCoords, locationText, setLocationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, manualOverrideOpen, setManualOverrideOpen, loadingState, feasibilityResult, schemeResult, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, digiLockerStatus, digiLockerReference, digiLockerVerified, connectDigiLocker, reviewConfirmed, setReviewConfirmed, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep, advanceToStep };
 }
 
 export type AssessmentState = ReturnType<typeof useAssessment>;

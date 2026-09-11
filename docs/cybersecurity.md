@@ -306,7 +306,7 @@ This document is the single cybersecurity document for the repository. Future se
 
 Layer 1 is the active perimeter overlay providing request integrity, replay protection, Redis token-bucket rate limiting and defensive response headers.
 
-- Mutating requests (`POST`, `PUT`, `PATCH`) require `X-Timestamp`, `X-Nonce` and `X-Signature`.
+- Service-to-service mutating requests (`POST`, `PUT`, `PATCH`) require `X-Timestamp`, `X-Nonce` and `X-Signature`. Browser-facing auth, calculation, translation, feasibility, and DPR-render routes are explicitly allow-listed because a shared HMAC secret cannot be kept in a public JavaScript bundle; those routes retain TLS, rate limits, strict validation, and bearer authentication where applicable.
 - The HMAC-SHA256 message is `METHOD + raw path + timestamp + nonce + body`.
 - Timestamps outside the 120-second window and reused nonces are rejected.
 - Redis policies are 30 requests/minute for public routes, 5 requests/minute for login routes, and 5 requests/minute for job/PDF creation routes.

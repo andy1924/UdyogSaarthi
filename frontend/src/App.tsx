@@ -6,7 +6,8 @@ import OfficialBacking from './components/OfficialBacking';
 import Footer from './components/Footer';
 import FeasibilityCheck from './components/FeasibilityCheck';
 import AccountAccessModal from './components/AccountAccessModal';
-import { api, AUTH_REQUIRED_EVENT } from './lib/api';
+import { api, AUTH_REQUIRED_EVENT, type SessionUser } from './lib/api';
+import { clearLegacyIdentityFiles } from './lib/identity-documents';
 
 type ViewMode = 'landing' | 'feasibility';
 
@@ -24,6 +25,17 @@ function App() {
     if (typeof window === 'undefined' || api.getToken()) return false;
     return ['#feasibility', '#feasibility-check'].includes(window.location.hash.toLowerCase());
   });
+  const [user, setUser] = useState<SessionUser | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void clearLegacyIdentityFiles();
+    if (!api.getToken()) return;
+    api.getCurrentUser()
+      .then((currentUser) => { if (active) setUser(currentUser); })
+      .catch(() => { if (active) setUser(null); });
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -41,7 +53,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const requestSignIn = () => setAccountOpen(true);
+    const requestSignIn = () => { setUser(null); setAccountOpen(true); };
     window.addEventListener(AUTH_REQUIRED_EVENT, requestSignIn);
     return () => window.removeEventListener(AUTH_REQUIRED_EVENT, requestSignIn);
   }, []);
@@ -62,14 +74,36 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const logout = () => {
+    api.logout();
+    setUser(null);
+    setAccountOpen(false);
+    try { sessionStorage.removeItem('udyogsaarthi-assessment-draft-v1'); } catch { /* Optional browser storage. */ }
+    void clearLegacyIdentityFiles();
+    backToLanding();
+  };
+
+  const accountSuccess = async () => {
+    try {
+      const currentUser = await api.getCurrentUser();
+      setUser(currentUser);
+      setAccountOpen(false);
+      setView('feasibility');
+      window.location.hash = 'feasibility-check';
+    } catch {
+      setUser(null);
+      setAccountOpen(true);
+    }
+  };
+
   return (
     <>
       {view === 'feasibility' ? (
-        <FeasibilityCheck onBackToLanding={backToLanding} />
+        <FeasibilityCheck onBackToLanding={backToLanding} onLogout={logout} user={user} />
       ) : (
         <div className="min-h-screen bg-white overflow-x-hidden">
           <a href="#main-content" className="skip-link">Skip to content</a>
-          <Navbar onStart={openFeasibility} />
+          <Navbar onStart={openFeasibility} onSignIn={() => setAccountOpen(true)} onLogout={logout} user={user} />
           <main id="main-content">
             <HeroSection onOpenFeasibility={openFeasibility} />
             <HowItWorks />
@@ -78,7 +112,7 @@ function App() {
           <Footer />
         </div>
       )}
-      <AccountAccessModal open={accountOpen} onClose={() => setAccountOpen(false)} onSuccess={() => { setAccountOpen(false); setView('feasibility'); window.location.hash = 'feasibility-check'; }} />
+      <AccountAccessModal open={accountOpen} onClose={() => setAccountOpen(false)} onSuccess={() => { void accountSuccess(); }} />
     </>
   );
 }

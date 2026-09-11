@@ -2,12 +2,10 @@
  * UdyogSaarthi API Client
  *
  * Implements communication with the FastAPI backend per docs/apiDocs.md:
- * - Layer 1 HMAC request signing for mutating calls (POST/PUT/PATCH)
  * - Auto-authentication for protected endpoints (feasibility score, DPR render)
  * - Scheme calculation, compliance licenses, nearby directory, and health status
  */
 
-const DEV_SECRET_KEY = 'change-me-in-production-udyogsaarthi-secret-key';
 const TOKEN_STORAGE_KEY = 'udyog_access_token';
 export const AUTH_REQUIRED_EVENT = 'udyogsaarthi:auth-required';
 
@@ -120,57 +118,16 @@ export interface ComplianceResult {
   confidence: number;
 }
 
-/**
- * Computes SHA-256 HMAC signature per Layer 1 security overlay.
- */
-async function computeHmacHeaders(
-  method: string,
-  path: string,
-  bodyStr: string,
-  secretKey: string = DEV_SECRET_KEY
-): Promise<Record<string, string>> {
-  const timestamp = String(Date.now() / 1000);
-  const nonce =
-    typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `nonce-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-  if (typeof crypto === 'undefined' || !crypto.subtle) {
-    return {
-      'x-timestamp': timestamp,
-      'x-nonce': nonce,
-    };
-  }
-
-  try {
-    const enc = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw',
-      enc.encode(secretKey),
-      { name: 'HMAC', hash: 'SHA-256' },
-      false,
-      ['sign']
-    );
-
-    const message = `${method.toUpperCase()}${path}${timestamp}${nonce}${bodyStr}`;
-    const sigBuffer = await crypto.subtle.sign('HMAC', key, enc.encode(message));
-    const signature = Array.from(new Uint8Array(sigBuffer))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('');
-
-    return {
-      'x-timestamp': timestamp,
-      'x-nonce': nonce,
-      'x-signature': signature,
-    };
-  } catch (err) {
-    console.warn('HMAC signing failed in client, continuing without signature', err);
-    return {
-      'x-timestamp': timestamp,
-      'x-nonce': nonce,
-    };
-  }
+export interface SessionUser {
+  id: string;
+  email: string;
+  username?: string | null;
+  full_name?: string | null;
+  role: string;
+  is_active: boolean;
 }
+
+export type FundingPreference = 'scheme_linked_loan' | 'standard_bank_loan' | 'need_guidance';
 
 export class ApiService {
   async translationLanguages(): Promise<{ available: boolean; languages: string[] }> {
@@ -182,9 +139,8 @@ export class ApiService {
   async translateTexts(texts: string[], target: string, signal?: AbortSignal): Promise<string[]> {
     const path = '/api/translation/text';
     const body = JSON.stringify({ texts, target });
-    const headers = await computeHmacHeaders('POST', path, body);
     const response = await fetch(path, {
-      method: 'POST', body, signal, headers: { ...headers, 'Content-Type': 'application/json' },
+      method: 'POST', body, signal, headers: { 'Content-Type': 'application/json' },
     });
     if (!response.ok) throw new Error('Translation temporarily unavailable');
     const result = await response.json();
@@ -229,7 +185,21 @@ export class ApiService {
   }
 
   getToken(): string | null {
+    if (this.token) {
+      try {
+        const payload = JSON.parse(atob(this.token.split('.')[1])) as { exp?: number };
+        if (payload.exp && payload.exp * 1000 <= Date.now()) {
+          this.clearToken();
+        }
+      } catch {
+        // Opaque or malformed tokens are verified by /auth/me and protected APIs.
+      }
+    }
     return this.token;
+  }
+
+  logout() {
+    this.clearToken();
   }
 
   /**
@@ -245,16 +215,16 @@ export class ApiService {
    * Return the current access token. Authentication is always user-initiated.
    */
   async ensureAuthenticated(): Promise<string> {
-    if (this.token) return this.token;
+    const token = this.getToken();
+    if (token) return token;
     throw new Error('Sign in is required');
   }
 
   async login(email: string, password: string): Promise<void> {
     const body = new URLSearchParams({ username: email, password }).toString();
-    const headers = await computeHmacHeaders('POST', '/auth/token', body);
     const response = await fetch('/auth/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', ...headers },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,
     });
     if (!response.ok) throw new Error(response.status === 401 ? 'Incorrect email or password' : 'Sign in is unavailable');
@@ -264,10 +234,9 @@ export class ApiService {
 
   async registerApplicant(input: { email: string; password: string; fullName: string }): Promise<void> {
     const body = JSON.stringify({ email: input.email, password: input.password, full_name: input.fullName });
-    const headers = await computeHmacHeaders('POST', '/auth/register', body);
     const response = await fetch('/auth/register', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...headers },
+      headers: { 'Content-Type': 'application/json' },
       body,
     });
     if (!response.ok) {
@@ -275,6 +244,15 @@ export class ApiService {
       throw new Error('We could not create your account');
     }
     await this.login(input.email, input.password);
+  }
+
+  async getCurrentUser(): Promise<SessionUser> {
+    const token = await this.ensureAuthenticated();
+    const response = await fetch('/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return this.handleProtectedFailure(response, 'Account check failed');
+    return response.json();
   }
 
   /**
@@ -296,12 +274,10 @@ export class ApiService {
       business_category: businessCategory,
     });
 
-    const hmacHeaders = await computeHmacHeaders('POST', path, bodyStr);
     const res = await fetch(path, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...hmacHeaders,
       },
       body: bodyStr,
     });
@@ -336,13 +312,11 @@ export class ApiService {
       population: params.population ?? 50000,
     });
 
-    const hmacHeaders = await computeHmacHeaders('POST', path, bodyStr);
     const res = await fetch(path, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
-        ...hmacHeaders,
       },
       body: bodyStr,
     });
@@ -429,6 +403,7 @@ export class ApiService {
     scheme: SchemeCalculationResult;
     capex_opex?: { capex: number; opex: number; notes?: string };
     verified?: 'self-reported' | 'aa-verified';
+    funding_preference: FundingPreference;
   }): Promise<{ dpr_id: string; pdf_url: string; status: string; verified: string }> {
     const token = await this.ensureAuthenticated();
     const path = '/api/dpr/render';
@@ -439,15 +414,14 @@ export class ApiService {
       scheme: payload.scheme,
       capex_opex: payload.capex_opex,
       verified: payload.verified ?? 'self-reported',
+      funding_preference: payload.funding_preference,
     });
 
-    const hmacHeaders = await computeHmacHeaders('POST', path, bodyStr);
     const res = await fetch(path, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
-        ...hmacHeaders,
       },
       body: bodyStr,
     });

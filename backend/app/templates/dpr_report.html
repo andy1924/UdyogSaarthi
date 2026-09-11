@@ -633,6 +633,10 @@
   <strong>Scheme:</strong>
   {{ scheme.tier | default("—") | title }}
 </div>
+<div>
+  <strong>Funding Preference:</strong>
+  {{ data.funding_preference | default("scheme_linked_loan") | replace("_", " ") | title }}
+</div>
 {% if scheme.rules %}
 <div>
   <strong>Interest Rate:</strong>

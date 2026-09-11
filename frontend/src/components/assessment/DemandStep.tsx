@@ -35,10 +35,10 @@ export default function DemandStep({
 
   const score = Math.max(0, Math.round(100 - feasibilityResult.density_score));
   const swot = [
-    ['Strength', feasibilityResult.swot.strength],
-    ['Weakness', feasibilityResult.swot.weakness],
-    ['Opportunity', feasibilityResult.swot.opportunity],
-    ['Risk', feasibilityResult.swot.threat],
+    ['S', 'Strengths', feasibilityResult.swot.strength],
+    ['W', 'Weaknesses', feasibilityResult.swot.weakness],
+    ['O', 'Opportunities', feasibilityResult.swot.opportunity],
+    ['T', 'Threats', feasibilityResult.swot.threat],
   ];
 
   return (
@@ -66,8 +66,8 @@ export default function DemandStep({
       <div>
         <h3 className="text-lg font-bold text-primary"><Text>What the local data suggests</Text></h3>
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-          {swot.map(([label, value]) => <article key={label} className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
-            <h4 className="font-semibold text-secondary"><Text>{label}</Text></h4>
+          {swot.map(([letter, label, value]) => <article key={letter} className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
+            <h4 className="font-semibold text-secondary"><span aria-hidden="true">{letter} — </span><Text>{label}</Text></h4>
             <p className="mt-2 text-sm leading-6 text-on-surface-variant">{value}</p>
           </article>)}
         </div>

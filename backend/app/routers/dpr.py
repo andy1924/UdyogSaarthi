@@ -49,6 +49,7 @@ async def render(
         "scheme": inp.scheme.model_dump() if inp.scheme else None,
         "capex_opex": inp.capex_opex,
         "verified": inp.verified,
+        "funding_preference": inp.funding_preference,
     }
     await log_audit_action(
         db_session=db,
@@ -82,7 +83,9 @@ async def render(
     )
 
     # ── Determine verification status ────────────────────────────
-    verified = "aa-verified" if kyc_result.verified else inp.verified
+    # Never trust a browser's verification claim. Only the server-side sandbox
+    # response may elevate a report to aa-verified.
+    verified = "aa-verified" if kyc_result.verified else "self-reported"
 
     # ── Assemble full DPR data payload ───────────────────────────
     data = {
@@ -93,6 +96,7 @@ async def render(
         "scheme": inp.scheme.model_dump(),
         "capex_opex": inp.capex_opex,
         "verified": verified,
+        "funding_preference": inp.funding_preference,
         "kyc": kyc_result.model_dump(),
         "swot": swot_result.model_dump(),
         "sections": [
@@ -256,4 +260,3 @@ async def download_dpr(
         filename=f"{dpr_id}.pdf",
         headers={"Content-Disposition": f'attachment; filename="{dpr_id}.pdf"'},
     )
-

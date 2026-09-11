@@ -1,5 +1,5 @@
-import type { FeasibilityResult, SchemeCalculationResult } from './api';
-import { validateApplicantName, type IdentityDocumentState } from './identity-documents';
+import type { FeasibilityResult, FundingPreference, SchemeCalculationResult } from './api';
+import { validateApplicantName } from './identity-documents';
 
 export interface WorkflowRequirements {
   userCoords: { lat: number; lon: number } | null;
@@ -8,8 +8,7 @@ export interface WorkflowRequirements {
   feasibilityResult: FeasibilityResult | null;
   schemeResult: SchemeCalculationResult | null;
   applicantName: string;
-  panDocument: IdentityDocumentState | null;
-  aadhaarDocument: IdentityDocumentState | null;
+  fundingPreference: FundingPreference | '';
 }
 
 export function isStepAccessible(step: number, highestStepReached: number): boolean {
@@ -27,12 +26,13 @@ export function getAdvanceError(targetStep: number, state: WorkflowRequirements)
   }
   if (targetStep === 3 && !state.selectedEnterprise) return 'Choose a business idea before checking local demand.';
   if (targetStep === 4 && !state.feasibilityResult) return 'Complete the local demand check before planning funding.';
-  if (targetStep === 5 && !state.schemeResult) return 'Funding eligibility must finish loading before you continue.';
+  if (targetStep === 5) {
+    if (!state.schemeResult) return 'Funding eligibility must finish loading before you continue.';
+    if (!state.fundingPreference) return 'Choose how you would like to fund the business.';
+  }
   if (targetStep === 6) {
     const nameError = validateApplicantName(state.applicantName);
     if (nameError) return nameError;
-    if (state.panDocument?.status !== 'valid') return 'Upload a valid PAN document before continuing.';
-    if (state.aadhaarDocument?.status !== 'valid') return 'Upload a valid Aadhaar document before continuing.';
   }
   return null;
 }

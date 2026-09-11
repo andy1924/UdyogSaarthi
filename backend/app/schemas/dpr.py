@@ -15,6 +15,9 @@ class DPRGenerateIn(BaseModel):
     verified: Literal["self-reported", "aa-verified"] = "self-reported"
     applicant_name: str = "Applicant"
     business_name: str | None = None
+    funding_preference: Literal[
+        "scheme_linked_loan", "standard_bank_loan", "need_guidance"
+    ] = "scheme_linked_loan"
 
 
 class DPRGenerateOut(BaseModel):

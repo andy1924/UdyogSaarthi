@@ -12,7 +12,7 @@ export default function PrivacyPolicy() {
 
       <h3 className={sectionTitle}>1. Demo first, data minimal</h3>
       <p className={sectionBody}>
-        The platform runs as a sandbox demonstration. We do not perform any real KYC, identity
+        The platform runs as a sandbox demonstration. We do not perform any real KYC, identity, or
         credit approval. Assessment inputs are sent only to the application API when needed to
         calculate feasibility, funding, or generate a DPR.
       </p>
@@ -20,8 +20,8 @@ export default function PrivacyPolicy() {
       <h3 className={sectionTitle}>2. What we collect</h3>
       <p className={sectionBody}>
         We process the account, applicant name, business, location, and scheme information you
-        provide. PAN and Aadhaar files selected in the identity step are stored locally in your
-        browser&apos;s IndexedDB draft and are not uploaded by this release.
+        provide. The product does not request separate PAN or Aadhaar file uploads; DigiLocker
+        Sandbox is the only document-verification route shown in the workflow.
       </p>
 
       <h3 className={sectionTitle}>3. Sandbox integrations</h3>
@@ -33,9 +33,9 @@ export default function PrivacyPolicy() {
 
       <h3 className={sectionTitle}>4. How we use inputs</h3>
       <p className={sectionBody}>
-        Your inputs are used only to render estimates, scheme matches, and DPR drafts on your
-        device. Indicative figures are computed from published scheme rules and are not stored on
-        any server in this demo build.
+        Your inputs are used to render estimates, scheme matches, and DPR drafts. A generated DPR,
+        its workflow status, and security audit events are stored by the application backend so an
+        authenticated applicant can retrieve the report.
       </p>
 
       <h3 className={sectionTitle}>5. Cookies and local storage</h3>
@@ -61,9 +61,8 @@ export default function PrivacyPolicy() {
 
       <h3 className={sectionTitle}>8. Retention and security</h3>
       <p className={sectionBody}>
-        Assessment state persists for the browser session. Selected identity files remain in
-        IndexedDB until site data is cleared or replaced. Clear this site&apos;s storage on a shared
-        device after finishing your draft.
+        Assessment state persists for the browser session. Access tokens and report references use
+        browser storage; sign out and clear this site&apos;s storage after using a shared device.
       </p>
 
       <h3 className={sectionTitle}>9. Contact</h3>

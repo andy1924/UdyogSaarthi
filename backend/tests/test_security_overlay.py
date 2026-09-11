@@ -165,10 +165,17 @@ def test_layer1_defensive_headers_on_health(client: TestClient) -> None:
     assert response.headers["content-security-policy"] == "default-src 'self'"
 
 
-def test_layer1_missing_hmac_is_rejected(client: TestClient) -> None:
+def test_layer1_browser_mutation_does_not_require_exposed_secret(client: TestClient) -> None:
     response = client.post("/api/scheme/calculate", json={"margin": 10_000})
 
-    assert response.status_code in {400, 401}
+    assert response.status_code != 401
+
+
+def test_layer1_service_mutation_still_requires_hmac() -> None:
+    middleware = Layer1HMACMiddleware(_ok_response_app, settings.secret_key, FakeRedis())
+    messages = run_asgi(middleware, scope_for("POST", "/internal/jobs"), b"{}")
+
+    assert messages[0]["status"] == 401
 
 
 def test_layer1_stale_hmac_timestamp_is_rejected() -> None:
@@ -181,9 +188,10 @@ def test_layer1_stale_hmac_timestamp_is_rejected() -> None:
     middleware = Layer1HMACMiddleware(downstream, settings.secret_key, redis)
     body = b'{"margin":10000}'
     stale = str(time.time() - 121)
-    headers = signed_headers("POST", "/api/scheme/calculate", body, stale)
+    path = "/internal/jobs"
+    headers = signed_headers("POST", path, body, stale)
 
-    messages = run_asgi(middleware, scope_for("POST", "/api/scheme/calculate", headers), body)
+    messages = run_asgi(middleware, scope_for("POST", path, headers), body)
 
     assert messages[0]["status"] == 401
 
@@ -192,9 +200,10 @@ def test_layer1_valid_hmac_passes_gateway_validation() -> None:
     redis = FakeRedis()
     middleware = Layer1HMACMiddleware(_ok_response_app, settings.secret_key, redis)
     body = b'{"margin":10000}'
-    headers = signed_headers("POST", "/api/scheme/calculate", body)
+    path = "/internal/jobs"
+    headers = signed_headers("POST", path, body)
 
-    messages = run_asgi(middleware, scope_for("POST", "/api/scheme/calculate", headers), body)
+    messages = run_asgi(middleware, scope_for("POST", path, headers), body)
 
     assert messages[0]["status"] == 200
     assert b"layer1-ok" in messages[1]["body"]

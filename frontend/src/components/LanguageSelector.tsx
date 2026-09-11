@@ -25,7 +25,7 @@ export default function LanguageSelector({ variant = 'landing', className = '' }
     </select>
     <span role="status" className="language-status">
       {status === 'loading' && <LoaderCircle size={15} className="animate-spin text-secondary" aria-label="Loading languages" />}
-      {(status === 'error' || status === 'unavailable') && <button type="button" onClick={retry} className="h-2.5 min-h-0 w-2.5 rounded-full bg-amber-500" aria-label="Language service unavailable. Retry" title="Language service unavailable. Retry"><span className="sr-only">Language service unavailable. Retry</span></button>}
+      {(status === 'error' || status === 'unavailable') && <button type="button" onClick={retry} className="sr-only" aria-label="Language service unavailable. Retry">Language service unavailable. Retry</button>}
     </span>
     </div>
   );

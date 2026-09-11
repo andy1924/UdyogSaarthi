@@ -13,6 +13,19 @@ from redis.asyncio import Redis
 Send = Callable[[dict], Awaitable[None]]
 Receive = Callable[[], Awaitable[dict]]
 
+# These routes are called directly by the browser. A shared HMAC key must never
+# be embedded in a public JavaScript bundle; TLS, route rate limits, validation,
+# and bearer authentication protect these user-facing calls instead. HMAC
+# remains mandatory for other mutating/service-to-service routes.
+BROWSER_MUTATION_PATHS = {
+    "/auth/register",
+    "/auth/token",
+    "/api/dpr/render",
+    "/api/feasibility/score",
+    "/api/scheme/calculate",
+    "/api/translation/text",
+}
+
 
 def _response(start: int, body: bytes) -> dict:
     headers = [
@@ -52,6 +65,11 @@ class Layer1HMACMiddleware:
             await self.app(scope, receive, send)
             return
 
+        path_text = scope.get("path", "")
+        if path_text in BROWSER_MUTATION_PATHS:
+            await self.app(scope, receive, send)
+            return
+
         headers = {key.lower(): value for key, value in scope.get("headers", [])}
         timestamp = headers.get(b"x-timestamp", b"").decode("ascii", "ignore")
         nonce = headers.get(b"x-nonce", b"").decode("ascii", "ignore")
@@ -72,7 +90,7 @@ class Layer1HMACMiddleware:
             await self._reject(send, 401, "Missing or expired request signature")
             return
 
-        path = scope.get("raw_path", scope.get("path", "").encode("utf-8"))
+        path = scope.get("raw_path", path_text.encode("utf-8"))
         message = (
             scope["method"].upper().encode()
             + path

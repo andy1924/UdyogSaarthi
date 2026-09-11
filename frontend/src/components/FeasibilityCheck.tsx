@@ -11,10 +11,16 @@ import { useAssessment } from './assessment/useAssessment';
 import LanguageSelector from './LanguageSelector';
 import BotanicalAccent from './BotanicalAccent';
 import DprPreview from './assessment/DprPreview';
+import BrandLogo from './BrandLogo';
+import type { SessionUser } from '../lib/api';
 
-interface FeasibilityCheckProps { onBackToLanding: () => void; }
+interface FeasibilityCheckProps {
+  onBackToLanding: () => void;
+  onLogout: () => void;
+  user: SessionUser | null;
+}
 
-export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckProps) {
+export default function FeasibilityCheck({ onBackToLanding, onLogout, user }: FeasibilityCheckProps) {
   const assessment = useAssessment();
   const { t, currentStep, highestStepReached, stepContentRef, loadingState, uiError, setUiError, goToStep } = assessment;
   return (
@@ -22,19 +28,20 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
       {/* ==================== HEADER ==================== */}
       <header className="sticky top-0 z-50 backdrop-blur-md border-b border-outline-variant/60 bg-surface-container-lowest/95">
         <div className="min-h-16 max-w-[1200px] mx-auto px-gutter-mobile lg:px-gutter-desktop flex items-center justify-between gap-space-md py-2">
-          <div className="flex items-center gap-space-sm shrink-0">
+          <div className="flex min-w-0 items-center gap-space-sm">
             <button
               onClick={onBackToLanding}
               className="flex items-center gap-2 text-left cursor-pointer focus:outline-none group"
               title="Return to home"
             >
-              <ArrowLeft size={18} aria-hidden="true" />
-              <span className="font-headline-md text-headline-md font-bold tracking-tight text-primary leading-none font-playfair text-2xl group-hover:text-primary/80 transition-colors">
-                UdyogSaarthi
-              </span>
+              <ArrowLeft size={18} className="shrink-0" aria-hidden="true" />
+              <BrandLogo mobileCompact />
             </button>
           </div>
-          <LanguageSelector variant="wizard" />
+          <div className="flex items-center gap-2">
+            <LanguageSelector variant="wizard" />
+            <button type="button" onClick={onLogout} title={user?.email} className="rounded-full px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container">Sign out</button>
+          </div>
         </div>
       </header>
 
@@ -82,7 +89,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
             )}
 
             {/* Step panels — goToStep scroll-locks to this anchor */}
-            <div ref={stepContentRef} tabIndex={-1} aria-label={`Assessment step ${currentStep}`} className={`scroll-mt-24 ${currentStep >= 3 && currentStep <= 5 ? 'grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_340px]' : ''}`}>
+            <div ref={stepContentRef} tabIndex={-1} aria-label={`Assessment step ${currentStep}`} className={`scroll-mt-24 ${currentStep >= 4 && currentStep <= 5 ? 'grid items-start gap-7 lg:grid-cols-[minmax(0,1fr)_340px]' : ''}`}>
 
               <div className="min-w-0">
 
@@ -105,9 +112,9 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
               {currentStep === 6 && <ReportStep {...assessment} />}
               </div>
 
-              {currentStep >= 3 && currentStep <= 5 && (
-                <div className={currentStep === 3 ? 'hidden lg:block' : ''}>
-                  <DprPreview {...assessment} compact />
+              {currentStep >= 4 && currentStep <= 5 && (
+                <div>
+                  <DprPreview {...assessment} compact showSwot={currentStep === 4} />
                 </div>
               )}
             </div>
@@ -123,7 +130,7 @@ export default function FeasibilityCheck({ onBackToLanding }: FeasibilityCheckPr
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-space-lg">
               <div className="max-w-2xl">
                 <div className="flex items-center gap-2 text-primary font-headline-md text-headline-md mb-space-xs font-playfair">
-                  <span className="font-bold">UdyogSaarthi</span>
+                  <BrandLogo />
                 </div>
                 <p className="font-body-md text-body-md text-on-surface-variant">
                   Clear local-demand, funding, and project-report guidance for rural entrepreneurs and small businesses.

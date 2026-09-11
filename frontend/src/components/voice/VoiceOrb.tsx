@@ -57,7 +57,7 @@ const CAPTION: Record<VoiceStatus, string> = {
   preparing: 'Preparing voice',
   listening: 'Tap to send',
   thinking: 'Thinking…',
-  speaking: 'Tap to stop',
+  speaking: 'Tap to interrupt',
   error: 'Tap to retry',
 };
 

@@ -6,7 +6,7 @@ const LABEL: Record<VoiceStatus, string> = {
   preparing: 'Preparing voice',
   listening: 'Stop listening',
   thinking: 'Thinking',
-  speaking: 'Stop speaking',
+  speaking: 'Interrupt',
   error: 'Retry voice',
 };
 

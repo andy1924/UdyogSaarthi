@@ -4,6 +4,7 @@ import {
 } from 'react';
 import { useLanguage } from '../LanguageContext';
 import { NO_SPEECH } from './answers';
+import { audioHasSpeech, isSubstantiveTranscript } from './speech-gate';
 import { readChatConfig, requestReply } from './chat';
 import { resolveVoiceLanguage, type ResolvedVoiceLanguage, type VoiceEngine } from './languages';
 import { createProgressTracker, type ProgressSnapshot } from './download-progress';
@@ -91,6 +92,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const endpointer = useRef(new Endpointer());
   const abort = useRef<AbortController | null>(null);
   const turning = useRef(false);
+  // A tap storm must not arm the microphone twice: two overlapping startTurn
+  // calls would each begin a MediaRecorder on the same stream and orphan one.
+  const starting = useRef(false);
   const level = useRef(0);
   const statusRef = useRef<VoiceStatus>('idle');
   // Bumped whenever a turn is interrupted, so the turn being replaced cannot
@@ -141,10 +145,22 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     const voice = turnVoice.current;
     if (!transcriber.current) return;
     const id = ++turnId.current;
+    // Blank recordings never reach Whisper: it hallucinates whole sentences
+    // ("Thank you") on room tone once normalised, and the hallucination would
+    // then burn a brain call on top of the wasted transcription.
+    if (!audioHasSpeech(audio)) {
+      push({ role: 'assistant', text: NO_SPEECH[voice.lang === 'hi' ? 'hi' : 'en'] });
+      setStatus('idle');
+      return;
+    }
     const text = await transcriber.current.transcribe(audio, voice.stt);
-    if (!text) {
-      // Going quiet with no explanation reads as a freeze. An empty transcript
-      // is nearly always "too quiet", so say that instead of nothing.
+    // Interrupted while transcribing: the replacement turn owns the orb now.
+    if (turnId.current !== id) return;
+    // Thumps, laughs and fragments never reach the brain. A chat call costs
+    // tokens and always answers noise with nonsense, so the turn ends on the
+    // local guidance line instead. Going quiet with no explanation reads as a
+    // freeze, so say something rather than nothing.
+    if (!isSubstantiveTranscript(text)) {
       push({ role: 'assistant', text: NO_SPEECH[voice.lang === 'hi' ? 'hi' : 'en'] });
       setStatus('idle');
       return;
@@ -187,12 +203,22 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const finishTurn = useCallback(async () => {
     if (turning.current || !recorder.current) return;
     turning.current = true;
+    const id = turnId.current;
     try {
       const audio = await recorder.current.stop();
-      // The reply no longer needs the microphone - barge-in is gone - so the
-      // device goes back to the browser as soon as the turn is captured.
+      // The reply no longer needs the microphone, so the device goes back to
+      // the browser as soon as the turn is captured.
       recorder.current.release();
       level.current = 0;
+      // The microphone is closed, so the lock can go: a barge-in from the next
+      // turn must be able to finish while this turn is still thinking.
+      turning.current = false;
+      // Superseded while the recording was closing (interrupted or hidden):
+      // drop the audio rather than answering a turn nobody owns.
+      if (turnId.current !== id) return;
+      // Honest caption through the slow part: Whisper and the brain take
+      // seconds, and "Tap to send" until the reply appears reads as hung.
+      setStatus('thinking');
       await runTurn(audio);
     } catch {
       recorder.current?.release();
@@ -204,18 +230,28 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, [runTurn]);
 
   /**
-   * Stop the agent mid-sentence. A tap on the orb or the red stop button lands
-   * here; the turn keeps its id, so the interrupted `speak()` cannot set the
-   * status on its way out.
+   * Cut the current turn loose without naming the next status: the caller
+   * decides whether the orb goes idle or straight back to listening. Bumping
+   * the turn id makes the abandoned turn's late promises no-ops.
    */
-  const stopSpeaking = useCallback(() => {
+  const interrupt = useCallback(() => {
     turnId.current += 1;
     speaker.current?.speaker.stop();
     abort.current?.abort();
+    abort.current = null;
     level.current = 0;
     setSpokenIndex(-1);
-    setStatus('idle');
   }, []);
+
+  /**
+   * Stop the agent mid-sentence. A tap on the red stop button lands here; the
+   * turn keeps its id, so the interrupted `speak()` cannot set the status on
+   * its way out.
+   */
+  const stopSpeaking = useCallback(() => {
+    interrupt();
+    setStatus('idle');
+  }, [interrupt]);
 
   /**
    * Live level from the microphone. It drives the endpointer, which is what
@@ -234,6 +270,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, [finishTurn, trackLevel]);
 
   const startTurn = useCallback(async () => {
+    if (starting.current) return;
+    starting.current = true;
     const voice = resolveVoiceLanguage(lang);
     turnVoice.current = voice;
     setError(null);
@@ -254,15 +292,23 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       recorder.current?.release();
       setError(describeVoiceFailure(reason));
       setStatus('error');
+    } finally {
+      starting.current = false;
     }
   }, [handleLevel, lang, prepare]);
 
   const toggle = useCallback(async () => {
-    if (status === 'speaking') { stopSpeaking(); return; }
+    // The orb always means "listen to me": cutting the agent off drops
+    // straight back into a fresh turn instead of parking on idle.
+    if (status === 'speaking' || status === 'thinking') {
+      interrupt();
+      await startTurn();
+      return;
+    }
     if (status === 'listening') { await finishTurn(); return; }
-    if (status === 'preparing' || status === 'thinking') return;
+    if (status === 'preparing') return;
     await startTurn();
-  }, [finishTurn, startTurn, status, stopSpeaking]);
+  }, [finishTurn, interrupt, startTurn, status]);
 
   const close = useCallback(() => {
     turnId.current += 1;

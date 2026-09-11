@@ -40,7 +40,7 @@ Three properties are load-bearing. Breaking one of them is a bug, not a tweak:
 | Navbar mic | Sits immediately left of *Read aloud*. Starts listening **and** opens the panel. Shows a spinner while models load. |
 | Read aloud | The speaker button. Asks the brain for a short spoken overview of the visible page (`main`) and plays it with the same local voice the orb uses, in ~240-character pieces, for a ten-minute budget. With no brain configured it reads the page itself. Turns into a stop button while it is reading, and a spinner while the models load. |
 | The orb | Fixed in the bottom-right corner of every screen. No icon: a WebGL field of glowing strands is the state. Dark green strands on dark pine glass, matching the caption pill under it. |
-| Caption pill | `Tap to talk`, `Preparing voice`, `Tap to send`, `Thinking...`, `Tap to stop`, `Tap to retry`. |
+| Caption pill | `Tap to talk`, `Preparing voice`, `Tap to send`, `Thinking...`, `Tap to interrupt`, `Tap to retry`. |
 | Panel | The conversation and nothing else: the applicant's last line in small type, then the agent's reply with no bubble behind it. The reply is laid out line by line, with headings, bullet lists and inline emphasis, code and links rendered as formatting instead of showing their Markdown syntax. It also names the fallback language when the app language is not voiced yet. |
 | Stop button | A red square beside the caption while the agent is speaking. Stops the voice. |
 | Panel close | Closes the panel only. Listening continues. |
@@ -121,9 +121,11 @@ instead of only in the wizard.
 5. **Close the turn.** `recorder.stop()` decodes the blob, downsamples to 16 kHz
    mono, and peak-normalises (up to x6). The microphone is released here: nothing
    listens while the agent speaks.
-6. **`thinking`.** `transcriber.transcribe(audio, voice.stt)` runs Whisper. An
-   empty transcript is answered out loud with "I did not catch any speech"
-   rather than returning to idle in silence.
+6. **`thinking`.** A near-silent recording never reaches Whisper (`speech-gate`:
+   Whisper hallucinates sentences on room tone), and a transcript under four
+   words, or one token on loop (a laugh, a thump), never reaches the brain.
+   Either way the turn ends on the local "I did not catch any speech" line
+   instead of spending a model call on noise.
 7. **Ask.** `requestReply` sends the site snapshot, the trimmed page text and the
    question. With no `VITE_VOICE_CHAT_URL`, `offlineAnswer` produces the reply
    instead and nothing leaves the device.
@@ -135,15 +137,18 @@ instead of only in the wizard.
    never reads "asterisk asterisk". The highlight comes from
    `Speaker.onSentence`, which fires when a line's audio actually starts, so it
    cannot drift ahead of the voice the way a playback fraction did.
-9. **`idle`.** The turn ends on its own, or the applicant taps the orb or the
-   red stop button to cut the voice short.
+9. **`idle`.** The turn ends on its own, or the applicant taps the orb to cut
+   the voice short and immediately start listening again, or the red stop
+   button to stop and stay idle.
 
 ### Interrupting
 
-Tapping the orb, or the red stop button beside the caption, while the agent
-speaks calls `stopSpeaking`: it bumps `turnId`, stops the speaker, aborts the
-in-flight chat request, clears the spoken highlight and returns to `idle`. The
-microphone was already released, so an interruption is instant and silent.
+Tapping the orb while the agent speaks or thinks interrupts into a fresh turn:
+`toggle` bumps `turnId`, stops the speaker, aborts the in-flight chat request,
+clears the spoken highlight and starts listening again, so the orb always means
+"listen to me". The red stop button beside the caption also interrupts but
+returns to `idle` instead of listening. The microphone was already released,
+so an interruption is instant and silent.
 
 `turnId` is the guard that makes interruption safe: every turn captures its id
 and bails out before touching state if a newer turn has started, so the
@@ -156,13 +161,13 @@ interrupted turn cannot reset the status on its way out.
 | `idle` | start, end of turn, close, stop | `preparing` on toggle | strands drift at rest |
 | `preparing` | model load after the mic is armed | `listening`, or `error` | percentage inside the field |
 | `listening` | `begin()` resolved | `thinking` (auto-send), `idle` (tap to send early), `error` | strands swell with the applicant |
-| `thinking` | transcript non-empty | `speaking`, `idle` if there is no speaker | strands settle |
-| `speaking` | reply ready | `idle` on a tap or the stop button | strands swell with the reply |
+| `thinking` | turn closed | `speaking`, `idle` (gated noise), `idle` if there is no speaker | strands settle |
+| `speaking` | reply ready | `listening` on an orb tap (barge-in), `idle` on the stop button | strands swell with the reply |
 | `error` | mic or model failure | `preparing` on retry | red strands, `Tap to retry` |
 
-`toggle()` is the only entry point: from `speaking` it stops the voice, from
-`listening` it finishes the turn early, from `preparing`/`thinking` it does
-nothing, and from `idle`/`error` it starts.
+`toggle()` is the only entry point: from `speaking` or `thinking` it interrupts
+into a fresh turn, from `listening` it finishes the turn early, from
+`preparing` it does nothing, and from `idle`/`error` it starts.
 
 ## The public API
 

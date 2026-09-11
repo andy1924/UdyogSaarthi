@@ -108,6 +108,14 @@ export function useAssessment() {
 
   const enterprise = ENTERPRISE_OPTIONS.find((e) => e.id === selectedEnterprise) || ENTERPRISE_OPTIONS[0];
 
+  // Local construction, fit-out and logistics vary materially by state. Keep
+  // the catalogue benchmark as the source of truth, then apply a transparent
+  // location index once the selected location has been resolved.
+  const locationFactor = geoResolved?.state
+    ? ['Maharashtra', 'Delhi', 'Karnataka', 'Telangana', 'Tamil Nadu'].some((s) => s.toLowerCase() === geoResolved.state.toLowerCase()) ? 1.12 : 0.94
+    : 1;
+  const locationAdjustedCapex = Math.round(enterprise.capex * locationFactor);
+
   const invalidateFrom = useCallback((step: number) => {
     setHighestStepReached((value) => Math.min(value, step));
     setReviewConfirmed(false);
@@ -165,7 +173,7 @@ export function useAssessment() {
   };
 
   // Base fallback figures
-  const fallbackTpc = enterprise.capex;
+  const fallbackTpc = locationAdjustedCapex;
   const fallbackMargin = (fallbackTpc * marginPercent) / 100;
 
   // Display values: prioritizes server-calculated values per standing rules
@@ -348,7 +356,7 @@ export function useAssessment() {
   // 5. Scheme Calculation via live backend
   const runSchemeCalculate = useCallback(async () => {
     if (!selectedEnterprise) { setSchemeResult(null); return; }
-    const marginAmt = (enterprise.capex * marginPercent) / 100;
+    const marginAmt = (locationAdjustedCapex * marginPercent) / 100;
     try {
       const res = await api.calculateScheme(marginAmt, enterprise.apiCategory);
       setSchemeResult(res);
@@ -356,7 +364,7 @@ export function useAssessment() {
       console.warn('Scheme calculation unavailable:', err);
       setSchemeResult(null);
     }
-  }, [selectedEnterprise, enterprise.capex, enterprise.apiCategory, marginPercent]);
+  }, [selectedEnterprise, locationAdjustedCapex, enterprise.apiCategory, marginPercent]);
 
   useEffect(() => {
     runSchemeCalculate();

@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.core.security import get_current_user
 from app.models.user import User
 from app.schemas.feasibility import FeasibilityIn, FeasibilityOut, LGDCode
+from app.services.dpr_ai_service import generate_swot
 from app.services.geo_service import (
     GeoUnavailableError,
     compute_density_score,
@@ -122,24 +123,17 @@ async def score(
     ds = compute_density_score(poi_count, inp.population)
     vd = compute_verdict(ds)
 
-    swot = {
-        "strength": (
-            "Local demand for daily-need category"
-            if vd != "saturated"
-            else "High footfall area"
-        ),
-        "weakness": "High competition" if vd == "saturated" else "Need awareness",
-        "opportunity": (
-            "Pivot to allied service"
-            if vd == "saturated"
-            else "First-mover gap in 5km"
-        ),
-        "threat": (
-            f"{poi_count} similar shops in {inp.radius_m / 1000:.0f}km radius — price war risk"
-            if vd == "saturated"
-            else "Input cost volatility"
-        ),
-    }
+    # Use the same detailed SWOT synthesis as DPR generation so Step 3 is a
+    # faithful preview of the report. The service supplies a deterministic,
+    # location-aware fallback when an AI key is not configured.
+    swot_result = await generate_swot(
+        business_name=inp.business_category,
+        business_category=inp.business_category,
+        location_text=inp.location_text or f"{lgd.block}, {lgd.district}, {lgd.state}",
+        poi_count=poi_count,
+        verdict=vd,
+        loan_amount=0,
+    )
 
     opps: list[dict] = []
     if vd == "saturated":
@@ -155,7 +149,7 @@ async def score(
         poi_count=poi_count,
         density_score=ds,
         verdict=vd,
-        swot=swot,
+        swot=swot_result.model_dump(),
         opportunities=opps,
         overpass_ql=overpass_ql,
     )

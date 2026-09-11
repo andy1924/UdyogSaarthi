@@ -377,6 +377,9 @@ async def resolve_lgd_live(
     params: dict[str, Any] = {
         "resource_id": resource_id,
         "api-key": api_key,
+        # Filtering by state prevents similarly named districts in another
+        # state from returning the wrong LGD record.
+        "filters[state_name]": state,
         "filters[district_name]": district,
         "limit": "5",
     }
@@ -396,12 +399,15 @@ async def resolve_lgd_live(
                 lgd_code = (
                     rec.get("block_lgd_code")
                     or rec.get("lgd_code")
+                    or rec.get("block_code")
                     or rec.get("code", "")
                 )
                 result = {
-                    "state": rec.get("state_name", state).strip(),
-                    "district": rec.get("district_name", district).strip(),
-                    "block": rec.get("block_name", block).strip(),
+                    "state": str(rec.get("state_name") or rec.get("state") or state).strip(),
+                    "district": str(
+                        rec.get("district_name") or rec.get("district") or district
+                    ).strip(),
+                    "block": str(rec.get("block_name") or rec.get("block") or block).strip(),
                     "lgd_code": str(lgd_code),
                 }
                 logger.info(

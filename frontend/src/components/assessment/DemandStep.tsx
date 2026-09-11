@@ -34,12 +34,20 @@ export default function DemandStep({
   }
 
   const score = Math.max(0, Math.round(100 - feasibilityResult.density_score));
+  // The feasibility endpoint returns concise strings while DPR enrichment may
+  // return arrays. Normalize both shapes so the live Step 3 view never renders
+  // blank cards when the enriched SWOT is available.
+  const swotValue = (key: 'strength' | 'weakness' | 'opportunity' | 'threat') => {
+    const value = feasibilityResult.swot?.[key] as unknown;
+    if (Array.isArray(value)) return value.filter(Boolean).join(' ');
+    return typeof value === 'string' ? value : 'Analysis pending.';
+  };
   const swot = [
-    ['S', 'Strengths', feasibilityResult.swot.strength],
-    ['W', 'Weaknesses', feasibilityResult.swot.weakness],
-    ['O', 'Opportunities', feasibilityResult.swot.opportunity],
-    ['T', 'Threats', feasibilityResult.swot.threat],
-  ];
+    ['S', 'Strengths', swotValue('strength')],
+    ['W', 'Weaknesses', swotValue('weakness')],
+    ['O', 'Opportunities', swotValue('opportunity')],
+    ['T', 'Threats', swotValue('threat')],
+  ] as const;
 
   return (
     <section className={`space-y-6 ${stepAnimClass}`} aria-labelledby="demand-title">

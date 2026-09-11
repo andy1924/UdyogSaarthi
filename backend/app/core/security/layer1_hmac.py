@@ -22,6 +22,7 @@ BROWSER_MUTATION_PATHS = {
     "/auth/token",
     "/api/dpr/render",
     "/api/feasibility/score",
+    "/api/feasibility/capital-estimate",
     "/api/scheme/calculate",
     "/api/translation/text",
 }

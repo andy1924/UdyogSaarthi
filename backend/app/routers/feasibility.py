@@ -6,7 +6,14 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.security import get_current_user
 from app.models.user import User
-from app.schemas.feasibility import FeasibilityIn, FeasibilityOut, LGDCode
+from app.schemas.feasibility import (
+    CapitalEstimateIn,
+    CapitalEstimateOut,
+    FeasibilityIn,
+    FeasibilityOut,
+    LGDCode,
+)
+from app.services.capital_estimation import estimate_capital
 from app.services.dpr_ai_service import generate_swot
 from app.services.geo_service import (
     GeoUnavailableError,
@@ -19,6 +26,24 @@ from app.services.geo_service import (
 )
 
 router = APIRouter(prefix="/api/feasibility", tags=["feasibility"])
+
+
+@router.post("/capital-estimate", response_model=CapitalEstimateOut)
+async def capital_estimate(
+    inp: CapitalEstimateIn,
+    user: User = Depends(get_current_user),
+) -> CapitalEstimateOut:
+    _ = user
+    result = await estimate_capital(
+        business=inp.business, location=inp.location, state=inp.state,
+        base_capex=inp.base_capex,
+    )
+    values = result.model_dump()
+    total = sum(values[key] for key in (
+        "rent_deposit", "equipment", "labour_setup",
+        "materials_inventory", "licences_utilities",
+    ))
+    return CapitalEstimateOut(**values, total=total)
 
 
 @router.get("/reverse-geocode")

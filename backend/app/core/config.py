@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     bhashini_user_id: str = ""
     bhashini_api_key: str = ""
     bhashini_pipeline_id: str = ""
+    sarvam_api_key: str = ""
 
     # ── DPR / AI SWOT & KYC ──────────────────────────────────────────
     openai_api_key: str = ""

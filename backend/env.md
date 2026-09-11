@@ -4,7 +4,12 @@
 OPENAI_API_KEY="your_api_key"
 
 # ==========================================
-# BHASHINI (server-side UI translation)
+# SARVAM AI (preferred server-side translation)
+# ==========================================
+SARVAM_API_KEY="your_api_key"
+
+# ==========================================
+# BHASHINI (optional translation fallback)
 # ==========================================
 BHASHINI_USER_ID="your_user_id"
 BHASHINI_API_KEY="your_api_key"

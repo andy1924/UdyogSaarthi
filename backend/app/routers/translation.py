@@ -14,6 +14,15 @@ from app.core.config import settings
 
 router = APIRouter(prefix="/api/translation", tags=["translation"])
 CONFIG_URL = "https://meity-auth.ulcacontrib.org/ulca/apis/v0/model/getModelsPipeline"
+SARVAM_URL = "https://api.sarvam.ai/translate"
+SARVAM_LANGUAGES = {
+    "as": "as-IN", "bn": "bn-IN", "brx": "brx-IN", "doi": "doi-IN",
+    "gu": "gu-IN", "hi": "hi-IN", "kn": "kn-IN", "ks": "ks-IN",
+    "kok": "kok-IN", "mai": "mai-IN", "ml": "ml-IN", "mni": "mni-IN",
+    "mr": "mr-IN", "ne": "ne-IN", "or": "od-IN", "pa": "pa-IN",
+    "sa": "sa-IN", "sat": "sat-IN", "sd": "sd-IN", "ta": "ta-IN",
+    "te": "te-IN", "ur": "ur-IN",
+}
 _config: dict = {}
 _expires = 0.0
 _lock = asyncio.Lock()
@@ -22,7 +31,7 @@ _cache: OrderedDict[tuple[str, str], str] = OrderedDict()
 
 class TranslationIn(BaseModel):
     target: str = Field(pattern=r"^[a-z]{2,3}$")
-    texts: list[Annotated[str, Field(min_length=1, max_length=1000)]] = Field(
+    texts: list[Annotated[str, Field(min_length=1, max_length=1900)]] = Field(
         min_length=1, max_length=80
     )
 
@@ -72,6 +81,8 @@ async def configuration() -> dict:
 
 @router.get("/languages")
 async def languages():
+    if settings.sarvam_api_key:
+        return {"available": True, "languages": ["en", *SARVAM_LANGUAGES]}
     try:
         config = await configuration()
         return {"available": True, "languages": sorted({"en", *config["services"]})}
@@ -83,6 +94,32 @@ async def languages():
 async def translate(body: TranslationIn):
     if body.target == "en":
         return {"texts": body.texts}
+    if settings.sarvam_api_key:
+        target = SARVAM_LANGUAGES.get(body.target)
+        if not target:
+            raise HTTPException(422, "This language is not supported by Sarvam.")
+        try:
+            translated: list[str] = []
+            async with httpx.AsyncClient(timeout=30) as client:
+                for value in body.texts:
+                    response = await client.post(
+                        SARVAM_URL,
+                        headers={"api-subscription-key": settings.sarvam_api_key},
+                        json={
+                            "input": value,
+                            "source_language_code": "en-IN",
+                            "target_language_code": target,
+                            "speaker_gender": "Female",
+                            "mode": "formal",
+                            "model": "mayura:v1",
+                            "enable_preprocessing": True,
+                        },
+                    )
+                    response.raise_for_status()
+                    translated.append(response.json()["translated_text"])
+            return {"texts": translated}
+        except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+            raise HTTPException(502, "Sarvam translation failed. Please try again.") from exc
     config = await configuration()
     service = config["services"].get(body.target)
     if not service:

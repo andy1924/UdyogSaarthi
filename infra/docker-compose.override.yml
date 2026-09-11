@@ -16,6 +16,8 @@
 
 services:
   api:
+    env_file:
+      - ../backend/.env
     environment:
       APP_ENV: development
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@db:5432/udyogsaarthi
@@ -44,6 +46,8 @@ services:
 
   # Dev Celery worker — mounts source code for live task reload
   worker:
+    env_file:
+      - ../backend/.env
     # No HTTP server here — the image HEALTHCHECK (curl :8000) never passes.
     healthcheck:
       disable: true

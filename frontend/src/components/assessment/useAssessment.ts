@@ -3,6 +3,7 @@ import {
   api,
   isAuthenticationError,
   type FeasibilityResult,
+  type CapitalEstimate,
   type FundingPreference,
   type LicenseItem,
   type NearbyProfile,
@@ -29,6 +30,7 @@ interface AssessmentDraft {
   searchLocationQuery: string;
   feasibilityResult: FeasibilityResult | null;
   schemeResult: SchemeCalculationResult | null;
+  capitalEstimate: CapitalEstimate | null;
   nearbyProfiles: NearbyProfile[];
   licenses: LicenseItem[];
   applicantName: string;
@@ -97,6 +99,7 @@ export function useAssessment() {
   const [loadingState, setLoadingState] = useState<string | null>(null);
   const [feasibilityResult, setFeasibilityResult] = useState<FeasibilityResult | null>(initialDraft.feasibilityResult ?? null);
   const [schemeResult, setSchemeResult] = useState<SchemeCalculationResult | null>(initialDraft.schemeResult ?? null);
+  const [capitalEstimate, setCapitalEstimate] = useState<CapitalEstimate | null>(initialDraft.capitalEstimate ?? null);
   // Empty by default — populated only from live PostGIS API for user's real location
   const [nearbyProfiles, setNearbyProfiles] = useState<NearbyProfile[]>(initialDraft.nearbyProfiles ?? []);
   const [nearbyLoading, setNearbyLoading] = useState<boolean>(false);
@@ -118,10 +121,8 @@ export function useAssessment() {
   // Local construction, fit-out and logistics vary materially by state. Keep
   // the catalogue benchmark as the source of truth, then apply a transparent
   // location index once the selected location has been resolved.
-  const locationFactor = geoResolved?.state
-    ? ['Maharashtra', 'Delhi', 'Karnataka', 'Telangana', 'Tamil Nadu'].some((s) => s.toLowerCase() === geoResolved.state.toLowerCase()) ? 1.12 : 0.94
-    : 1;
-  const locationAdjustedCapex = Math.round(enterprise.capex * locationFactor);
+  const locationAdjustedCapex = capitalEstimate?.total ?? enterprise.capex;
+  const locationCostFactor = capitalEstimate ? capitalEstimate.total / enterprise.capex : 1;
 
   const invalidateFrom = useCallback((step: number) => {
     setHighestStepReached((value) => Math.min(value, step));
@@ -192,7 +193,7 @@ export function useAssessment() {
       currentStep, highestStepReached, radius, selectedEnterprise, marginPercent,
       userCoords, locationText, geoResolved,
       geoStatus: geoStatus === 'detecting' ? 'idle' : geoStatus,
-      searchLocationQuery, feasibilityResult, schemeResult, nearbyProfiles, licenses,
+      searchLocationQuery, feasibilityResult, schemeResult, capitalEstimate, nearbyProfiles, licenses,
       applicantName, simulatedPan, incomeTier, overrideScheme, fundingPreference,
       digiLockerStatus: digiLockerStatus === 'connecting' ? 'idle' : digiLockerStatus,
       digiLockerReference,
@@ -202,7 +203,7 @@ export function useAssessment() {
       dprStatus: dprStatus === 'queued' ? 'idle' : dprStatus,
     };
     try { sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft)); } catch { /* Continue without draft persistence. */ }
-  }, [currentStep, highestStepReached, radius, selectedEnterprise, marginPercent, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, feasibilityResult, schemeResult, nearbyProfiles, licenses, applicantName, simulatedPan, incomeTier, overrideScheme, fundingPreference, digiLockerStatus, digiLockerReference, digiLockerVerified, reviewConfirmed, dprId, dprStatus]);
+  }, [currentStep, highestStepReached, radius, selectedEnterprise, marginPercent, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, feasibilityResult, schemeResult, capitalEstimate, nearbyProfiles, licenses, applicantName, simulatedPan, incomeTier, overrideScheme, fundingPreference, digiLockerStatus, digiLockerReference, digiLockerVerified, reviewConfirmed, dprId, dprStatus]);
 
   // Mirror of geoStatus for async GPS callbacks (avoids stale closures).
   const geoStatusRef = useRef(geoStatus);
@@ -345,7 +346,15 @@ export function useAssessment() {
         if (mounted) {
           // Only show profiles that are actually within the selected radius
           const withinRadius = (dir.profiles || []).filter((p) => p.distance_m <= radius);
-          setNearbyProfiles(withinRadius);
+          if (withinRadius.length || !enterprise.apiCategory) setNearbyProfiles(withinRadius);
+          else {
+            // A category mismatch in the registry should not look like an
+            // empty market. Retry without the category filter and label the
+            // returned records honestly as nearby registered businesses.
+            api.getNearbyDirectory(lat, lon, radius)
+              .then((all) => mounted && setNearbyProfiles((all.profiles || []).filter((p) => p.distance_m <= radius)))
+              .catch(() => mounted && setNearbyProfiles([]));
+          }
         }
       } catch {
         // API offline — show empty, never fall back to mock Shirur data
@@ -361,6 +370,22 @@ export function useAssessment() {
   }, [userCoords, radius, enterprise.apiCategory]);
 
   // 5. Scheme Calculation via live backend
+  useEffect(() => {
+    let mounted = true;
+    if (!selectedEnterprise || !geoResolved?.state || !locationText) {
+      setCapitalEstimate(null);
+      return () => { mounted = false; };
+    }
+    api.getCapitalEstimate({
+      business: enterprise.name,
+      location: locationText,
+      state: geoResolved.state,
+      base_capex: enterprise.capex,
+    }).then((result) => { if (mounted) setCapitalEstimate(result); })
+      .catch(() => { if (mounted) setCapitalEstimate(null); });
+    return () => { mounted = false; };
+  }, [selectedEnterprise, enterprise.name, enterprise.capex, geoResolved?.state, locationText]);
+
   const runSchemeCalculate = useCallback(async () => {
     if (!selectedEnterprise) { setSchemeResult(null); return; }
     const marginAmt = (locationAdjustedCapex * marginPercent) / 100;
@@ -563,7 +588,7 @@ export function useAssessment() {
     return true;
   };
 
-  return { t, currentStep, highestStepReached, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, fundingPreference, setFundingPreference, downloadSuccess, uiError, setUiError, userCoords, setUserCoords, locationText, setLocationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, manualOverrideOpen, setManualOverrideOpen, loadingState, feasibilityResult, schemeResult, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, simulatedPan, setSimulatedPan: setSimulatedPanState, incomeTier, setIncomeTier: setIncomeTierState, overrideScheme, setOverrideScheme: setOverrideSchemeState, digiLockerStatus, digiLockerReference, digiLockerVerified, connectDigiLocker, reviewConfirmed, setReviewConfirmed, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep, advanceToStep };
+  return { t, currentStep, highestStepReached, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, fundingPreference, setFundingPreference, downloadSuccess, uiError, setUiError, userCoords, setUserCoords, locationText, setLocationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, manualOverrideOpen, setManualOverrideOpen, loadingState, feasibilityResult, schemeResult, capitalEstimate, locationCostFactor, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, simulatedPan, setSimulatedPan: setSimulatedPanState, incomeTier, setIncomeTier: setIncomeTierState, overrideScheme, setOverrideScheme: setOverrideSchemeState, digiLockerStatus, digiLockerReference, digiLockerVerified, connectDigiLocker, reviewConfirmed, setReviewConfirmed, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep, advanceToStep };
 }
 
 export type AssessmentState = ReturnType<typeof useAssessment>;

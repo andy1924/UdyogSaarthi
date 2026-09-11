@@ -80,6 +80,16 @@ export interface FeasibilityResult {
   overpass_ql?: string;
 }
 
+export interface CapitalEstimate {
+  rent_deposit: number;
+  equipment: number;
+  labour_setup: number;
+  materials_inventory: number;
+  licences_utilities: number;
+  total: number;
+  explanation: string;
+}
+
 export interface NearbyProfile {
   id: string;
   name: string;
@@ -233,7 +243,11 @@ export class ApiService {
   }
 
   private async handleProtectedFailure(response: Response, fallback: string): Promise<never> {
-    if (response.status === 401) {
+    // Only a bearer challenge means the JWT is invalid/expired. Other layers
+    // may also use 401 (for example request-integrity middleware); clearing a
+    // valid session in those cases causes the sign-in modal to loop.
+    const bearerChallenge = response.headers.get('www-authenticate')?.toLowerCase().includes('bearer');
+    if (response.status === 401 && bearerChallenge) {
       this.clearToken();
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent(AUTH_REQUIRED_EVENT));
@@ -428,6 +442,16 @@ export class ApiService {
       return this.handleProtectedFailure(res, 'Local demand check failed');
     }
 
+    return res.json();
+  }
+
+  async getCapitalEstimate(params: { business: string; location: string; state: string; base_capex: number }): Promise<CapitalEstimate> {
+    const token = await this.ensureAuthenticated();
+    const res = await fetch('/api/feasibility/capital-estimate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(params),
+    });
+    if (!res.ok) return this.handleProtectedFailure(res, 'Local capital estimate failed');
     return res.json();
   }
 

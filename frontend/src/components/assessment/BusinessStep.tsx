@@ -5,12 +5,12 @@ import type { AssessmentState } from './useAssessment';
 
 type Props = Pick<AssessmentState,
   'stepAnimClass' | 'selectedEnterprise' | 'setSelectedEnterprise' | 'marginPercent' |
-  'setMarginPercent' | 'schemeResult' | 'enterprise' | 'displayTpc' | 'executeFeasibilityAI' | 'goToStep'
+  'setMarginPercent' | 'schemeResult' | 'capitalEstimate' | 'locationCostFactor' | 'enterprise' | 'displayTpc' | 'executeFeasibilityAI' | 'goToStep'
 >;
 
 export default function BusinessStep({
   stepAnimClass, selectedEnterprise, setSelectedEnterprise, marginPercent,
-  setMarginPercent, schemeResult, enterprise, displayTpc, executeFeasibilityAI, goToStep,
+  setMarginPercent, schemeResult, capitalEstimate, locationCostFactor, enterprise, displayTpc, executeFeasibilityAI, goToStep,
 }: Props) {
   return (
     <section className={`mx-auto max-w-4xl space-y-6 ${stepAnimClass}`} aria-labelledby="business-title">
@@ -25,7 +25,7 @@ export default function BusinessStep({
         <div className="relative mt-2">
           <select id="enterpriseSelect" value={selectedEnterprise} onChange={(event) => setSelectedEnterprise(event.target.value)} className="w-full appearance-none rounded-xl border border-outline-variant bg-surface-container-lowest p-3.5 pr-12 text-base font-semibold text-on-surface outline-none focus:border-primary focus:ring-2 focus:ring-primary/20">
             <option value="" disabled>Choose a business idea</option>
-            {ENTERPRISE_GROUPS.map((group) => <optgroup key={group} label={group}>{ENTERPRISE_OPTIONS.filter((option) => option.group === group).map((option) => <option key={option.id} value={option.id}>{option.name} — {option.capexLabel}</option>)}</optgroup>)}
+            {ENTERPRISE_GROUPS.map((group) => <optgroup key={group} label={group}>{ENTERPRISE_OPTIONS.filter((option) => option.group === group).map((option) => <option key={option.id} value={option.id}>{option.name} — ₹{Math.round(option.capex * locationCostFactor).toLocaleString('en-IN')}</option>)}</optgroup>)}
           </select>
           <ChevronDown size={20} className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-secondary" aria-hidden="true" />
         </div>
@@ -46,6 +46,11 @@ export default function BusinessStep({
           <p className="text-sm text-on-surface-variant"><Text>Estimated project budget</Text></p>
           <p className="mt-2 break-words font-mono text-2xl font-semibold text-primary">{selectedEnterprise ? `₹${displayTpc.toLocaleString('en-IN')}` : '—'}</p>
           <p className="mt-3 text-sm leading-6 text-on-surface-variant">{schemeResult ? <><Text>Calculated using scheme rules</Text> <span className="font-mono">{schemeResult.rules.version}</span>.</> : <Text>Live funding rules are still loading.</Text>}</p>
+          {capitalEstimate && <details className="mt-3 text-sm text-on-surface-variant"><summary className="cursor-pointer font-semibold text-secondary">View local cost breakdown</summary><dl className="mt-2 grid grid-cols-2 gap-2">{[
+            ['Rent deposit', capitalEstimate.rent_deposit], ['Equipment', capitalEstimate.equipment],
+            ['Setup labour', capitalEstimate.labour_setup], ['Materials & stock', capitalEstimate.materials_inventory],
+            ['Licences & utilities', capitalEstimate.licences_utilities],
+          ].map(([label, value]) => <div key={String(label)}><dt>{label}</dt><dd className="font-mono font-semibold text-primary">₹{Number(value).toLocaleString('en-IN')}</dd></div>)}</dl><p className="mt-2 text-xs">{capitalEstimate.explanation}</p></details>}
         </div>
       </div>
 

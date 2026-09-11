@@ -53,3 +53,19 @@ class FeasibilityOut(BaseModel):
     overpass_ql: str = ""
 
 
+class CapitalEstimateIn(BaseModel):
+    business: str = Field(min_length=2, max_length=160)
+    location: str = Field(min_length=2, max_length=240)
+    state: str = Field(min_length=2, max_length=80)
+    base_capex: int = Field(ge=50_000, le=50_000_000)
+
+
+class CapitalEstimateOut(BaseModel):
+    rent_deposit: int
+    equipment: int
+    labour_setup: int
+    materials_inventory: int
+    licences_utilities: int
+    total: int
+    explanation: str
+

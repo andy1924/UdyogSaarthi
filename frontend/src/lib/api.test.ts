@@ -17,7 +17,10 @@ describe('protected API session recovery', () => {
     const browserWindow = new EventTarget();
     vi.stubGlobal('window', browserWindow);
     vi.stubGlobal('localStorage', localStorage);
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 })));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Unauthorized', {
+      status: 401,
+      headers: { 'WWW-Authenticate': 'Bearer' },
+    })));
 
     const service = new ApiService();
     service.setToken('expired-token');
@@ -34,6 +37,23 @@ describe('protected API session recovery', () => {
     expect(service.getToken()).toBeNull();
     expect(storage.has('udyog_access_token')).toBe(false);
     expect(signInRequested).toHaveBeenCalledOnce();
+  });
+
+  it('does not destroy a valid session for a non-bearer 401', async () => {
+    const storage = new Map<string, string>();
+    vi.stubGlobal('window', new EventTarget());
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+    });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Request rejected', { status: 401 })));
+    const service = new ApiService();
+    service.setToken('valid-session-token');
+    await expect(service.getFeasibilityScore({
+      location_text: 'Pune, Maharashtra', business_category: 'retail', lat: 18.5, lon: 73.8,
+    })).rejects.toMatchObject({ status: 401 });
+    expect(service.getToken()).toBe('valid-session-token');
   });
 
   it('restores a valid session through the backend and logs out cleanly', async () => {

@@ -4,6 +4,12 @@ import { SAARTHI_LANG_STORAGE_KEY } from './bhashini-languages';
 import { getTranslations, type UiStrings } from './translations';
 
 const english = getTranslations('en');
+const chunkForTranslation = (values: string[], limit = 1900) => values.reduce<string[][]>((groups, value) => {
+  const current = groups[groups.length - 1];
+  if (!current || current.reduce((sum: number, item: string) => sum + item.length, 0) + value.length > limit) groups.push([value]);
+  else current.push(value);
+  return groups;
+}, []);
 interface LanguageValue {
   lang: string;
   setLang: (value: string) => void;
@@ -53,8 +59,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       setStatus('loading');
       try {
         const translated: Record<string, string> = {};
-        for (let offset = 0; offset < missing.length; offset += 12) {
-          const batch = missing.slice(offset, offset + 12);
+        for (const batch of chunkForTranslation(missing)) {
           const values = await api.translateTexts(batch, lang, controller.signal);
           batch.forEach((source, index) => { translated[source] = values[index]; });
         }

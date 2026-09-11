@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 from app.services import geo_service
 
 
@@ -38,6 +40,7 @@ class _Client:
         return _Response()
 
 
+@pytest.mark.anyio
 async def test_lgd_lookup_sends_data_gov_api_key(monkeypatch) -> None:
     """The protected data.gov.in datastore endpoint requires ``api-key``."""
     captured: dict[str, Any] = {}

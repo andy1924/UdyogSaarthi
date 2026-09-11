@@ -4,16 +4,9 @@
 OPENAI_API_KEY="your_api_key"
 
 # ==========================================
-# SARVAM AI (preferred server-side translation)
+# SARVAM AI (server-side translation)
 # ==========================================
 SARVAM_API_KEY="your_api_key"
-
-# ==========================================
-# BHASHINI (optional translation fallback)
-# ==========================================
-BHASHINI_USER_ID="your_user_id"
-BHASHINI_API_KEY="your_api_key"
-BHASHINI_PIPELINE_ID="your_pipeline_id"
 
 # ==========================================
 # MAPPLS (Location & POI Density)

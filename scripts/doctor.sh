@@ -11,7 +11,7 @@ docker info >/dev/null 2>&1 || { echo '✗ Docker daemon unavailable'; fail=1; }
 [ -f infra/secrets/app_secret_key.txt ] || { echo '✗ missing infra/secrets/app_secret_key.txt'; fail=1; }
 [ -f frontend/package-lock.json ] || { echo '✗ frontend/package-lock.json missing'; fail=1; }
 [ -f backend/.env ] || { echo '✗ backend/.env missing (copy backend/env.md)'; fail=1; }
-if [ -f backend/.env ] && ! grep -Eq '^SARVAM_API_KEY=.+|^BHASHINI_API_KEY=.+' backend/.env; then
+if [ -f backend/.env ] && ! grep -Eq '^SARVAM_API_KEY=.+' backend/.env; then
   echo '⚠ translation provider key missing (set SARVAM_API_KEY in backend/.env)'
 fi
 [ "$fail" -eq 0 ] && echo '✓ UdyogSaarthi development environment is ready'

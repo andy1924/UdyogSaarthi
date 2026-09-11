@@ -63,4 +63,4 @@ Margin money: 10% of TPC. EQI computed deterministically per `scheme_rules` vers
 
 ## Out of Scope
 
-Inventory, ledger, ONDC, AA-gated flow, bespoke license issuance, RN mobile (Phase 2 placeholder only), real Bhashini/ASR (mocked interface, pluggable), real OSM live (mock + contract-typed adapter).
+Inventory, ledger, ONDC, AA-gated flow, bespoke license issuance, RN mobile (Phase 2 placeholder only), real ASR (mocked interface, pluggable), real OSM live (mock + contract-typed adapter).

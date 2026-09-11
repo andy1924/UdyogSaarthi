@@ -302,7 +302,7 @@ banner - is listed in `PAGE_CHROME` in the same file.
   Hindi reply containing no Devanagari and uses the canned answer instead. That
   also catches a gateway returning an English billing notice as HTTP 200.
 - **The Hindi TTS checkpoint is CC-BY-NC-4.0.** Fine for a hackathon, not for
-  commercial use. Shipping it needs a licensed Indic voice (Bhashini / Sarvam,
+  commercial use. Shipping it needs a licensed Indic voice (Sarvam,
   or a local AI4Bharat Indic-TTS checkpoint), which would also mean rethinking
   the local-only rule.
 - **Small local models drift.** A 4B model will sometimes answer a Hindi

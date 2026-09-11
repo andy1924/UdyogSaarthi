@@ -1,17 +1,14 @@
-// Bhashini-supported language set for the UdyogSaarthi language selector.
+// Language set for the UdyogSaarthi language selector.
 //
-// Source: Digital India BHASHINI — National Language Translation Mission covers
-// all 22 Eighth-Schedule languages (+ English as the bridge/interface language).
-// Refs: https://bhashini.gov.in/about-bhashini ·
-// https://www.pib.gov.in/PressReleasePage.aspx?PRID=2182427 ("22 Languages,
-// Digitally Reimagined") · Bhashini API docs follow ISO-639 language codes
-// (https://bhashini.gitbook.io/bhashini-apis). Codes below are ISO-639-1 where
-// one exists, otherwise ISO-639-2/3 (brx, doi, kok, mai, mni, sat).
+// The 22 Eighth-Schedule languages plus English as the bridge/interface
+// language. Codes are ISO-639-1 where one exists, otherwise ISO-639-2/3
+// (brx, doi, kok, mai, mni, sat) — the same codes the server-side Sarvam
+// translation proxy accepts (backend/app/routers/translation.py).
 //
-// The server determines which of these languages the configured pipeline supports.
+// The server determines which of these languages the configured provider supports.
 
-export interface BhashiniLanguage {
-  /** ISO-639 language code (matches Bhashini API language codes). */
+export interface SaarthiLanguage {
+  /** ISO-639 language code. */
   code: string;
   /** English display name. */
   label: string;
@@ -19,7 +16,7 @@ export interface BhashiniLanguage {
   nativeLabel: string;
 }
 
-export const BHASHINI_LANGUAGES: BhashiniLanguage[] = [
+export const SAARTHI_LANGUAGES: SaarthiLanguage[] = [
   { code: 'en', label: 'English', nativeLabel: 'English' },
   { code: 'as', label: 'Assamese', nativeLabel: 'অসমীয়া' },
   { code: 'bn', label: 'Bengali', nativeLabel: 'বাংলা' },

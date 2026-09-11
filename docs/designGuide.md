@@ -122,7 +122,7 @@ Inspired by Zerodha Kite/zerodha.com's restrained, high-contrast financial palet
 
 - Minimum touch target 44×44px on applicant app.
 - WCAG AA contrast minimum on all semantic colors against their backgrounds (`state-positive`/`state-negative` above are tuned to pass on `bg-surface`).
-- Full UI string catalog externalized for Bhashini-driven translation into the 22 target languages — no hardcoded English strings in components.
+- Full UI string catalog externalized for server-side translation into the 22 target languages — no hardcoded English strings in components.
 - Every screen with a written form has a "speak instead" affordance.
 - Numerals, dates, and currency localized per user's selected language/region, not just translated labels.
 

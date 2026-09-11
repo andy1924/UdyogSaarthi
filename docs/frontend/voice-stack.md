@@ -22,7 +22,7 @@ one is the record of the decisions and the measurements behind them.
    variable or deploy can turn the applicant's recording into network traffic.
    Only the recognised text may leave, and only to the chat brain. Do not
    repeat the claim elsewhere.
-2. **No provider API keys.** `SARVAM_API_KEY` and `BHASHINI_*` are unset, so the
+2. **No provider API keys.** `SARVAM_API_KEY` is unset, so the
    existing `routers/translation.py` proxy cannot be reused for speech.
 3. **Frontend-only.** The FastAPI backend moves to Supabase and the frontend to
    Vercel, so the voice feature must not add coupling to `backend/`.
@@ -130,15 +130,15 @@ with a test that keeps it there. The quantized checkpoint is 37 MB rather than
 **CC-BY-NC-4.0 (non-commercial)**. Fine for a prototype or a hackathon, not
 acceptable for a deployed government-facing service. Replace it with a licensed
 Indic voice before launch - a local AI4Bharat Indic-TTS checkpoint under its own
-terms, or Bhashini / Sarvam if the local-only rule is ever relaxed.
+terms, or Sarvam if the local-only rule is ever relaxed.
 
 Both model downloads are fetched by the **browser** on first use and cached
 locally. No server is involved at any point.
 
 ## Why these, and why not the alternatives
 
-- **Sarvam / Bhashini ASR + TTS** - broad Indic coverage and good quality, but
-  both are cloud services and the speech rule forbids sending audio off the
+- **Sarvam ASR + TTS** - broad Indic coverage and good quality, but it is a
+  cloud service and the speech rule forbids sending audio off the
   device. Ruled out unless that rule changes.
 - **Nemotron-3.5-ASR-Streaming-Multilingual-0.6B** - verified 35 languages, but
   only **Hindi** from our set (no Tamil, Bengali, Telugu, Marathi, Gujarati,
@@ -557,6 +557,6 @@ need no key of any kind.
 
 ## Deferred (explicitly out of scope)
 
-- 22-language voice (needs MMS-TTS/Indic-TTS, or Bhashini keys).
+- 22-language voice (needs MMS-TTS/Indic-TTS, or provider keys).
 - Streaming word-by-word ASR (Whisper is chunked, not token-streaming).
 - Voice-driven form filling or step navigation.

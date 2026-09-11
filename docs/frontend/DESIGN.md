@@ -117,7 +117,7 @@ footnote `Scheme rules v2024-11 · micro ≤₹1.40L 6.5%/3y · term ≤₹50L 8
 
 ## 7. Open issues (maintained 2026-09-03 — element map added)
 
-1. Voice/ASR mocked (dock UI only) — Bhashini adapter unplugged (PRODUCT.md scope).
+1. Voice/ASR mocked (dock UI only) — ASR adapter unplugged (PRODUCT.md scope).
 2. GPS is demo-grade; `location_text` is the reliable anchor until LGD live verify.
 3. Wired: `saarthi-check.html` + `api-client.js` cover all 14 endpoints per `api-contract.md`; preview still needs live backend at `http://localhost:8000` (configurable via API-base field) — nothing was run per instruction.
 4. Directory `radius_m` mismatch: UI sends 10000, API allows 50000 — clamped client-side.
@@ -125,7 +125,7 @@ footnote `Scheme rules v2024-11 · micro ≤₹1.40L 6.5%/3y · term ≤₹50L 8
 6. i18n hero+CTA live for HI/TA/BN; deeper strings stubbed.
 7. NEW: `saarthi-design-system.md` (detailed agent spec, 20 components C00–C20) + `saarthi-element-map.html` (visual inventory with live specimens + copy snippets) added as build map — canonical hooks unchanged.
 
-1. Voice/ASR mocked (dock UI only) — Bhashini adapter unplugged (PRODUCT.md scope).
+1. Voice/ASR mocked (dock UI only) — ASR adapter unplugged (PRODUCT.md scope).
 2. GPS is demo-grade; `location_text` is the reliable anchor until LGD live verify.
 3. Wired: `saarthi-check.html` + `api-client.js` cover all 14 endpoints per `api-contract.md`; preview still needs live backend at `http://localhost:8000` (configurable via API-base field) — nothing was run per instruction.
 4. Directory `radius_m` mismatch: UI sends 10000, API allows 50000 — clamped client-side.

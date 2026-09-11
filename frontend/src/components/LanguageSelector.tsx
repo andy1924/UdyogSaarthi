@@ -1,6 +1,6 @@
 import { Check, ChevronDown, LoaderCircle } from 'lucide-react';
 import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { BHASHINI_LANGUAGES } from '../lib/bhashini-languages';
+import { SAARTHI_LANGUAGES } from '../lib/saarthi-languages';
 import { useLanguage } from '../lib/LanguageContext';
 
 interface LanguageSelectorProps {
@@ -19,7 +19,7 @@ export default function LanguageSelector({ variant = 'landing', className = '' }
   const [showSpinner, setShowSpinner] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const labelFor = (code: string) => BHASHINI_LANGUAGES.find((item) => item.code === code)?.nativeLabel ?? code;
+  const labelFor = (code: string) => SAARTHI_LANGUAGES.find((item) => item.code === code)?.nativeLabel ?? code;
   const optionId = (code: string) => `language-option-${code}`;
 
   const openMenu = () => {

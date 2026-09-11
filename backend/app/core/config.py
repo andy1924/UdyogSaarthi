@@ -33,9 +33,6 @@ class Settings(BaseSettings):
     lgd_api_resource_id: str = "9115b89c-b661-4d12-8a1c-6ef2dc81c7b5"
     # API key issued by data.gov.in for the LGD datastore endpoint.
     data_gov_api_key: str = ""
-    bhashini_user_id: str = ""
-    bhashini_api_key: str = ""
-    bhashini_pipeline_id: str = ""
     sarvam_api_key: str = ""
 
     # ── DPR / AI SWOT & KYC ──────────────────────────────────────────

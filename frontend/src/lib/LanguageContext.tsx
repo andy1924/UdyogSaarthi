@@ -1,10 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from './api';
-import { BHASHINI_LANGUAGES, SAARTHI_LANG_STORAGE_KEY } from './bhashini-languages';
+import { SAARTHI_LANGUAGES, SAARTHI_LANG_STORAGE_KEY } from './saarthi-languages';
 import { getTranslations, type UiStrings } from './translations';
 
 const english = getTranslations('en');
-const supportedLanguageCodes = BHASHINI_LANGUAGES.map(({ code }) => code);
+const supportedLanguageCodes = SAARTHI_LANGUAGES.map(({ code }) => code);
 const chunkForTranslation = (values: string[], limit = 1900) => values.reduce<string[][]>((groups, value) => {
   const current = groups[groups.length - 1];
   if (!current || current.reduce((sum: number, item: string) => sum + item.length, 0) + value.length > limit) groups.push([value]);

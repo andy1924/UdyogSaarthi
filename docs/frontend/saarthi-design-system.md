@@ -130,7 +130,7 @@ in radius." 503 `DIRECTORY_UNAVAILABLE` → hide section + muted note, keep verd
 
 ### C17 Voice dock — `#micBtn #vTrans`
 In-flow bar (never modal), mic 48 px + transcript `aria-live="polite"`.
-Currently mocked ("listening… bolo…"); Bhashini adapter unplugged.
+Currently mocked ("listening… bolo…"); ASR adapter unplugged.
 
 ### C18 Offline — `#offBtn #queueN`
 Toggle queues failed POSTs to `saarthi-queue` (Dexie shape), banner "Offline ·
@@ -215,7 +215,7 @@ hotlinked/remote images, client-computed loan math, second accent color.
 
 ## 11. Open issues log (maintain as you build)
 
-1. 2026-09-03 — Voice/ASR mocked; Bhashini adapter unplugged.
+1. 2026-09-03 — Voice/ASR mocked; ASR adapter unplugged.
 2. 2026-09-03 — GPS demo-grade; `location_text` reliable anchor.
 3. 2026-09-03 — Needs live backend `http://localhost:8000` (editable); nothing run per instruction.
 4. 2026-09-03 — Directory radius UI 10000 vs API max 50000 — clamp client-side.

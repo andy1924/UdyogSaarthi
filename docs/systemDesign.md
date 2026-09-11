@@ -14,7 +14,7 @@ The prior draft of this design scoped in Cash Flow (double-entry ledger), Invent
 |---|---|
 | **Inventory module** | Requires ongoing, disciplined data entry (stock in/out) from a user segment the research explicitly characterizes as having low financial and digital literacy. This is an *operating* concern for a business that already exists — the platform's job per `research.md` §2–3 is *pre-launch* feasibility and financial structuring. Adding a daily-use bookkeeping burden at onboarding raises the abandonment risk of the core advisory flow for zero contribution to the NPA-reduction and over-indebtedness goals stated in §8.1. |
 | **Cash Flow / double-entry ledger** | Same failure mode: a general ledger is a bookkeeping product, not an advisory one. The research's actual cash-flow need is narrow and already scoped — the working-capital buffer calculation and quarter-by-quarter EQI schedule in Module 2 (§5.3). That is fully covered by the Deterministic Scheme Engine below; it does not require a persistent transactional ledger. |
-| **Supply Chain / ONDC matching** | Not mentioned anywhere in `research.md`. It's a marketplace/logistics problem, orthogonal to feasibility analysis and loan structuring, and pulls engineering effort into buyer/seller-side protocol integration instead of the LGD/OSM/Bhashini/scheme-router stack the research actually specifies. |
+| **Supply Chain / ONDC matching** | Not mentioned anywhere in `research.md`. It's a marketplace/logistics problem, orthogonal to feasibility analysis and loan structuring, and pulls engineering effort into buyer/seller-side protocol integration instead of the LGD/OSM/scheme-router stack the research actually specifies. |
 | **Account Aggregator as a hard prerequisite** | The research's borrowers are frequently *first-time*, informal-sector entrepreneurs (§2, "missing middle") — many will have thin or no formal banking/GST trail for AA to pull from. Making AA mandatory would exclude exactly the population the mandate targets. AA becomes an **optional enrichment** to the manual estimation workflow (§5.4), not a gate. |
 
 What remains — **KYN Feasibility Engine, Deterministic Scheme Engine, DPR Generator, Multilingual Voice Layer, Compliance/Licensing checklist** — is a direct 1:1 mapping to `research.md` Modules 1 and 2, plus the two supporting concerns (DPR submission and license eligibility) the research says beneficiaries currently outsource to predatory middlemen (§7.1.3).
@@ -30,7 +30,7 @@ Farmers/Vendors directory and License checklist remain in scope as **thin, read-
 │ CLIENTS                                                                │
 │  • Next.js PWA — LOCAL-FIRST (IndexedDB-backed, background sync)       │
 │  • React Native (Android-first), same local-first data layer           │
-│  • IVR/SMS fallback (feature phones) via Bhashini + telephony gateway  │
+│  • IVR/SMS fallback (feature phones) via telephony gateway             │
 └───────────────┬──────────────────────────────────────────────────────┬─┘
                 │ REST (OpenAPI) — resilient, retry-safe               │
                 │ Async voice-note upload (chunked, resumable)         │
@@ -42,7 +42,7 @@ Farmers/Vendors directory and License checklist remain in scope as **thin, read-
 │ BACKEND — FastAPI (async)       │   │ ASYNC WORKERS — Celery + Redis     │
 │ Modular monolith:               │   │  • Voice-note ASR/NMT batch queue  │
 │  • KYN Feasibility Engine       │   │  • DPR document rendering          │
-│  • Deterministic Scheme Engine  │   │  • Bhashini live-stream fallback   │
+│  • Deterministic Scheme Engine  │   │  • live-stream voice fallback      │
 │    (pure Python, unit-tested,   │   │    → batch reprocessing            │
 │     zero LLM involvement)       │   └──────────────────────────────────┬─┘
 │  • DPR Generator                │                                      │
@@ -61,7 +61,7 @@ Farmers/Vendors directory and License checklist remain in scope as **thin, read-
                 │
 ┌───────────────▼────────────────────────────────────────────────────────┐
 │ EXTERNAL INTEGRATIONS                                                  │
-│ Bhashini (ASR/NMT/TTS, live + batch) · LGD API · OSM Overpass ·        │
+│ ASR/NMT/TTS (live + batch) · LGD API · OSM Overpass ·                  │
 │ DigiLocker (KYC/license) · GSTN (where applicable) · JanSamarth ·      │
 │ Account Aggregator (Setu/Sahamati) — OPTIONAL enrichment, not a gate   │
 └────────────────────────────────────────────────────────────────────────┘
@@ -118,7 +118,7 @@ See §4 for the full resiliency architecture. Functionally: ASR → NMT (to Engl
 
 | Layer | Choice | Justification |
 |---|---|---|
-| Backend framework | **FastAPI** (async, Uvicorn/Gunicorn) | I/O-bound integrations dominate (Bhashini, LGD, Overpass, Claude, DigiLocker) — async concurrency matters more here than in a typical CRUD app. Pydantic schemas enforce strict input validation at the boundary feeding the Deterministic Scheme Engine — a malformed margin-capital input must never reach the calculator. |
+| Backend framework | **FastAPI** (async, Uvicorn/Gunicorn) | I/O-bound integrations dominate (LGD, Overpass, Claude, DigiLocker) — async concurrency matters more here than in a typical CRUD app. Pydantic schemas enforce strict input validation at the boundary feeding the Deterministic Scheme Engine — a malformed margin-capital input must never reach the calculator. |
 | ORM | SQLAlchemy 2.0 (async) + Alembic | GeoAlchemy2 support for PostGIS; standard migration tooling for the versioned `scheme_rules` table. |
 | Frontend | **Next.js (React), configured local-first** | SSR/ISR for low-end devices; `next-i18next` for static UI strings; PWA + IndexedDB for offline form state (§6). |
 | Mobile | React Native (Android-first) | Matches India's rural smartphone base; shares the local-first data layer and TypeScript types with the web PWA. |
@@ -128,7 +128,7 @@ See §4 for the full resiliency architecture. Functionally: ASR → NMT (to Engl
 | LLM | Claude API (Sonnet for SWOT/advisory synthesis, Haiku for cheap verbalization) | Reliable instruction-following for the "verbalize, never compute" constraint (§2.2); strong multi-turn RAG behavior for spatially-filtered retrieval (§5). |
 | Object storage | AWS S3 (or Cloudflare R2) | Voice-note chunks, DPR PDFs, KYC/license documents. |
 | Auth | Keycloak (self-hosted) or AWS Cognito | OAuth2/OIDC; supports future DigiLocker/Aadhaar-based federation. |
-| Cloud | AWS `ap-south-1` (Mumbai) | Data residency for DPDP Act 2023 and RBI-adjacent norms; physical proximity to Bhashini/LGD/govt API endpoints minimizes voice-pipeline latency. |
+| Cloud | AWS `ap-south-1` (Mumbai) | Data residency for DPDP Act 2023 and RBI-adjacent norms; physical proximity to LGD/govt API endpoints minimizes voice-pipeline latency. |
 | CI/CD | GitHub Actions → ECS Fargate | Avoids Kubernetes operational overhead until a specific module demonstrably needs independent scaling. |
 | Observability | Sentry + Grafana Cloud (free tier) | Adequate for MVP scale; avoids premature APM spend. |
 
@@ -140,7 +140,7 @@ See §4 for the full resiliency architecture. Functionally: ASR → NMT (to Engl
 
 The prior WebSocket-only design assumed consistently available full-duplex connectivity, which is not a safe assumption across 2G/3G rural coverage. Replaced with a **hybrid ingestion pipeline**:
 
-1. **Primary path — live streaming:** WebSocket connection to Bhashini for full-duplex ASR/TTS when connection quality supports it (client-side measures round-trip latency/packet loss and decides).
+1. **Primary path — live streaming:** WebSocket full-duplex ASR/TTS when connection quality supports it (client-side measures round-trip latency/packet loss and decides).
 2. **Fallback path — async voice-note queue:** if the live connection degrades or drops mid-session, the client automatically switches to **recording locally and uploading resumable audio chunks** (via chunked/resumable upload, e.g. `tus` protocol or S3 multipart) as connectivity allows. A Celery worker picks up completed chunks, runs batch ASR/NMT, and pushes the result back to the client (via push notification or next poll) rather than requiring the session to stay open.
 3. **Client behavior:** the UI always shows an explicit state — "Listening (live)" vs "Recorded — will process when connected" — so a low-literacy user isn't left uncertain about whether their input was captured. This is a product-trust requirement, not just an engineering nicety, given the target demographic.
 4. **IVR/SMS tier:** for feature-phone users with no smartphone/data at all, a telephony gateway (Exotel/Twilio, India-compliant) captures voice over a standard phone call, applies the same batch ASR/NMT pipeline, and delivers results via SMS/voice callback.
@@ -192,7 +192,7 @@ The `scheme_rules`, and the calculator functions in §2.2, live in a schema with
 ## 7. Phased Implementation Plan
 
 **Phase 1 — MVP (single-state pilot):**
-- KYN Feasibility Engine (text-first; Bhashini live voice optional, batch voice-note fallback available from day one — §4 is not a "later" feature, it's required at launch given the target network conditions)
+- KYN Feasibility Engine (text-first; live voice optional, batch voice-note fallback available from day one — §4 is not a "later" feature, it's required at launch given the target network conditions)
 - Deterministic Scheme Engine, fully unit-tested, with versioned `scheme_rules`
 - Manual cash-flow estimation workflow (§2.3) — no AA integration yet
 - DPR Generator (template-driven, PDF output)
@@ -201,7 +201,7 @@ The `scheme_rules`, and the calculator functions in §2.2, live in a schema with
 - Hard LGD-partitioned pgvector retrieval from day one (§5.1) — this is a correctness property, not an optimization, so it is not deferred
 
 **Phase 2:**
-- Live full-duplex Bhashini voice as the primary (not sole) input path, hybrid fallback already in place from Phase 1
+- Live full-duplex voice as the primary (not sole) input path, hybrid fallback already in place from Phase 1
 - Optional Account Aggregator enrichment for cash-flow estimation, clearly flagged as optional in the DPR
 - Farmer/Vendor directory (read-only, geospatial lookup)
 - IVR/SMS tier for feature-phone users
@@ -249,7 +249,6 @@ UdyogSaarthi/
 │   │   │   ├── compliance/
 │   │   │   │   └── digilocker_client.py
 │   │   │   ├── voice/
-│   │   │   │   ├── bhashini_client.py
 │   │   │   │   ├── stream_handler.py
 │   │   │   │   └── batch_processor.py
 │   │   │   └── rag/                  # separate schema/service from scheme_engine

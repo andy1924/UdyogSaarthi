@@ -26,8 +26,8 @@ The repository includes platform-neutral checks and launchers:
 ./scripts/stop.sh     # stop backend containers (keeps volumes)
 ```
 
-On Windows PowerShell run `./scripts/dev.ps1` (or the existing
-`start-dev.bat`). Always use `npm ci`, not `npm install`, so every contributor
+On Windows PowerShell run `./scripts/dev.ps1` (or `scripts/start-dev.bat`).
+Always use `npm ci`, not `npm install`, so every contributor
 gets the exact versions in `frontend/package-lock.json`. Do not commit either
 `.env` file; copy the examples and keep API keys local.
 

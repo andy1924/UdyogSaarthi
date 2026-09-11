@@ -34,9 +34,9 @@ docs/          Product, API, design, security, and runbook documentation
 graphify-out/  Generated architecture reports (regenerated when needed)
 ```
 
-Use `scripts/` for developer commands. The root `start-dev.bat` and
-`stop-dev.bat` remain Windows compatibility launchers; application source
-stays inside `backend/` and `frontend/`.
+Use `scripts/` for developer commands, including the Windows `start-dev.bat`
+and `stop-dev.bat` compatibility launchers. Application source stays inside
+`backend/` and `frontend/`.
 
 ---
 

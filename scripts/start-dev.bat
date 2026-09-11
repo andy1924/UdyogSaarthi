@@ -2,7 +2,8 @@
 REM UdyogSaarthi dev launcher: backend (Docker) + frontend (Vite).
 REM Double-click or run from anywhere; services keep running after this closes.
 setlocal
-cd /d "%~dp0"
+REM This script lives in scripts\ - run from the repo root it sits inside.
+cd /d "%~dp0.."
 
 REM Docker Desktop on Windows listens on npipe; ignore any stale DOCKER_HOST
 REM (e.g. tcp://127.0.0.1:2375) for this session only.
@@ -41,7 +42,7 @@ echo   Frontend: http://localhost:5173
 echo   Backend:  http://localhost:8000  (docs: http://localhost:8000/docs)
 echo.
 echo Closing this window stops the frontend.
-echo Backend containers have no windows and keep running - stop them with stop-dev.bat
+echo Backend containers have no windows and keep running - stop them with scripts\stop-dev.bat
 echo.
 pushd frontend
 call npm run dev

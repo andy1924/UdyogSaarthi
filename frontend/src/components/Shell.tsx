@@ -68,11 +68,11 @@ export default function Shell({ active, user, onSignIn, onLogout, children }: Sh
   }, [menuOpen]);
 
   return (
-    <div className="min-h-screen bg-surface text-on-surface">
+    <div className="app-shell min-h-screen bg-surface text-on-surface">
       <a href="#shell-content" className="skip-link">Skip to content</a>
 
-      <header className="sticky top-0 z-50 border-b border-outline-variant/60 bg-surface-container-lowest/95 backdrop-blur-md">
-        <div className="flex min-h-16 w-full items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-10">
+      <header className="app-header sticky top-0 z-50 border-b border-outline-variant/50 bg-surface-container-lowest/90 backdrop-blur-xl">
+        <div className="flex min-h-[4.5rem] w-full items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-10">
           <div className="flex min-w-0 items-center gap-1">
             {isLanding && (
               <div className="relative" ref={menuRef}>
@@ -96,7 +96,7 @@ export default function Shell({ active, user, onSignIn, onLogout, children }: Sh
                           type="button"
                           onClick={() => go(item.name)}
                           aria-current={isActive ? 'page' : undefined}
-                          className={`flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm font-semibold transition-colors ${isActive ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}
+                          className={`flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm font-semibold transition-all duration-200 ${isActive ? 'bg-primary text-on-primary shadow-sm' : 'text-on-surface-variant hover:bg-surface-container hover:text-primary'}`}
                         >
                           {item.label}
                         </button>
@@ -137,7 +137,7 @@ export default function Shell({ active, user, onSignIn, onLogout, children }: Sh
       </header>
 
       <div className="flex w-full items-stretch gap-0">
-        {!isLanding && <nav aria-label="Primary" className="sticky top-16 hidden h-[calc(100vh-4rem)] w-60 shrink-0 flex-col gap-1 overflow-y-auto px-4 py-6 md:flex">
+        {!isLanding && <nav aria-label="Primary" className="sticky top-[4.5rem] hidden h-[calc(100vh-4.5rem)] w-64 shrink-0 flex-col gap-1.5 overflow-y-auto border-r border-outline-variant/45 bg-surface-container-lowest/65 px-4 py-6 md:flex">
           {visibleItems.map((item) => {
             const Icon = item.icon;
             const isActive = item.name === active;
@@ -147,7 +147,7 @@ export default function Shell({ active, user, onSignIn, onLogout, children }: Sh
                 type="button"
                 onClick={() => go(item.name)}
                 aria-current={isActive ? 'page' : undefined}
-                className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold transition-colors ${isActive ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}
+                className={`flex min-h-12 w-full items-center gap-3 rounded-2xl px-4 py-2.5 text-left text-sm font-semibold transition-all duration-200 ${isActive ? 'bg-primary text-on-primary shadow-[0_8px_24px_rgb(23_33_13_/_0.14)]' : 'text-on-surface-variant hover:translate-x-0.5 hover:bg-surface-container hover:text-primary'}`}
               >
                 <Icon size={19} aria-hidden="true" className="shrink-0" />
                 <span>{item.label}</span>
@@ -156,7 +156,7 @@ export default function Shell({ active, user, onSignIn, onLogout, children }: Sh
           })}
         </nav>}
 
-        <main id="shell-content" className="min-w-0 flex-1 px-4 pb-28 pt-6 sm:px-6 md:pb-16 lg:px-10">
+        <main id="shell-content" className={`min-w-0 flex-1 pb-28 md:pb-16 ${isLanding ? '' : 'px-4 pt-8 sm:px-6 lg:px-10 lg:pt-10'}`}>
           {children}
         </main>
       </div>

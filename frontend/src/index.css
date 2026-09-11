@@ -5,7 +5,7 @@
 @tailwind utilities;
 
 @layer base {
-  body { @apply font-dm text-primary; }
+  body { @apply bg-surface font-dm text-primary; }
   button, select, input:not([type='checkbox']):not([type='radio']):not([type='range']) {
     min-height: 44px;
   }
@@ -148,9 +148,15 @@ html.scrollbar-reveal::-webkit-scrollbar-thumb:hover {
 
 html {
   scroll-behavior: smooth;
+  background: #F7F8F2;
 }
 
 body {
+  min-width: 320px;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% 4%, rgb(223 236 198 / 0.28), transparent 30rem),
+    #F7F8F2;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -180,6 +186,25 @@ body {
 
 .animate-page-enter {
   animation: page-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+::selection { background: #DFECC6; color: #17210D; }
+
+.app-header { box-shadow: 0 1px 0 rgb(23 33 13 / .03), 0 10px 30px rgb(23 33 13 / .04); }
+
+@media (hover: hover) {
+  button:not(:disabled), a { transition-duration: 200ms; }
+}
+
+input, select, textarea {
+  transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+}
+
+input:hover, select:hover, textarea:hover { border-color: rgb(97 115 60 / .65); }
+
+input:focus, select:focus, textarea:focus {
+  border-color: #61733C;
+  box-shadow: 0 0 0 4px rgb(97 115 60 / .12);
 }
 
 /* ── Dashboard step transitions ───────────────────────────────

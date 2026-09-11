@@ -11,9 +11,9 @@ import BrandLogo from './BrandLogo';
 type LegalDoc = 'privacy' | 'terms' | 'cookies';
 
 const columnTitle =
-  'font-roboto-mono text-xs leading-[1.4] tracking-[0.08em] uppercase text-olive-800';
+  'font-roboto-mono text-xs leading-[1.4] tracking-[0.08em] uppercase text-secondary';
 const columnLink =
-  'font-dm font-bold text-base lg:text-lg leading-[1.5] tracking-[-0.025em] text-black/75 hover:text-olive-800 transition-colors text-left';
+  'font-dm font-semibold text-base leading-[1.5] tracking-[-0.015em] text-on-surface-variant hover:text-primary transition-colors text-left';
 
 export default function Footer() {
   const { t } = useLanguage();
@@ -39,15 +39,15 @@ export default function Footer() {
 
   return (
     <>
-      <footer className="relative isolate overflow-hidden px-4 pb-6 pt-10 sm:px-8 sm:pb-8 sm:pt-14 lg:px-14 lg:pt-16">
+      <footer className="relative isolate overflow-hidden border-t border-outline-variant/50 bg-white px-4 pb-8 pt-12 sm:px-8 sm:pb-10 sm:pt-16 lg:px-10">
         <BotanicalAccent side="left" className="bottom-8 rotate-6 opacity-20" />
-        <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:gap-10">
+        <div className="relative z-10 mx-auto flex max-w-[1320px] flex-col gap-10 lg:flex-row lg:justify-between lg:gap-16">
           <div className="flex-1">
             <BrandLogo />
-            <p className="font-crimson text-[14px] sm:text-[16px] lg:text-[20px] leading-[0.9] tracking-[-0.03em] text-black/75 mt-3">
+            <p className="mt-3 font-dm text-sm font-semibold text-secondary">
               {t('footerSubtitle')}
             </p>
-            <p className="font-crimson text-base sm:text-lg lg:text-xl leading-[1] tracking-[-0.03em] text-black/95 mt-6 max-w-[420px]">
+            <p className="mt-5 max-w-[440px] font-crimson text-xl leading-snug text-primary sm:text-2xl">
               {t('footerDesc')}
             </p>
           </div>
@@ -76,7 +76,7 @@ export default function Footer() {
           </nav>
         </div>
 
-        <div className="relative z-10 mt-7 flex flex-col items-start justify-between gap-3 border-t border-black/10 pt-6 sm:mt-9 sm:flex-row sm:items-center">
+        <div className="relative z-10 mx-auto mt-10 flex max-w-[1320px] flex-col items-start justify-between gap-3 border-t border-outline-variant/60 pt-6 sm:flex-row sm:items-center">
           <p className="font-roboto text-sm lg:text-base leading-[1.33] text-neutral-750">
             {t('footerCopyright')}
           </p>

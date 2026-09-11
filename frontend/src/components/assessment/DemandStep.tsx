@@ -38,9 +38,12 @@ export default function DemandStep({
   // return arrays. Normalize both shapes so the live Step 3 view never renders
   // blank cards when the enriched SWOT is available.
   const swotValue = (key: 'strength' | 'weakness' | 'opportunity' | 'threat') => {
-    const value = feasibilityResult.swot?.[key] as unknown;
-    if (Array.isArray(value)) return value.filter(Boolean).join(' ');
-    return typeof value === 'string' ? value : 'Analysis pending.';
+    const plural = `${key}s` as 'strengths' | 'weaknesses' | 'opportunities' | 'threats';
+    const detailed = feasibilityResult.swot?.[plural];
+    if (Array.isArray(detailed) && detailed.length) return detailed;
+    const concise = feasibilityResult.swot?.[key];
+    if (typeof concise === 'string' && concise.trim()) return [concise];
+    return ['Analysis is temporarily unavailable. Try the local demand check again.'];
   };
   const swot = [
     ['S', 'Strengths', swotValue('strength')],
@@ -74,9 +77,11 @@ export default function DemandStep({
       <div>
         <h3 className="text-lg font-bold text-primary"><Text>What the local data suggests</Text></h3>
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-          {swot.map(([letter, label, value]) => <article key={letter} className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
+          {swot.map(([letter, label, values]) => <article key={letter} className="rounded-xl border border-outline-variant bg-surface-container-lowest p-5">
             <h4 className="font-semibold text-secondary"><span aria-hidden="true">{letter} — </span><Text>{label}</Text></h4>
-            <p className="mt-2 text-sm leading-6 text-on-surface-variant">{value}</p>
+            <ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-on-surface-variant">
+              {values.map((value) => <li key={value}><Text>{value}</Text></li>)}
+            </ul>
           </article>)}
         </div>
       </div>

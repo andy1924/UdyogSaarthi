@@ -1,4 +1,4 @@
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { Text } from '../lib/LanguageContext';
 import AssessmentNavigation from './assessment/AssessmentNavigation';
 import BusinessStep from './assessment/BusinessStep';
@@ -8,46 +8,22 @@ import IdentityStep from './assessment/IdentityStep';
 import LocationStep from './assessment/LocationStep';
 import ReportStep from './assessment/ReportStep';
 import { useAssessment } from './assessment/useAssessment';
-import LanguageSelector from './LanguageSelector';
 import BotanicalAccent from './BotanicalAccent';
 import DprPreview from './assessment/DprPreview';
 import BrandLogo from './BrandLogo';
 import type { SessionUser } from '../lib/api';
-import ReadAloudButton from './ReadAloudButton';
 
 interface FeasibilityCheckProps {
   onBackToLanding: () => void;
-  onLogout: () => void;
   user: SessionUser | null;
 }
 
-export default function FeasibilityCheck({ onBackToLanding, onLogout, user }: FeasibilityCheckProps) {
+export default function FeasibilityCheck({ onBackToLanding, user }: FeasibilityCheckProps) {
   const assessment = useAssessment();
   const holderName = user?.username?.trim() || user?.full_name?.trim() || user?.email?.trim() || '';
   const { t, currentStep, highestStepReached, stepContentRef, loadingState, uiError, setUiError, goToStep } = assessment;
   return (
     <div className="assessment min-h-screen bg-surface-container-lowest text-on-surface font-body-md antialiased selection:bg-secondary-container">
-      {/* ==================== HEADER ==================== */}
-      <header className="sticky top-0 z-50 backdrop-blur-md border-b border-outline-variant/60 bg-surface-container-lowest/95">
-        <div className="min-h-16 max-w-[1200px] mx-auto px-gutter-mobile lg:px-gutter-desktop flex items-center justify-between gap-space-md py-2">
-          <div className="flex min-w-0 items-center gap-space-sm">
-            <button
-              onClick={onBackToLanding}
-              className="flex items-center gap-2 text-left cursor-pointer focus:outline-none group"
-              title="Return to home"
-            >
-              <ArrowLeft size={18} className="shrink-0" aria-hidden="true" />
-              <BrandLogo mobileCompact />
-            </button>
-          </div>
-          <div className="flex items-center gap-2">
-            <ReadAloudButton />
-            <LanguageSelector variant="wizard" />
-            <button type="button" onClick={onLogout} title={user?.email} className="rounded-full px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container">Sign out</button>
-          </div>
-        </div>
-      </header>
-
       {/* Loading Overlay */}
       {loadingState && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
@@ -160,4 +136,3 @@ export default function FeasibilityCheck({ onBackToLanding, onLogout, user }: Fe
     </div>
   );
 }
-

@@ -6,10 +6,9 @@ interface ApplyPageProps {
   user: SessionUser | null;
   onSignIn: () => void;
   onBackToOverview: () => void;
-  onLogout: () => void;
 }
 
-export default function ApplyPage({ user, onSignIn, onBackToOverview, onLogout }: ApplyPageProps) {
+export default function ApplyPage({ user, onSignIn, onBackToOverview }: ApplyPageProps) {
   if (!user) {
     return (
       <LockedSection
@@ -19,5 +18,5 @@ export default function ApplyPage({ user, onSignIn, onBackToOverview, onLogout }
       />
     );
   }
-  return <FeasibilityCheck onBackToLanding={onBackToOverview} onLogout={onLogout} user={user} />;
+  return <FeasibilityCheck onBackToLanding={onBackToOverview} user={user} />;
 }

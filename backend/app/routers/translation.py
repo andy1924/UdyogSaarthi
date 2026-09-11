@@ -27,6 +27,7 @@ _config: dict = {}
 _expires = 0.0
 _lock = asyncio.Lock()
 _cache: OrderedDict[tuple[str, str], str] = OrderedDict()
+_sarvam_semaphore = asyncio.Semaphore(4)
 
 
 class TranslationIn(BaseModel):
@@ -99,24 +100,49 @@ async def translate(body: TranslationIn):
         if not target:
             raise HTTPException(422, "This language is not supported by Sarvam.")
         try:
-            translated: list[str] = []
+            # One pooled client amortises connection setup across a page. The
+            # semaphore protects the provider when several browser sessions switch
+            # languages at the same time.
             async with httpx.AsyncClient(timeout=30) as client:
-                for value in body.texts:
-                    response = await client.post(
-                        SARVAM_URL,
-                        headers={"api-subscription-key": settings.sarvam_api_key},
-                        json={
-                            "input": value,
-                            "source_language_code": "en-IN",
-                            "target_language_code": target,
-                            "speaker_gender": "Female",
-                            "mode": "formal",
-                            "model": "mayura:v1",
-                            "enable_preprocessing": True,
-                        },
-                    )
-                    response.raise_for_status()
-                    translated.append(response.json()["translated_text"])
+                async def translate_one(value: str) -> str:
+                    cached = _cache.get((body.target, value))
+                    if cached:
+                        return cached
+                    last_error: Exception | None = None
+                    for attempt in range(3):
+                        try:
+                            async with _sarvam_semaphore:
+                                response = await client.post(
+                                    SARVAM_URL,
+                                    headers={"api-subscription-key": settings.sarvam_api_key},
+                                    json={
+                                        "input": value,
+                                        "source_language_code": "en-IN",
+                                        "target_language_code": target,
+                                        "speaker_gender": "Female",
+                                        "mode": "formal",
+                                        "model": "mayura:v1",
+                                        "enable_preprocessing": True,
+                                    },
+                                )
+                            response.raise_for_status()
+                            translated_value = response.json()["translated_text"]
+                            if (
+                                not isinstance(translated_value, str)
+                                or not translated_value.strip()
+                            ):
+                                raise ValueError("Invalid Sarvam response")
+                            _cache[(body.target, value)] = translated_value
+                            if len(_cache) > 2048:
+                                _cache.popitem(last=False)
+                            return translated_value
+                        except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+                            last_error = exc
+                            if attempt < 2:
+                                await asyncio.sleep(0.25 * (attempt + 1))
+                    raise last_error or RuntimeError("Sarvam translation failed")
+
+                translated = await asyncio.gather(*(translate_one(value) for value in body.texts))
             return {"texts": translated}
         except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
             raise HTTPException(502, "Sarvam translation failed. Please try again.") from exc

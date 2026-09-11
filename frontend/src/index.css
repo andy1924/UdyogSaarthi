@@ -76,7 +76,7 @@ body {
 @keyframes step-shift-right {
   from {
     opacity: 0;
-    transform: translateX(72px);
+    transform: translateX(24px);
   }
   to {
     opacity: 1;
@@ -87,7 +87,7 @@ body {
 @keyframes step-shift-left {
   from {
     opacity: 0;
-    transform: translateX(-72px);
+    transform: translateX(-24px);
   }
   to {
     opacity: 1;
@@ -96,18 +96,18 @@ body {
 }
 
 .animate-step-forward {
-  animation: step-shift-right 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: step-shift-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
   will-change: transform, opacity;
 }
 
 .animate-step-back {
-  animation: step-shift-left 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: step-shift-left 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
   will-change: transform, opacity;
 }
 
 /* Legacy alias (was referenced but never defined) */
 .animate-fadeIn {
-  animation: step-shift-right 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: step-shift-right 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

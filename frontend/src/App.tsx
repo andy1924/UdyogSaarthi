@@ -92,7 +92,7 @@ function App() {
           <OverviewPage onApply={goApply} />
         )}
         {route.name === 'apply' && (
-          <ApplyPage user={user} onSignIn={openSignIn} onBackToOverview={goOverview} onLogout={logout} />
+          <ApplyPage user={user} onSignIn={openSignIn} onBackToOverview={goOverview} />
         )}
         {route.name === 'applications' && (
           <ApplicationsPage user={user} onSignIn={openSignIn} onOpenDetail={openDetail} onApply={goApply} />

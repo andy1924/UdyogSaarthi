@@ -93,7 +93,6 @@ export function useAssessment() {
   const [geoStatus, setGeoStatus] = useState<'detecting' | 'detected' | 'manual' | 'denied' | 'idle'>(initialDraft.geoStatus ?? (initialDraft.userCoords ? 'manual' : 'detecting'));
   const [searchLocationQuery, setSearchLocationQuery] = useState<string>(initialDraft.searchLocationQuery ?? '');
   const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
-  const [manualOverrideOpen, setManualOverrideOpen] = useState<boolean>(false);
 
   // Backend Integration States
   const [loadingState, setLoadingState] = useState<string | null>(null);
@@ -588,7 +587,7 @@ export function useAssessment() {
     return true;
   };
 
-  return { t, currentStep, highestStepReached, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, fundingPreference, setFundingPreference, downloadSuccess, uiError, setUiError, userCoords, setUserCoords, locationText, setLocationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, manualOverrideOpen, setManualOverrideOpen, loadingState, feasibilityResult, schemeResult, capitalEstimate, locationCostFactor, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, simulatedPan, setSimulatedPan: setSimulatedPanState, incomeTier, setIncomeTier: setIncomeTierState, overrideScheme, setOverrideScheme: setOverrideSchemeState, digiLockerStatus, digiLockerReference, digiLockerVerified, connectDigiLocker, reviewConfirmed, setReviewConfirmed, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep, advanceToStep };
+  return { t, currentStep, highestStepReached, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, fundingPreference, setFundingPreference, downloadSuccess, uiError, setUiError, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, loadingState, feasibilityResult, schemeResult, capitalEstimate, locationCostFactor, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, simulatedPan, setSimulatedPan: setSimulatedPanState, incomeTier, setIncomeTier: setIncomeTierState, overrideScheme, setOverrideScheme: setOverrideSchemeState, digiLockerStatus, digiLockerReference, digiLockerVerified, connectDigiLocker, reviewConfirmed, setReviewConfirmed, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep, advanceToStep };
 }
 
 export type AssessmentState = ReturnType<typeof useAssessment>;

@@ -12,6 +12,7 @@ import { isStaffRole, navigateTo, type ShellRouteName } from '../lib/routes';
 import type { SessionUser } from '../lib/api';
 import BrandLogo from './BrandLogo';
 import LanguageSelector from './LanguageSelector';
+import ReadAloudButton from './ReadAloudButton';
 
 interface NavItem {
   name: ShellRouteName;
@@ -60,12 +61,12 @@ export default function Shell({ active, user, onSignIn, onLogout, children }: Sh
           </button>
           {isLanding && <nav aria-label="Primary" className="order-2 flex min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto">
             {visibleItems.map((item) => {
-              const Icon = item.icon;
               const isActive = item.name === active;
-              return <button key={item.name} type="button" onClick={() => go(item.name)} aria-current={isActive ? 'page' : undefined} className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${isActive ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}><Icon size={18} aria-hidden="true" /><span>{item.label}</span></button>;
+              return <button key={item.name} type="button" onClick={() => go(item.name)} aria-current={isActive ? 'page' : undefined} className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${isActive ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}><span>{item.label}</span></button>;
             })}
           </nav>}
           <div className="order-3 flex min-h-11 items-center gap-2">
+            <ReadAloudButton />
             <LanguageSelector variant="wizard" />
             {user ? (
               <>

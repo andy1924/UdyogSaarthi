@@ -63,10 +63,15 @@ export interface LGDInfo {
 }
 
 export interface SwotAnalysis {
-  strength: string;
-  weakness: string;
-  opportunity: string;
-  threat: string;
+  strength?: string;
+  weakness?: string;
+  opportunity?: string;
+  threat?: string;
+  strengths?: string[];
+  weaknesses?: string[];
+  opportunities?: string[];
+  threats?: string[];
+  advisory_summary?: string;
 }
 
 export interface FeasibilityResult {

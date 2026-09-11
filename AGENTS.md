@@ -9,7 +9,9 @@ Backend (FastAPI + PostGIS + Redis + Celery) **and** frontend (Next.js PWA:
 applicant wizard, officer review, audit console, DPR view) exist and are
 wired to the live API. Ground truth for scope: `docs/update.md`.
 Approved next build: `docs/plans/dashboard-shell-plan.md` (app shell;
-phone+OTP deferred). Planned, not active: React Native, IVR/SMS, voice layer.
+phone+OTP deferred). The apply-section voice assistant (on-device Whisper +
+Kokoro/MMS-TTS, English + Hindi) is built; see `docs/frontend/voice-stack.md`.
+Planned, not active: React Native, IVR/SMS,
 
 ## Routing table
 
@@ -24,6 +26,7 @@ phone+OTP deferred). Planned, not active: React Native, IVR/SMS, voice layer.
 | Frontend visual system (CURRENT) | `docs/frontend/DESIGN.md` | **Authoritative: pine/emerald.** Mobile-first 360→1440, no device frame |
 | Frontend component inventory + tokens | `docs/frontend/saarthi-design-system.md` + `docs/frontend/saarthi-element-map.html` | Specimen map; `DESIGN.md` wins on any conflict |
 | Original ledger visual system | `docs/DESIGN.md` | Sarkaar Ledger (ink/vermilion/wheat). **History only — do not use for new UI** |
+| Voice assistant stack + rationale | `docs/frontend/voice-stack.md` | On-device EN+HI; frontend-only, never touches `backend/` |
 | Security requirements before prod data | `docs/cybersecurity.md` | Target overlay L1–L6; Required controls evidenced pre-launch |
 | Dashboard shell build plan | `docs/plans/dashboard-shell-plan.md` | Approved 2026-09-05: shell + sidebar/topbar; landing retired |
 | Codebase structure / concept graph | `graphify-out/GRAPH_REPORT.md` | Regenerate with `graphify update .` after code changes |

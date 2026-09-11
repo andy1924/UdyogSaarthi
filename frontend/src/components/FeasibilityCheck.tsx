@@ -13,6 +13,10 @@ import BotanicalAccent from './BotanicalAccent';
 import DprPreview from './assessment/DprPreview';
 import BrandLogo from './BrandLogo';
 import type { SessionUser } from '../lib/api';
+import { useVoice } from '../lib/voice/VoiceContext';
+import VoiceOrb from './voice/VoiceOrb';
+
+const STEP_TITLES = ['Location', 'Business', 'Demand', 'Credit & subsidy', 'Identity', 'Report'];
 
 interface FeasibilityCheckProps {
   onBackToLanding: () => void;
@@ -23,6 +27,20 @@ export default function FeasibilityCheck({ onBackToLanding, user }: FeasibilityC
   const assessment = useAssessment();
   const holderName = user?.username?.trim() || user?.full_name?.trim() || user?.email?.trim() || '';
   const { t, currentStep, highestStepReached, stepContentRef, loadingState, uiError, setUiError, goToStep } = assessment;
+
+  // Ground the voice assistant in whatever step the wizard is showing.
+  const { setContext } = useVoice();
+  useEffect(() => {
+    setContext({
+      step: currentStep,
+      stepTitle: STEP_TITLES[currentStep - 1] ?? 'Location',
+      locationText: assessment.locationText || undefined,
+      enterprise: assessment.selectedEnterprise || undefined,
+      feasibilityVerdict: assessment.feasibilityResult?.verdict,
+      marginPercent: assessment.marginPercent,
+    });
+  }, [currentStep, assessment.locationText, assessment.selectedEnterprise,
+      assessment.feasibilityResult, assessment.marginPercent, setContext]);
 
   // Lock page scroll while the loading overlay is open so the page behind it
   // cannot be scrolled with the wheel, touch, or keyboard.
@@ -144,6 +162,8 @@ export default function FeasibilityCheck({ onBackToLanding, user }: FeasibilityC
           </div>
         </div>
       </footer>
+
+      <VoiceOrb />
     </div>
   );
 }

@@ -14,7 +14,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@huggingface/transformers": "^3.8.1",
     "axios": "^1.9.0",
+    "kokoro-js": "^1.2.1",
     "lucide-react": "^0.511.0",
     "mappls-web-maps": "^3.8.1",
     "react": "^19.1.0",

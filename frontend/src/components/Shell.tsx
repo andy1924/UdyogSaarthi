@@ -15,6 +15,7 @@ import type { SessionUser } from '../lib/api';
 import BrandLogo from './BrandLogo';
 import LanguageSelector from './LanguageSelector';
 import ReadAloudButton from './ReadAloudButton';
+import MicButton from './voice/MicButton';
 
 interface NavItem {
   name: ShellRouteName;
@@ -116,6 +117,7 @@ export default function Shell({ active, user, onSignIn, onLogout, children }: Sh
             </button>
           </div>
           <div className="flex min-h-11 items-center gap-2">
+            <MicButton />
             <ReadAloudButton />
             <LanguageSelector variant="wizard" />
             {user ? (

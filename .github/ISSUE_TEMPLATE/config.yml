@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/andy1924/UdyogSaarthi/blob/main/docs/update.md
+    about: Check what already exists before filing an issue.
+  - name: Security reports
+    url: https://github.com/andy1924/UdyogSaarthi/security/advisories/new
+    about: Never file vulnerabilities as public issues. See SECURITY.md.

@@ -90,19 +90,22 @@ uvicorn app.main:app --reload
 ---
 
 ## Testing & CI
-The project uses `pytest` for testing and `ruff` for linting, enforced via GitHub Actions.
+Backend uses `pytest` for testing and `ruff` for linting; frontend uses `vitest` with `tsc` typechecking and `eslint`. All are enforced via GitHub Actions.
 ```bash
-# Run the linter
+# Backend (from backend/)
 ruff check .
-
-# Run the test suite
 pytest
+
+# Frontend (from frontend/)
+npm run typecheck
+npm test
+npm run lint
 ```
 
 ---
 
 ## Current Status & Limitations
-- Backend **and frontend are live-wired**: FastAPI APIs plus a Next.js PWA (applicant wizard, officer review, audit console, DPR view) talking to the live API.
+- Backend **and frontend are live-wired**: FastAPI APIs plus a Vite + React app (applicant wizard, officer review, audit console, DPR view) talking to the live API.
 - Core logic for authentication, scheme math, feasibility, compliance, DPR generation, PDF queuing, workflow transitions, and audit logging is implemented.
 - **Live LGD resolution** and **Mappls reverse geocoding** are integrated. The feasibility API returns `502 Bad Gateway` if authoritative location or POI data cannot be fetched.
 - This remains a prototype: AI/KYC/compliance fallbacks are not authoritative, DPR persistence is best-effort, PDF output requires a Celery worker, and DPR ownership checks are not yet enforced.
@@ -116,3 +119,11 @@ pytest
 - [**Product Truth**](docs/PRODUCT.md)
 - [**Design System**](docs/DESIGN.md)
 - [**Frontend Theme (pine/emerald, authoritative)**](docs/frontend/DESIGN.md)
+
+---
+
+## Contributing
+See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, ground rules, and the pull request process. Please also read our [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately per our [Security Policy](SECURITY.md) - never as public issues.
+
+## License
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.

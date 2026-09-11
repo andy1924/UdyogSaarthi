@@ -1,0 +1,36 @@
+name: Feature request
+description: Propose an idea or improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What applicant / officer / auditor pain does this solve?
+      placeholder: Applicants cannot tell whether...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should change, and where (backend, frontend, docs)?
+      placeholder: Add ...
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Anything simpler that would also work?
+    validations:
+      required: false
+  - type: checkboxes
+    id: scope-check
+    attributes:
+      label: Scope check
+      description: Confirm against docs/update.md before filing.
+      options:
+        - label: I checked `docs/update.md` and this is not already built
+          required: true

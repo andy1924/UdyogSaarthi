@@ -1,0 +1,51 @@
+name: Bug report
+description: Something broken? Tell us how to reproduce it.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you saw, and what you expected instead.
+      placeholder: The feasibility score never loads after I pick a location...
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Numbered steps, starting from a clean state if possible.
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Frontend (Vite + React)
+        - Backend (FastAPI)
+        - Voice assistant
+        - Maps / geocoding
+        - Docs / infra
+    validations:
+      required: true
+  - type: textarea
+    id: env
+    attributes:
+      label: Environment
+      description: Browser + version, OS, and the commit hash you tested.
+      placeholder: Chrome 126, Windows 11, commit abc1234
+    validations:
+      required: false
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or errors
+      description: Paste console / server output. Redact secrets and personal data.
+      render: shell
+    validations:
+      required: false

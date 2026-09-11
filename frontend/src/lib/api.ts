@@ -140,6 +140,7 @@ export interface SessionUser {
   full_name?: string | null;
   role: string;
   is_active: boolean;
+  created_at?: string | null;
 }
 
 export type FundingPreference = 'scheme_linked_loan' | 'standard_bank_loan' | 'need_guidance';

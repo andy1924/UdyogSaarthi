@@ -53,6 +53,23 @@ function App() {
     window.scrollTo({ top: 0 });
   }, [route]);
 
+  // Reveal the page scrollbar only while the pointer is near the right edge.
+  useEffect(() => {
+    const root = document.documentElement;
+    const edge = 48;
+    const onPointerMove = (event: PointerEvent) => {
+      root.classList.toggle('scrollbar-reveal', window.innerWidth - event.clientX <= edge);
+    };
+    const onPointerLeave = () => root.classList.remove('scrollbar-reveal');
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    document.addEventListener('pointerleave', onPointerLeave);
+    return () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      document.removeEventListener('pointerleave', onPointerLeave);
+      root.classList.remove('scrollbar-reveal');
+    };
+  }, []);
+
   const openSignIn = useCallback(() => setAccountOpen(true), []);
 
   const logout = useCallback(() => {
@@ -84,25 +101,28 @@ function App() {
   const openDetail = useCallback((dprId: string) => navigateTo({ name: 'application-detail', dprId }), []);
 
   const activeNav = route.name === 'application-detail' ? 'applications' : route.name;
+  const routeKey = route.name === 'application-detail' ? `application-detail:${route.dprId ?? ''}` : route.name;
 
   return (
     <>
       <Shell active={activeNav} user={user} onSignIn={openSignIn} onLogout={logout}>
-        {route.name === 'overview' && (
-          <OverviewPage onApply={goApply} />
-        )}
-        {route.name === 'apply' && (
-          <ApplyPage user={user} onSignIn={openSignIn} onBackToOverview={goOverview} />
-        )}
-        {route.name === 'applications' && (
-          <ApplicationsPage user={user} onSignIn={openSignIn} onOpenDetail={openDetail} onApply={goApply} />
-        )}
-        {route.name === 'application-detail' && route.dprId && (
-          <ApplicationDetailPage dprId={route.dprId} user={user} onSignIn={openSignIn} onBack={goApplications} />
-        )}
-        {route.name === 'review' && <ReviewPage user={user} onSignIn={openSignIn} />}
-        {route.name === 'audit' && <AuditPage user={user} onSignIn={openSignIn} />}
-        {route.name === 'account' && <AccountPage user={user} onSignIn={openSignIn} onLogout={logout} />}
+        <div key={routeKey} className="animate-page-enter">
+          {route.name === 'overview' && (
+            <OverviewPage onApply={goApply} />
+          )}
+          {route.name === 'apply' && (
+            <ApplyPage user={user} onSignIn={openSignIn} onBackToOverview={goOverview} />
+          )}
+          {route.name === 'applications' && (
+            <ApplicationsPage user={user} onSignIn={openSignIn} onOpenDetail={openDetail} onApply={goApply} />
+          )}
+          {route.name === 'application-detail' && route.dprId && (
+            <ApplicationDetailPage dprId={route.dprId} user={user} onSignIn={openSignIn} onBack={goApplications} />
+          )}
+          {route.name === 'review' && <ReviewPage user={user} onSignIn={openSignIn} />}
+          {route.name === 'audit' && <AuditPage user={user} onSignIn={openSignIn} />}
+          {route.name === 'account' && <AccountPage user={user} onSignIn={openSignIn} onLogout={logout} />}
+        </div>
       </Shell>
       <AccountAccessModal open={accountOpen} onClose={() => setAccountOpen(false)} onSuccess={accountSuccess} />
     </>

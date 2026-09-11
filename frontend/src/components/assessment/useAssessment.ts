@@ -92,6 +92,9 @@ export function useAssessment() {
   const [geoResolved, setGeoResolved] = useState<{ state: string; district: string; block: string; display_name?: string } | null>(initialDraft.geoResolved ?? null);
   const [geoStatus, setGeoStatus] = useState<'detecting' | 'detected' | 'manual' | 'denied' | 'idle'>(initialDraft.geoStatus ?? (initialDraft.userCoords ? 'manual' : 'detecting'));
   const [searchLocationQuery, setSearchLocationQuery] = useState<string>(initialDraft.searchLocationQuery ?? '');
+  // True once the user edits the search field. A value filled in by GPS is not
+  // "input", so the locate button should fall back to a fresh GPS fix.
+  const [searchQueryTouched, setSearchQueryTouched] = useState<boolean>(false);
   const [isSearchingLocation, setIsSearchingLocation] = useState<boolean>(false);
 
   // Backend Integration States
@@ -238,6 +241,7 @@ export function useAssessment() {
 
     setGeoStatus('detecting');
     setUiError(null);
+    if (force) setLoadingState('Finding your location…');
 
     const onFix = async (pos: GeolocationPosition) => {
       const lat = pos.coords.latitude;
@@ -255,12 +259,14 @@ export function useAssessment() {
         const finalStr = locStr || resolved.display_name || `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
         setLocationText(finalStr);
         setSearchLocationQuery(finalStr);
+        setSearchQueryTouched(false);
         setGeoStatus('detected');
       } catch (err) {
         console.warn('Place-name lookup failed:', err);
         const coordStr = `${lat.toFixed(4)}° N, ${lon.toFixed(4)}° E`;
         setLocationText(coordStr);
         setSearchLocationQuery(coordStr);
+        setSearchQueryTouched(false);
         setGeoStatus('detected');
       } finally {
         setLoadingState(null);
@@ -318,13 +324,18 @@ export function useAssessment() {
     }
   };
 
-  // Locate button: blank input → auto GPS fix; typed query → geocode search.
+  // Locate button: user-typed query → geocode search; otherwise → fresh GPS fix.
   const handleLocate = () => {
-    if (!searchLocationQuery.trim()) {
+    if (!searchQueryTouched || !searchLocationQuery.trim()) {
       detectExactLocation(true);
       return;
     }
     handleLocationSearch();
+  };
+
+  const handleSearchQueryChange = (value: string) => {
+    setSearchQueryTouched(true);
+    setSearchLocationQuery(value);
   };
 
   // Start location detection without waiting for an unused health probe.
@@ -587,7 +598,7 @@ export function useAssessment() {
     return true;
   };
 
-  return { t, currentStep, highestStepReached, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, fundingPreference, setFundingPreference, downloadSuccess, uiError, setUiError, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, loadingState, feasibilityResult, schemeResult, capitalEstimate, locationCostFactor, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, simulatedPan, setSimulatedPan: setSimulatedPanState, incomeTier, setIncomeTier: setIncomeTierState, overrideScheme, setOverrideScheme: setOverrideSchemeState, digiLockerStatus, digiLockerReference, digiLockerVerified, connectDigiLocker, reviewConfirmed, setReviewConfirmed, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep, advanceToStep };
+  return { t, currentStep, highestStepReached, stepAnimClass, stepContentRef, radius, setRadius, selectedEnterprise, setSelectedEnterprise, marginPercent, setMarginPercent, fundingPreference, setFundingPreference, downloadSuccess, uiError, setUiError, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, handleSearchQueryChange, isSearchingLocation, loadingState, feasibilityResult, schemeResult, capitalEstimate, locationCostFactor, nearbyProfiles, nearbyLoading, licenses, dprId, dprStatus, applicantName, setApplicantName, simulatedPan, setSimulatedPan: setSimulatedPanState, incomeTier, setIncomeTier: setIncomeTierState, overrideScheme, setOverrideScheme: setOverrideSchemeState, digiLockerStatus, digiLockerReference, digiLockerVerified, connectDigiLocker, reviewConfirmed, setReviewConfirmed, enterprise, displayTpc, displayMargin, handleLocate, executeFeasibilityAI, handleDprDownload, handleShareWhatsApp, goToStep, advanceToStep };
 }
 
 export type AssessmentState = ReturnType<typeof useAssessment>;

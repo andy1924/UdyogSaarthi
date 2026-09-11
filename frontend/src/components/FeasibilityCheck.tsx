@@ -1,4 +1,5 @@
 import { RefreshCw } from 'lucide-react';
+import { useEffect } from 'react';
 import { Text } from '../lib/LanguageContext';
 import AssessmentNavigation from './assessment/AssessmentNavigation';
 import BusinessStep from './assessment/BusinessStep';
@@ -22,6 +23,16 @@ export default function FeasibilityCheck({ onBackToLanding, user }: FeasibilityC
   const assessment = useAssessment();
   const holderName = user?.username?.trim() || user?.full_name?.trim() || user?.email?.trim() || '';
   const { t, currentStep, highestStepReached, stepContentRef, loadingState, uiError, setUiError, goToStep } = assessment;
+
+  // Lock page scroll while the loading overlay is open so the page behind it
+  // cannot be scrolled with the wheel, touch, or keyboard.
+  useEffect(() => {
+    if (!loadingState) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [loadingState]);
+
   return (
     <div className="assessment min-h-screen bg-surface-container-lowest text-on-surface font-body-md antialiased selection:bg-secondary-container">
       {/* Loading Overlay */}

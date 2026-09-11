@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
@@ -32,6 +34,7 @@ class UserOut(BaseModel):
     full_name: str | None
     role: str
     is_active: bool
+    created_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

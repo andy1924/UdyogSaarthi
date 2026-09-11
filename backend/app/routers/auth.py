@@ -115,6 +115,7 @@ async def register(
         full_name=new_user.full_name,
         role=new_user.role,
         is_active=new_user.is_active,
+        created_at=new_user.created_at,
     )
 
 
@@ -131,4 +132,5 @@ async def me(current_user: User = Depends(get_current_user)) -> UserOut:
         full_name=current_user.full_name,
         role=current_user.role,
         is_active=current_user.is_active,
+        created_at=current_user.created_at,
     )

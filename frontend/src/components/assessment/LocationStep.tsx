@@ -8,9 +8,9 @@ import RealMap from '../RealMap';
 import { Text } from '../../lib/LanguageContext';
 import type { AssessmentState } from './useAssessment';
 
-type Props = Pick<AssessmentState, "stepAnimClass" | "radius" | "setRadius" | "userCoords" | "locationText" | "geoResolved" | "geoStatus" | "searchLocationQuery" | "setSearchLocationQuery" | "isSearchingLocation" | "nearbyProfiles" | "handleLocate" | "advanceToStep">;
+type Props = Pick<AssessmentState, "stepAnimClass" | "radius" | "setRadius" | "userCoords" | "locationText" | "geoResolved" | "geoStatus" | "searchLocationQuery" | "handleSearchQueryChange" | "isSearchingLocation" | "nearbyProfiles" | "handleLocate" | "advanceToStep">;
 
-export default function LocationStep({ stepAnimClass, radius, setRadius, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, setSearchLocationQuery, isSearchingLocation, nearbyProfiles, handleLocate, advanceToStep }: Props) {
+export default function LocationStep({ stepAnimClass, radius, setRadius, userCoords, locationText, geoResolved, geoStatus, searchLocationQuery, handleSearchQueryChange, isSearchingLocation, nearbyProfiles, handleLocate, advanceToStep }: Props) {
   return (<section className={`space-y-space-xl ${stepAnimClass}`}>
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-space-xl">
       {/* Left Column: Configuration */}
@@ -63,7 +63,7 @@ export default function LocationStep({ stepAnimClass, radius, setRadius, userCoo
                   className="w-full pl-9 pr-3 py-2 rounded-lg bg-surface-container-low border border-outline-variant text-on-surface font-body-md text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   placeholder="e.g. Baramati, Pune, Maharashtra"
                   value={searchLocationQuery}
-                  onChange={(e) => setSearchLocationQuery(e.target.value)}
+                  onChange={(e) => handleSearchQueryChange(e.target.value)}
                 />
                 <Search size={16} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant" />
               </div>

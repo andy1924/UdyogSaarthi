@@ -3,11 +3,13 @@ import {
   ClipboardList,
   FolderOpen,
   LayoutDashboard,
+  Menu,
   ScrollText,
   User,
+  X,
   type LucideIcon,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { isStaffRole, navigateTo, type ShellRouteName } from '../lib/routes';
 import type { SessionUser } from '../lib/api';
 import BrandLogo from './BrandLogo';
@@ -43,29 +45,77 @@ export default function Shell({ active, user, onSignIn, onLogout, children }: Sh
   const visibleItems = NAV_ITEMS.filter((item) => !item.staffOnly || staff);
   const isLanding = active === 'overview';
 
-  const go = (name: ShellRouteName) => navigateTo({ name });
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const go = (name: ShellRouteName) => { setMenuOpen(false); navigateTo({ name }); };
+
+  // Landing navigation lives in a disclosure menu: close it on route change,
+  // Escape, or an outside click.
+  useEffect(() => { setMenuOpen(false); }, [active]);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) setMenuOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false); };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [menuOpen]);
 
   return (
     <div className="min-h-screen bg-surface text-on-surface">
       <a href="#shell-content" className="skip-link">Skip to content</a>
 
       <header className="sticky top-0 z-50 border-b border-outline-variant/60 bg-surface-container-lowest/95 backdrop-blur-md">
-        <div className={`flex min-h-16 w-full items-center gap-4 px-4 py-2 sm:px-6 lg:px-10 ${isLanding ? 'justify-between' : 'justify-between'}`}>
-          <button
-            type="button"
-            onClick={() => go('overview')}
-            className="flex min-h-11 min-w-11 items-center gap-2 rounded-xl px-1 text-left"
-            aria-label="UdyogSaarthi overview"
-          >
-            <BrandLogo mobileCompact />
-          </button>
-          {isLanding && <nav aria-label="Primary" className="order-2 flex min-w-0 flex-1 items-center justify-center gap-1 overflow-x-auto">
-            {visibleItems.map((item) => {
-              const isActive = item.name === active;
-              return <button key={item.name} type="button" onClick={() => go(item.name)} aria-current={isActive ? 'page' : undefined} className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition-colors ${isActive ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}><span>{item.label}</span></button>;
-            })}
-          </nav>}
-          <div className="order-3 flex min-h-11 items-center gap-2">
+        <div className="flex min-h-16 w-full items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-10">
+          <div className="flex min-w-0 items-center gap-1">
+            {isLanding && (
+              <div className="relative" ref={menuRef}>
+                <button
+                  type="button"
+                  onClick={() => setMenuOpen((open) => !open)}
+                  className="grid min-h-11 min-w-11 place-items-center rounded-xl text-on-surface-variant hover:bg-surface-container"
+                  aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+                  aria-expanded={menuOpen}
+                  aria-controls="landing-menu"
+                >
+                  {menuOpen ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
+                </button>
+                {menuOpen && (
+                  <nav id="landing-menu" aria-label="Primary" className="absolute left-0 top-[calc(100%+8px)] z-[60] w-56 rounded-2xl border border-outline-variant/60 bg-surface-container-lowest p-2 shadow-2xl">
+                    {visibleItems.map((item) => {
+                      const isActive = item.name === active;
+                      return (
+                        <button
+                          key={item.name}
+                          type="button"
+                          onClick={() => go(item.name)}
+                          aria-current={isActive ? 'page' : undefined}
+                          className={`flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm font-semibold transition-colors ${isActive ? 'bg-primary text-on-primary' : 'text-on-surface-variant hover:bg-surface-container'}`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </nav>
+                )}
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={() => go('overview')}
+              className="flex min-h-11 min-w-11 items-center gap-2 rounded-xl px-1 text-left"
+              aria-label="UdyogSaarthi overview"
+            >
+              <BrandLogo mobileCompact />
+            </button>
+          </div>
+          <div className="flex min-h-11 items-center gap-2">
             <ReadAloudButton />
             <LanguageSelector variant="wizard" />
             {user ? (

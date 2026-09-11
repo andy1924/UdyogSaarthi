@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Download, FileText, RefreshCw, Trash2 } from 'lucide-react';
+import { CheckCircle2, Download, FileText, RefreshCw, Trash2 } from 'lucide-react';
 import { api, isAuthenticationError } from '../lib/api';
 import { clearMyDprs, listMyDprs, removeMyDpr, type MyDprEntry } from '../lib/my-dprs';
 import { formatDateTime } from '../lib/format';
@@ -58,8 +58,12 @@ function RegistryRow({ entry, onOpenDetail, onRemoved }: { entry: MyDprEntry; on
           <p className="truncate font-semibold text-primary">{entry.businessName}</p>
           <p className="mt-1 break-all font-mono text-xs text-on-surface-variant">{entry.id} · {formatDateTime(entry.createdAt)}</p>
         </div>
-        <span role="status" className="inline-flex min-h-11 items-center rounded-full bg-secondary-container px-3 py-1 text-sm font-semibold text-primary">
-          {loading ? <RefreshCw size={15} className="animate-spin" aria-hidden="true" /> : (status ?? '—')}
+        <span role="status" className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-secondary-container px-3 py-1 text-sm font-semibold text-primary">
+          {loading
+            ? <RefreshCw size={15} className="animate-spin" aria-hidden="true" />
+            : status === 'ready'
+              ? <><CheckCircle2 size={16} aria-hidden="true" /><Text>Done</Text></>
+              : (status ?? '—')}
         </span>
       </div>
       {error && (

@@ -20,7 +20,7 @@ export default function ReadAloudButton() {
     window.speechSynthesis.speak(utterance);
     setSpeaking(true);
   };
-  return <button type="button" onClick={toggle} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-outline-variant px-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-container" aria-pressed={speaking} aria-label={speaking ? 'Stop reading aloud' : 'Read this page aloud'}>
+  return <button type="button" onClick={toggle} className="inline-flex h-[35px] min-h-[35px] items-center gap-2 rounded-full border border-outline-variant px-3 text-sm font-semibold text-on-surface-variant hover:bg-surface-container" aria-pressed={speaking} aria-label={speaking ? 'Stop reading aloud' : 'Read this page aloud'}>
     {speaking ? <VolumeX size={16} aria-hidden="true" /> : <Volume2 size={16} aria-hidden="true" />}{speaking ? 'Stop reading' : 'Read aloud'}
   </button>;
 }

@@ -1,6 +1,8 @@
 import { LogOut } from 'lucide-react';
 import type { SessionUser } from '../lib/api';
+import { formatDateTime } from '../lib/format';
 import { Text } from '../lib/LanguageContext';
+import { listMyDprs } from '../lib/my-dprs';
 import LockedSection from '../components/LockedSection';
 
 interface AccountPageProps {
@@ -20,6 +22,8 @@ export default function AccountPage({ user, onSignIn, onLogout }: AccountPagePro
     );
   }
 
+  const applicationCount = listMyDprs().length;
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <section aria-labelledby="account-title">
@@ -38,12 +42,12 @@ export default function AccountPage({ user, onSignIn, onLogout }: AccountPagePro
             <dd className="mt-1 font-semibold text-primary">{user.full_name || '—'}</dd>
           </div>
           <div>
-            <dt className="text-sm text-on-surface-variant"><Text>Role</Text></dt>
-            <dd className="mt-1 font-mono font-semibold text-primary">{user.role}</dd>
+            <dt className="text-sm text-on-surface-variant"><Text>Applications to date</Text></dt>
+            <dd className="mt-1 font-mono font-semibold text-primary">{applicationCount}</dd>
           </div>
           <div>
-            <dt className="text-sm text-on-surface-variant"><Text>Status</Text></dt>
-            <dd className="mt-1 font-semibold text-primary">{user.is_active ? 'Active' : 'Inactive'}</dd>
+            <dt className="text-sm text-on-surface-variant"><Text>Account created</Text></dt>
+            <dd className="mt-1 font-semibold text-primary">{formatDateTime(user.created_at)}</dd>
           </div>
         </dl>
         <button

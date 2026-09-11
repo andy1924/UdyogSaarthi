@@ -119,7 +119,7 @@ export default function LocationStep({ stepAnimClass, radius, setRadius, userCoo
         </div>
       </div>
 
-      {/* Right Column: Live Mappls Map */}
+      {/* Right Column: Live map */}
       <div className="lg:col-span-6 flex flex-col gap-space-md">
         <div className="p-space-md rounded-2xl bg-surface-container border border-outline-variant/60 shadow-sm flex-1 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-space-sm px-2">
@@ -132,7 +132,7 @@ export default function LocationStep({ stepAnimClass, radius, setRadius, userCoo
             </span>
           </div>
 
-          {/* Live Mappls map — centered on backend-resolved coordinates */}
+          {/* Live map — OSM tiles centered on backend-resolved coordinates */}
           <RealMap
             lat={userCoords?.lat ?? null}
             lon={userCoords?.lon ?? null}

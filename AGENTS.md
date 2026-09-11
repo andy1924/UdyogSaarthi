@@ -57,3 +57,8 @@ phone+OTP deferred). Planned, not active: React Native, IVR/SMS, voice layer.
   registries (`saarthi-my-dprs` in localStorage); server is truth.
 - Public (no auth): scheme rules/calculate, compliance licenses, directory
   nearby, `/health`. Feasibility, DPR, workflow need auth.
+- Auto-delete throwaway artifacts you create — browser-audit screenshots and
+  PNGs, PDF/image render scratch, temp logs, one-off scripts. Clear them before
+  you finish, without asking. Never delete tracked assets (e.g.
+  `frontend/src/assets/*.png`), user-provided files, or anything you did not
+  create.

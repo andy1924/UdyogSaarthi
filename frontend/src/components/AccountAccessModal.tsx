@@ -33,6 +33,10 @@ export default function AccountAccessModal({ open, onClose, onSuccess }: Props) 
     event.preventDefault();
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedName = fullName.trim();
+    if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      setError('Use at least 8 characters with a letter and a number.');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {

@@ -5,7 +5,6 @@ import type { AssessmentState } from './useAssessment';
 
 type Props = Pick<AssessmentState, 'stepAnimClass' | 'schemeResult' | 'licenses' | 'marginPercent' | 'fundingPreference' | 'setFundingPreference' | 'goToStep' | 'advanceToStep'>;
 const rupees = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
-const percent = new Intl.NumberFormat('en-IN', { style: 'percent', maximumFractionDigits: 2 });
 
 const FUNDING_OPTIONS: Array<{ value: FundingPreference; label: string; description: string }> = [
   { value: 'scheme_linked_loan', label: 'Scheme-linked bank loan', description: 'Use the scheme estimate shown below when speaking with a bank.' },
@@ -58,14 +57,13 @@ export default function FundingStep({ stepAnimClass, schemeResult, licenses, mar
               </div>
             ))}
           </dl>
-          <p className="rounded-xl bg-white p-4 text-sm text-on-surface-variant border border-outline-variant">
-            {percent.format(schemeResult.rules.rate)} annual interest · {schemeResult.rules.tenure_years} years · {schemeResult.rules.moratorium_months}-month grace period.
-            <span className="mt-2 block font-mono text-xs">Scheme rules {schemeResult.rules.version}</span>
-            <span className="mt-2 block"><Text>These figures are an estimate, not a loan approval.</Text></span>
-          </p>
-          <details className="rounded-xl border border-outline-variant p-4">
-            <summary className="cursor-pointer min-h-11 font-semibold"><Text>Repayment schedule</Text></summary>
-            <div className="overflow-x-auto" role="region" aria-label="Quarterly repayments" tabIndex={0}>
+
+          <details className="group rounded-2xl border border-outline-variant bg-white transition-colors open:border-primary/30 open:bg-surface-container-lowest">
+            <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-semibold text-primary [&::-webkit-details-marker]:hidden">
+              <Text>Repayment schedule</Text>
+              <ChevronDown size={19} className="shrink-0 text-secondary transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
+            </summary>
+            <div className="overflow-x-auto border-t border-outline-variant/70 px-4 py-2" role="region" aria-label="Quarterly repayments" tabIndex={0}>
               <table className="w-full text-sm text-left">
                 <caption className="sr-only">Server-calculated quarterly repayments</caption>
                 <thead><tr><th scope="col" className="py-3 pr-4">Quarter</th><th scope="col" className="py-3">Payment</th></tr></thead>
@@ -78,14 +76,19 @@ export default function FundingStep({ stepAnimClass, schemeResult, licenses, mar
         </>
       ) : <p role="status" className="rounded-xl bg-surface-container p-5"><Text>Funding figures are not available yet. Return to your business idea to check your contribution and try again.</Text></p>}
 
-      <details className="rounded-xl border border-outline-variant p-4">
-        <summary className="cursor-pointer min-h-11 font-semibold"><Text>Registrations to check</Text></summary>
-        {licenses.length ? <ul className="divide-y divide-outline-variant">
-          {licenses.map((license) => <li key={license.id} className="py-3">
-            <p className="font-semibold">{license.label}{license.required ? ' · Required' : ''}</p>
-            <p className="mt-1 text-sm text-on-surface-variant">{license.desc}</p>
-          </li>)}
-        </ul> : <p className="text-sm text-on-surface-variant"><Text>No registration guidance has loaded for this business yet.</Text></p>}
+      <details className="group rounded-2xl border border-outline-variant bg-white transition-colors open:border-primary/30 open:bg-surface-container-lowest">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 font-semibold text-primary [&::-webkit-details-marker]:hidden">
+          <Text>Registrations to check</Text>
+          <ChevronDown size={19} className="shrink-0 text-secondary transition-transform duration-200 group-open:rotate-180" aria-hidden="true" />
+        </summary>
+        <div className="border-t border-outline-variant/70 px-4 py-2">
+          {licenses.length ? <ul className="divide-y divide-outline-variant">
+            {licenses.map((license) => <li key={license.id} className="py-3">
+              <p className="font-semibold">{license.label}{license.required ? ' · Required' : ''}</p>
+              <p className="mt-1 text-sm text-on-surface-variant">{license.desc}</p>
+            </li>)}
+          </ul> : <p className="py-2 text-sm text-on-surface-variant"><Text>No registration guidance has loaded for this business yet.</Text></p>}
+        </div>
       </details>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant pt-5">
@@ -95,3 +98,4 @@ export default function FundingStep({ stepAnimClass, schemeResult, licenses, mar
     </section>
   );
 }
+

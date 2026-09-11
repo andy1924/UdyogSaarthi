@@ -145,23 +145,37 @@ export default function LocationStep({ stepAnimClass, radius, setRadius, userCoo
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs text-on-surface-variant mb-1">Latitude</label>
+                    <label htmlFor="manualLat" className="block text-xs text-on-surface-variant mb-1">Latitude</label>
                     <input
                       type="number"
+                      id="manualLat"
                       step="0.0001"
                       className="w-full p-2 rounded-lg bg-surface-container-lowest border border-outline-variant text-xs"
                       value={userCoords?.lat ?? ''}
-                      onChange={(e) => setUserCoords({ lat: parseFloat(e.target.value) || 0, lon: userCoords?.lon ?? 0 })}
+                      onChange={(e) => {
+                        const raw = e.target.value
+                        if (raw === "") { setUserCoords(null) }
+                        const lat = parseFloat(raw)
+                        if (Number.isNaN(lat)) { return }
+                        setUserCoords({ lat, lon: userCoords?.lon ?? 0 })
+                      }}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-on-surface-variant mb-1">Longitude</label>
+                    <label htmlFor="manualLon" className="block text-xs text-on-surface-variant mb-1">Longitude</label>
                     <input
                       type="number"
+                      id="manualLon"
                       step="0.0001"
                       className="w-full p-2 rounded-lg bg-surface-container-lowest border border-outline-variant text-xs"
                       value={userCoords?.lon ?? ''}
-                      onChange={(e) => setUserCoords({ lat: userCoords?.lat ?? 0, lon: parseFloat(e.target.value) || 0 })}
+                      onChange={(e) => {
+                        const rawLon = e.target.value
+                        if (rawLon === "") { setUserCoords(null) }
+                        const lon = parseFloat(rawLon)
+                        if (Number.isNaN(lon)) { return }
+                        setUserCoords({ lat: userCoords?.lat ?? 0, lon })
+                      }}
                     />
                   </div>
                 </div>

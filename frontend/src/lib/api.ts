@@ -128,6 +128,66 @@ export interface SessionUser {
 }
 
 export type FundingPreference = 'scheme_linked_loan' | 'standard_bank_loan' | 'need_guidance';
+export interface DprFullRecord {
+  dpr_id: string;
+  applicant_name: string;
+  business_name: string;
+  business_category?: string;
+  status: string;
+  verified?: string;
+  pdf_url?: string;
+  created_at?: string | null;
+  data?: {
+    applicant?: string;
+    business?: string;
+    location?: { state?: string; district?: string; block?: string; code?: string; lat?: number; lon?: number };
+    feasibility?: { business_category?: string; poi_count?: number; density_score?: number; verdict?: string };
+    scheme?: { tpc?: number; margin?: number; max_loan_capped?: number; eqi_amount?: number; tier?: string; rules?: { version?: string } };
+    funding_preference?: string;
+    verified?: string;
+  } | null;
+}
+
+export interface DprHistoryEntry {
+  from?: string;
+  to?: string;
+  trigger?: string;
+  by_user_id?: string;
+  timestamp?: string;
+  note?: string;
+}
+
+export interface DprHistory {
+  dpr_id: string;
+  current_state: string;
+  allowed_triggers: string[];
+  history: DprHistoryEntry[];
+}
+
+export interface DprTransitionResult {
+  dpr_id: string;
+  previous_state: string;
+  current_state: string;
+  triggered_by: string;
+  history: DprHistoryEntry[];
+}
+
+export interface AuditLogEntry {
+  id: string;
+  user_id: string | null;
+  action: string;
+  endpoint: string | null;
+  ip_address: string | null;
+  timestamp: string | null;
+  payload_snapshot: unknown;
+}
+
+export interface AuditLogPage {
+  page: number;
+  page_size: number;
+  count: number;
+  logs: AuditLogEntry[];
+}
 
 export class ApiService {
   async translationLanguages(): Promise<{ available: boolean; languages: string[] }> {
@@ -220,28 +280,71 @@ export class ApiService {
     throw new Error('Sign in is required');
   }
 
+  private async readErrorDetail(response: Response): Promise<string | null> {
+    try {
+      const text = await response.text();
+      if (!text) return null;
+      try {
+        const data = JSON.parse(text) as { detail?: unknown };
+        if (typeof data.detail === 'string') return data.detail;
+        if (Array.isArray(data.detail)) {
+          const msgs = data.detail
+            .map((item) => {
+              if (typeof item === 'string') return item;
+              if (item && typeof item === 'object' && 'msg' in item && typeof (item as { msg: unknown }).msg === 'string') {
+                return (item as { msg: string }).msg.replace(/^Value error,\s*/, '');
+              }
+              return null;
+            })
+            .filter((msg): msg is string => Boolean(msg));
+          if (msgs.length) return msgs.join('. ');
+        }
+      } catch {
+        return text.slice(0, 200);
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
   async login(email: string, password: string): Promise<void> {
-    const body = new URLSearchParams({ username: email, password }).toString();
-    const response = await fetch('/auth/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-    });
-    if (!response.ok) throw new Error(response.status === 401 ? 'Incorrect email or password' : 'Sign in is unavailable');
+    let response: Response;
+    try {
+      const body = new URLSearchParams({ username: email, password }).toString();
+      response = await fetch('/auth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      });
+    } catch {
+      throw new Error('Cannot reach the server. Make sure the backend is running, then try again.');
+    }
+    if (!response.ok) {
+      if (response.status === 401) throw new Error('Incorrect email or password. New here? Use “Create an account” below to register first.');
+      const detail = await this.readErrorDetail(response);
+      throw new Error(detail ? `Sign in failed: ${detail}` : 'Sign in is unavailable. Check your connection and try again.');
+    }
     const result = await response.json();
     this.setToken(result.access_token);
   }
 
   async registerApplicant(input: { email: string; password: string; fullName: string }): Promise<void> {
-    const body = JSON.stringify({ email: input.email, password: input.password, full_name: input.fullName });
-    const response = await fetch('/auth/register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-    });
+    const body = JSON.stringify({ email: input.email, password: input.password, full_name: input.fullName || undefined });
+    let response: Response;
+    try {
+      response = await fetch('/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+      });
+    } catch {
+      throw new Error('Cannot reach the server. Make sure the backend is running, then try again.');
+    }
     if (!response.ok) {
-      if (response.status === 409) throw new Error('An account already exists for this email');
-      throw new Error('We could not create your account');
+      if (response.status === 409) throw new Error('An account already exists for this email. Switch back to “Sign in” and enter your password.');
+      const detail = await this.readErrorDetail(response);
+      throw new Error(detail ? `We could not create your account: ${detail}` : 'We could not create your account. Try again.');
     }
     await this.login(input.email, input.password);
   }
@@ -457,6 +560,45 @@ export class ApiService {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) return this.handleProtectedFailure(response, 'Project report status check failed');
+    return response.json();
+
+  }
+  async getDprFull(dprId: string): Promise<DprFullRecord> {
+    const token = await this.ensureAuthenticated();
+    const response = await fetch(`/api/dpr/${encodeURIComponent(dprId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return this.handleProtectedFailure(response, 'Project report status check failed');
+    return response.json();
+  }
+
+  async getDprHistory(dprId: string): Promise<DprHistory> {
+    const token = await this.ensureAuthenticated();
+    const response = await fetch(`/api/dpr/${encodeURIComponent(dprId)}/history`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return this.handleProtectedFailure(response, 'Workflow history check failed');
+    return response.json();
+  }
+
+  async transitionDpr(dprId: string, action: string, note = ''): Promise<DprTransitionResult> {
+    const token = await this.ensureAuthenticated();
+    const response = await fetch(`/api/dpr/${encodeURIComponent(dprId)}/transition`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ action, note }),
+    });
+    if (!response.ok) return this.handleProtectedFailure(response, 'Workflow transition failed');
+    return response.json();
+  }
+
+  async getAuditLogs(page = 1, pageSize = 50): Promise<AuditLogPage> {
+    const token = await this.ensureAuthenticated();
+    const query = new URLSearchParams({ page: String(page), page_size: String(pageSize) });
+    const response = await fetch(`/api/audit/logs?${query.toString()}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) return this.handleProtectedFailure(response, 'Audit log check failed');
     return response.json();
   }
 }

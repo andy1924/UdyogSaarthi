@@ -10,6 +10,7 @@ import {
 } from '../../lib/api';
 import { useLanguage } from '../../lib/LanguageContext';
 import { digiLockerAdapter } from '../../lib/digilocker';
+import { pushMyDpr } from '../../lib/my-dprs';
 import { canGenerateDpr, clampRestoredStep, getAdvanceError } from '../../lib/assessment-workflow';
 import { ENTERPRISE_OPTIONS } from './enterprise-catalog';
 
@@ -491,6 +492,7 @@ export function useAssessment() {
           verified: digiLockerVerified ? 'aa-verified' : 'self-reported',
         });
       setDprId(res.dpr_id);
+      try { pushMyDpr({ id: res.dpr_id, businessName: `${enterprise.name} Unit`, createdAt: new Date().toISOString() }); } catch { /* Registry is best-effort. */ }
       let ready = false;
       if (res.status === 'queued') for (let attempt = 0; attempt < 10; attempt += 1) {
         const record = await api.getDpr(res.dpr_id);

@@ -22,6 +22,7 @@ interface FeasibilityCheckProps {
 
 export default function FeasibilityCheck({ onBackToLanding, onLogout, user }: FeasibilityCheckProps) {
   const assessment = useAssessment();
+  const holderName = user?.username?.trim() || user?.full_name?.trim() || user?.email?.trim() || '';
   const { t, currentStep, highestStepReached, stepContentRef, loadingState, uiError, setUiError, goToStep } = assessment;
   return (
     <div className="assessment min-h-screen bg-surface-container-lowest text-on-surface font-body-md antialiased selection:bg-secondary-container">
@@ -106,7 +107,7 @@ export default function FeasibilityCheck({ onBackToLanding, onLogout, user }: Fe
               {currentStep === 4 && <FundingStep {...assessment} />}
 
               {/* ==================== STEP 5: DIGILOCKER SANDBOX IDENTITY ==================== */}
-              {currentStep === 5 && <IdentityStep {...assessment} />}
+              {currentStep === 5 && <IdentityStep {...assessment} holderName={holderName} />}
 
               {/* ==================== STEP 6: BANK-READY DPR & DOWNLOAD DOSSIER ==================== */}
               {currentStep === 6 && <ReportStep {...assessment} />}
@@ -114,7 +115,7 @@ export default function FeasibilityCheck({ onBackToLanding, onLogout, user }: Fe
 
               {currentStep >= 4 && currentStep <= 5 && (
                 <div>
-                  <DprPreview {...assessment} compact showSwot={currentStep === 4} />
+                  <DprPreview {...assessment} compact />
                 </div>
               )}
             </div>
@@ -157,3 +158,5 @@ export default function FeasibilityCheck({ onBackToLanding, onLogout, user }: Fe
     </div>
   );
 }
+
+

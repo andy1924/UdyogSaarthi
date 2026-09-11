@@ -60,7 +60,7 @@ async def verify_applicant() -> KYCResult:
     token = settings.api_setu_bearer_token
     if not token:
         logger.debug("API_SETU_BEARER_TOKEN not configured — skipping KYC")
-        return KYCResult(verified=False, error="API Setu bearer token not configured")
+        return KYCResult(verified=False, error="KYC verification unavailable - sandbox unreachable")
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -78,7 +78,7 @@ async def verify_applicant() -> KYCResult:
             )
             return KYCResult(
                 verified=False,
-                error=f"DigiLocker returned HTTP {resp.status_code}",
+                error="KYC verification unavailable - sandbox unreachable",
             )
 
         data: dict[str, Any] = resp.json()
@@ -94,7 +94,7 @@ async def verify_applicant() -> KYCResult:
 
     except (httpx.TimeoutException, httpx.HTTPError) as exc:
         logger.warning("DigiLocker request failed (%s) — using fallback", exc)
-        return KYCResult(verified=False, error=str(exc))
+        return KYCResult(verified=False, error="KYC verification unavailable - sandbox unreachable")
     except (KeyError, ValueError, TypeError) as exc:
         logger.warning("DigiLocker response parsing error (%s)", exc)
-        return KYCResult(verified=False, error=f"Response parse error: {exc}")
+        return KYCResult(verified=False, error="KYC verification unavailable - sandbox unreachable")

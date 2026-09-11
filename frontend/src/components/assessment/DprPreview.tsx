@@ -1,4 +1,4 @@
-import { Building2, Check, FileText, MapPin, ShieldCheck, Sparkles, WalletCards } from 'lucide-react';
+import { Check, FileText, MapPin, ShieldCheck, Sparkles, WalletCards } from 'lucide-react';
 import { Text } from '../../lib/LanguageContext';
 import type { AssessmentState } from './useAssessment';
 
@@ -9,7 +9,6 @@ type PreviewData = Pick<AssessmentState,
 
 interface Props extends PreviewData {
   compact?: boolean;
-  showSwot?: boolean;
 }
 
 const rupees = new Intl.NumberFormat('en-IN', {
@@ -17,6 +16,8 @@ const rupees = new Intl.NumberFormat('en-IN', {
   currency: 'INR',
   maximumFractionDigits: 0,
 });
+
+const percent = new Intl.NumberFormat('en-IN', { style: 'percent', maximumFractionDigits: 2 });
 
 const verdictCopy = {
   viable: 'Good potential',
@@ -32,7 +33,7 @@ const fundingPreferenceCopy = {
 
 export default function DprPreview({
   applicantName, enterprise, locationText, feasibilityResult, schemeResult,
-  fundingPreference, digiLockerStatus, compact = false, showSwot = false,
+  fundingPreference, digiLockerStatus, compact = false,
 }: Props) {
   const completed = [
     Boolean(locationText),
@@ -41,12 +42,6 @@ export default function DprPreview({
     Boolean(applicantName.trim()),
   ].filter(Boolean).length;
   const score = feasibilityResult ? Math.max(0, Math.round(100 - feasibilityResult.density_score)) : null;
-  const swot = feasibilityResult ? [
-    ['S', 'Strengths', feasibilityResult.swot.strength],
-    ['W', 'Weaknesses', feasibilityResult.swot.weakness],
-    ['O', 'Opportunities', feasibilityResult.swot.opportunity],
-    ['T', 'Threats', feasibilityResult.swot.threat],
-  ] : [];
 
   return (
     <article aria-label="Live project report preview" className={`overflow-hidden border border-outline-variant/80 bg-white shadow-[0_18px_60px_rgba(23,33,13,0.09)] ${compact ? 'rounded-[28px] lg:sticky lg:top-24' : 'rounded-[32px]'}`}>
@@ -98,27 +93,13 @@ export default function DprPreview({
           </div>}
         </div>
 
-        {showSwot && feasibilityResult ? (
-          <section aria-labelledby={compact ? 'preview-swot-title' : 'report-swot-title'}>
-            <div className="flex items-center justify-between gap-3">
-              <h3 id={compact ? 'preview-swot-title' : 'report-swot-title'} className="font-bold text-primary"><Text>Local SWOT analysis</Text></h3>
-              <span className="rounded-full bg-secondary-container px-2.5 py-1 text-xs font-semibold text-on-secondary-container">{feasibilityResult.poi_count} <Text>nearby</Text></span>
-            </div>
-            <div className={`mt-3 grid gap-2 ${compact ? '' : 'sm:grid-cols-2'}`}>
-              {swot.map(([letter, label, value]) => (
-                <div key={letter} className="rounded-xl border border-outline-variant/70 p-3.5">
-                  <p className="text-xs font-bold uppercase tracking-wider text-secondary"><span aria-hidden="true">{letter} — </span><Text>{label}</Text></p>
-                  <p className={`mt-1.5 text-sm leading-6 text-on-surface-variant ${compact ? 'line-clamp-2' : ''}`}>{value}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : showSwot ? (
-          <div className="rounded-2xl border border-dashed border-outline-variant p-5 text-center">
-            <Building2 size={22} className="mx-auto text-secondary" aria-hidden="true" />
-            <p className="mt-2 text-sm leading-6 text-on-surface-variant"><Text>Your local demand and SWOT analysis will appear here after the business check.</Text></p>
-          </div>
-        ) : null}
+        {compact && schemeResult && (
+          <p className="rounded-2xl bg-surface-container-low p-4 text-sm leading-6 text-on-surface-variant">
+            {percent.format(schemeResult.rules.rate)} annual interest · {schemeResult.rules.tenure_years} years · {schemeResult.rules.moratorium_months}-month grace period.
+            <span className="mt-2 block font-mono text-xs">Scheme rules {schemeResult.rules.version}</span>
+            <span className="mt-2 block"><Text>These figures are an estimate, not a loan approval.</Text></span>
+          </p>
+        )}
 
         {!compact && schemeResult && (
           <section aria-labelledby="report-funding-title">
@@ -149,3 +130,4 @@ export default function DprPreview({
     </article>
   );
 }
+

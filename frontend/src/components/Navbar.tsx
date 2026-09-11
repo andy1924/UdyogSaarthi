@@ -37,7 +37,6 @@ export default function Navbar({ onStart, onSignIn, onLogout, user }: NavbarProp
               <button type="button" onClick={onLogout} className="hidden rounded-full px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-olive-100 sm:block">Sign out</button>
             </>
           ) : <button type="button" onClick={onSignIn} className="hidden rounded-full px-4 py-2 text-sm font-semibold text-primary hover:bg-olive-100 sm:block">Sign in</button>}
-          <button type="button" onClick={onStart} className="hidden rounded-full bg-olive-800 px-5 py-2 text-sm font-semibold text-white transition hover:bg-olive-800/90 sm:block">{t('heroGetStarted')}</button>
           <button type="button" onClick={() => setMobileOpen((open) => !open)} className="grid h-11 w-11 place-items-center rounded-full md:hidden" aria-label={mobileOpen ? 'Close menu' : 'Open menu'} aria-expanded={mobileOpen} aria-controls="mobile-navigation">
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>

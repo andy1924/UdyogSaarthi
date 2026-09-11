@@ -203,7 +203,7 @@ async def get_dpr(
     if record is None:
         raise HTTPException(status_code=404, detail=f"DPR {dpr_id} not found")
 
-    pdf_url = f"/api/dpr/{dpr_id}/download" if record.pdf_path else f"/mock/{dpr_id}.pdf"
+    pdf_url = f"/api/dpr/{dpr_id}/download"
 
     return {
         "dpr_id": record.id,

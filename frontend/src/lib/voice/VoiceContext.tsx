@@ -10,7 +10,7 @@ import { resolveVoiceLanguage, type ResolvedVoiceLanguage, type VoiceEngine } fr
 import { createProgressTracker, type ProgressSnapshot } from './download-progress';
 import { createRecorder, type Recorder } from './recorder';
 import { Endpointer } from './endpoint';
-import { createSpeaker, type Speaker } from './tts';
+import { createSpeaker, primeAudio, type Speaker } from './tts';
 import { createTranscriber, type Transcriber } from './stt';
 import { toPlainText } from './markdown';
 import { clipPage, pageText } from './context';
@@ -272,6 +272,10 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const startTurn = useCallback(async () => {
     if (starting.current) return;
     starting.current = true;
+    // Preserve the tap's user activation before microphone permission and
+    // model loading introduce awaits. Without this, browsers block the reply
+    // audio even though the assistant reaches the speaking state.
+    primeAudio();
     const voice = resolveVoiceLanguage(lang);
     turnVoice.current = voice;
     setError(null);

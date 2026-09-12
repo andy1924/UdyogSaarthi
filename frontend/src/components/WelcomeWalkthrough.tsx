@@ -26,19 +26,21 @@ const STEPS = [
 ] as const;
 
 interface WelcomeWalkthroughProps {
-  onStart: () => void;
+  /** Called only after the guided tour closes; true when the user chose Start. */
+  onComplete: (startPlan: boolean) => void;
 }
 
-export default function WelcomeWalkthrough({ onStart }: WelcomeWalkthroughProps) {
+export default function WelcomeWalkthrough({ onComplete }: WelcomeWalkthroughProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [step, setStep] = useState(0);
   const primaryAction = useRef<HTMLButtonElement>(null);
   const current = STEPS[step];
   const Icon = current.icon;
 
-  const complete = () => {
+  const complete = (startPlan = false) => {
     try { localStorage.setItem(WELCOME_CACHE_KEY, 'true'); } catch { /* Optional local cache. */ }
     setIsOpen(false);
+    onComplete(startPlan);
   };
 
   useEffect(() => {
@@ -60,8 +62,7 @@ export default function WelcomeWalkthrough({ onStart }: WelcomeWalkthroughProps)
   const advance = () => {
     if (step < STEPS.length - 1) setStep((value) => value + 1);
     else {
-      complete();
-      onStart();
+      complete(true);
     }
   };
 
@@ -69,7 +70,7 @@ export default function WelcomeWalkthrough({ onStart }: WelcomeWalkthroughProps)
     <div className="fixed inset-0 z-[80] grid place-items-center bg-primary/30 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="welcome-title">
       <section className="relative w-full max-w-xl overflow-hidden rounded-3xl border border-outline-variant bg-surface-container-lowest p-6 shadow-2xl sm:p-8">
         <div className="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-secondary-container/70 blur-2xl" aria-hidden="true" />
-        <button type="button" onClick={complete} className="absolute right-4 top-4 grid min-h-11 min-w-11 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container" aria-label="Skip welcome walkthrough">
+        <button type="button" onClick={() => complete()} className="absolute right-4 top-4 grid min-h-11 min-w-11 place-items-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container" aria-label="Skip welcome walkthrough">
           <X size={20} aria-hidden="true" />
         </button>
 
@@ -86,7 +87,7 @@ export default function WelcomeWalkthrough({ onStart }: WelcomeWalkthroughProps)
           </ol>
 
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-            <button type="button" onClick={complete} className="min-h-11 rounded-full px-4 text-sm font-semibold text-on-surface-variant hover:bg-surface-container"><Text>Skip for now</Text></button>
+            <button type="button" onClick={() => complete()} className="min-h-11 rounded-full px-4 text-sm font-semibold text-on-surface-variant hover:bg-surface-container"><Text>Skip for now</Text></button>
             <button ref={primaryAction} type="button" onClick={advance} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-bold text-on-primary shadow-sm transition-colors hover:bg-primary-container">
               {step === STEPS.length - 1 ? <><Text>Start my plan</Text><Check size={18} aria-hidden="true" /></> : <><Text>Continue</Text><ArrowRight size={18} aria-hidden="true" /></>}
             </button>

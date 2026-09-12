@@ -27,6 +27,22 @@ export const SPEAK_MAX_MS = 10 * 60 * 1000;
  */
 const isRunning = (context: AudioContext) => context.state === 'running';
 
+// Browsers only allow an AudioContext to be resumed while handling a user
+// gesture. Model downloads and speech synthesis happen after that gesture, so
+// keep one context that was created/resumed synchronously by the button press.
+let sharedContext: AudioContext | null = null;
+
+/** Prime playback while the click/tap activation is still alive. */
+export function primeAudio(): void {
+  if (typeof window === 'undefined' || !('AudioContext' in window)) return;
+  try {
+    sharedContext ??= new AudioContext();
+    if (!isRunning(sharedContext)) void sharedContext.resume().catch(() => {});
+  } catch {
+    // The normal HTMLAudioElement fallback will still be attempted later.
+  }
+}
+
 async function resume(context: AudioContext): Promise<boolean> {
   if (isRunning(context)) return true;
   const started = await Promise.race([
@@ -80,9 +96,13 @@ export async function createSpeaker(
   progress?: (event: RawProgressEvent) => void,
 ): Promise<Speaker> {
   const options = ttsOptions(language);
+  // `createSpeaker` is entered synchronously from a click handler, so prime
+  // before the first await as a second line of defence for callers that do not
+  // explicitly call primeAudio().
+  primeAudio();
   await warmTts(language.engine, language.voice, options, progress);
 
-  let context: AudioContext | null = null;
+  let context: AudioContext | null = sharedContext;
   let element: HTMLAudioElement | null = null;
   let source: MediaElementAudioSourceNode | null = null;
   let analyser: AnalyserNode | null = null;
@@ -118,7 +138,8 @@ export async function createSpeaker(
    */
   const playThroughAnalyser = async (audio: HTMLAudioElement): Promise<boolean> => {
     try {
-      context ??= new AudioContext();
+      context ??= sharedContext ?? new AudioContext();
+      sharedContext = context;
       if (!(await resume(context))) return false;
       analyser = context.createAnalyser();
       analyser.fftSize = 1024;

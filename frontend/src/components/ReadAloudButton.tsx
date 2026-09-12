@@ -6,7 +6,7 @@ import { clipPage, pageText } from '../lib/voice/context';
 import { resolveVoiceLanguage } from '../lib/voice/languages';
 import { READ_ALOUD_MAX_MS, readAloudChunks } from '../lib/voice/read-aloud';
 import { toPlainText } from '../lib/voice/markdown';
-import { createSpeaker, type Speaker } from '../lib/voice/tts';
+import { createSpeaker, primeAudio, type Speaker } from '../lib/voice/tts';
 
 type ReadState = 'idle' | 'preparing' | 'reading';
 
@@ -56,6 +56,9 @@ export default function ReadAloudButton() {
 
   const start = useCallback(async () => {
     const id = (run.current += 1);
+    // Prime playback during the button gesture. The model warmup below is
+    // asynchronous and would otherwise lose autoplay permission.
+    primeAudio();
     setState('preparing');
     // Read the page before anything is awaited: it is a synchronous snapshot of
     // the DOM as it is now, and awaiting first would snapshot whatever the next

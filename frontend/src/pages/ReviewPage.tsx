@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react';
 import { RefreshCw, Search } from 'lucide-react';
 import { api, isAuthenticationError, type DprFullRecord, type DprHistory, type SessionUser } from '../lib/api';
 import { listMyDprs } from '../lib/my-dprs';
-import { formatDateTime } from '../lib/format';
 import { Text } from '../lib/LanguageContext';
 import LockedSection from '../components/LockedSection';
+import { DprErrorAlert, DprHistoryList, StatusCard, TransitionActions, useDprTransition } from '../components/DprWorkflow';
 import { isStaffRole } from '../lib/routes';
 
 interface ReviewPageProps {
@@ -18,9 +18,26 @@ export default function ReviewPage({ user, onSignIn }: ReviewPageProps) {
   const [history, setHistory] = useState<DprHistory | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [note, setNote] = useState('');
-  const [acting, setActing] = useState<string | null>(null);
   const [registry, setRegistry] = useState(() => listMyDprs());
+
+  const load = () => {
+    const id = dprId.trim();
+    if (!id) { setError('Enter a report reference, for example DPR-79FCA9EA.'); return; }
+    setLoading(true);
+    setError(null);
+    Promise.all([api.getDprFull(id), api.getDprHistory(id)])
+      .then(([full, hist]) => { setRecord(full); setHistory(hist); })
+      .catch((reason: unknown) => {
+        setRecord(null);
+        setHistory(null);
+        if (isAuthenticationError(reason)) setError('Session expired. Sign in again.');
+        else if (reason instanceof Error && reason.message.includes('(404)')) setError(`No report found for ${id}.`);
+        else setError('Review data is temporarily unavailable.');
+      })
+      .finally(() => setLoading(false));
+  };
+
+  const { note, setNote, acting, runTransition } = useDprTransition(dprId, load, setError);
 
   useEffect(() => { setRegistry(listMyDprs()); }, []);
 
@@ -43,34 +60,6 @@ export default function ReviewPage({ user, onSignIn }: ReviewPageProps) {
       />
     );
   }
-
-  const load = () => {
-    const id = dprId.trim();
-    if (!id) { setError('Enter a report reference, for example DPR-79FCA9EA.'); return; }
-    setLoading(true);
-    setError(null);
-    Promise.all([api.getDprFull(id), api.getDprHistory(id)])
-      .then(([full, hist]) => { setRecord(full); setHistory(hist); })
-      .catch((reason: unknown) => {
-        setRecord(null);
-        setHistory(null);
-        if (isAuthenticationError(reason)) setError('Session expired. Sign in again.');
-        else if (reason instanceof Error && reason.message.includes('(404)')) setError(`No report found for ${id}.`);
-        else setError('Review data is temporarily unavailable.');
-      })
-      .finally(() => setLoading(false));
-  };
-
-  const runTransition = (action: string) => {
-    setActing(action);
-    setError(null);
-    api.transitionDpr(dprId.trim(), action, note)
-      .then(() => { setNote(''); load(); })
-      .catch((reason: unknown) => {
-        setError(reason instanceof Error ? reason.message : 'Transition failed.');
-      })
-      .finally(() => setActing(null));
-  };
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -111,11 +100,7 @@ export default function ReviewPage({ user, onSignIn }: ReviewPageProps) {
       </form>
 
       <div aria-live="polite">
-        {error && (
-          <div role="alert" className="rounded-2xl border border-error/30 bg-error-container p-5 text-on-error-container">
-            <p>{error}</p>
-          </div>
-        )}
+        <DprErrorAlert error={error} />
       </div>
 
       {record && (
@@ -123,64 +108,16 @@ export default function ReviewPage({ user, onSignIn }: ReviewPageProps) {
           <h2 className="break-words text-xl font-bold text-primary">{record.business_name}</h2>
           <p className="mt-1 break-all font-mono text-xs text-on-surface-variant">{record.dpr_id} · {record.applicant_name}</p>
           <dl className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-xl bg-surface-container-low p-4">
-              <dt className="text-sm text-on-surface-variant"><Text>PDF status</Text></dt>
-              <dd className="mt-1 font-mono font-semibold text-primary">{record.status}</dd>
-            </div>
-            <div className="rounded-xl bg-surface-container-low p-4">
-              <dt className="text-sm text-on-surface-variant"><Text>Workflow state</Text></dt>
-              <dd className="mt-1 font-mono font-semibold text-primary">{history?.current_state ?? '—'}</dd>
-            </div>
-            <div className="rounded-xl bg-surface-container-low p-4">
-              <dt className="text-sm text-on-surface-variant"><Text>Verified</Text></dt>
-              <dd className="mt-1 font-semibold text-primary">{record.verified ?? '—'}</dd>
-            </div>
+            <StatusCard label="PDF status" mono>{record.status}</StatusCard>
+            <StatusCard label="Workflow state" mono>{history?.current_state ?? '—'}</StatusCard>
+            <StatusCard label="Verified">{record.verified ?? '—'}</StatusCard>
           </dl>
 
           <h3 className="mt-6 font-bold text-primary"><Text>History</Text></h3>
-          {(history?.history?.length ?? 0) === 0 ? (
-            <p className="mt-2 text-sm text-on-surface-variant"><Text>No transitions yet.</Text></p>
-          ) : (
-            <ol className="mt-3 space-y-2">
-              {history?.history.map((entry, index) => (
-                <li key={`${entry.timestamp ?? index}-${entry.trigger ?? index}`} className="rounded-xl bg-surface-container-low p-3 text-sm">
-                  <span className="font-semibold text-primary">{entry.from ?? '?'} → {entry.to ?? '?'}</span>
-                  <span className="ml-2 font-mono text-xs text-on-surface-variant">{entry.trigger ?? ''} · {formatDateTime(entry.timestamp)}</span>
-                  {entry.note ? <p className="mt-1 text-on-surface-variant">{entry.note}</p> : null}
-                </li>
-              ))}
-            </ol>
-          )}
+          <DprHistoryList history={history} layout="compact" emptyMessage="No transitions yet." />
 
           <h3 className="mt-6 font-bold text-primary"><Text>Next actions</Text></h3>
-          {(history?.allowed_triggers?.length ?? 0) === 0 ? (
-            <p className="mt-2 text-sm text-on-surface-variant"><Text>No actions available for this state and role.</Text></p>
-          ) : (
-            <>
-              <label htmlFor="review-note" className="mt-3 block text-sm font-semibold text-primary"><Text>Note (optional)</Text></label>
-              <input
-                id="review-note"
-                type="text"
-                value={note}
-                onChange={(event) => setNote(event.target.value)}
-                placeholder="Review note"
-                className="mt-1.5 w-full rounded-xl border border-outline-variant bg-white px-4 py-3 text-base outline-none focus:border-primary"
-              />
-              <div className="mt-3 flex flex-wrap gap-2">
-                {history?.allowed_triggers.map((trigger) => (
-                  <button
-                    key={trigger}
-                    type="button"
-                    onClick={() => runTransition(trigger)}
-                    disabled={acting !== null}
-                    className="min-h-11 rounded-full bg-primary px-5 font-mono text-sm font-semibold text-on-primary disabled:opacity-50"
-                  >
-                    {acting === trigger ? <Text>Working…</Text> : trigger}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
+          <TransitionActions note={note} setNote={setNote} allowedTriggers={history?.allowed_triggers} acting={acting} onAction={runTransition} inputId="review-note" />
         </section>
       )}
     </div>

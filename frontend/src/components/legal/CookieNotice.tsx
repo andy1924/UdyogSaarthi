@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export const COOKIE_CONSENT_KEY = 'saarthi-cookie-consent';
+const COOKIE_CONSENT_KEY = 'saarthi-cookie-consent';
 
 type CookieNoticeProps = {
   onOpenCookiePolicy: () => void;

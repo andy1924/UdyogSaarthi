@@ -9,7 +9,7 @@
 const TOKEN_STORAGE_KEY = 'udyog_access_token';
 export const AUTH_REQUIRED_EVENT = 'udyogsaarthi:auth-required';
 
-export class ApiError extends Error {
+class ApiError extends Error {
   constructor(message: string, public readonly status: number) {
     super(message);
     this.name = 'ApiError';
@@ -283,15 +283,6 @@ export class ApiService {
   }
 
   /**
-   * Health Check
-   */
-  async checkHealth(): Promise<{ status: string; database: string; redis: string }> {
-    const res = await fetch('/health');
-    if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
-    return res.json();
-  }
-
-  /**
    * Return the current access token. Authentication is always user-initiated.
    */
   async ensureAuthenticated(): Promise<string> {
@@ -376,15 +367,6 @@ export class ApiService {
     });
     if (!response.ok) return this.handleProtectedFailure(response, 'Account check failed');
     return response.json();
-  }
-
-  /**
-   * Fetch Versioned Scheme Rules (Public)
-   */
-  async getSchemeRules(): Promise<SchemeRule[]> {
-    const res = await fetch('/api/scheme/rules');
-    if (!res.ok) throw new Error(`Failed to load scheme rules: ${res.status}`);
-    return res.json();
   }
 
   /**
@@ -586,22 +568,20 @@ export class ApiService {
     return res.blob();
   }
 
-  async getDpr(dprId: string): Promise<{ status: string; pdf_url?: string }> {
+  private async fetchDpr<T>(dprId: string): Promise<T> {
     const token = await this.ensureAuthenticated();
     const response = await fetch(`/api/dpr/${encodeURIComponent(dprId)}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) return this.handleProtectedFailure(response, 'Project report status check failed');
     return response.json();
+  }
 
+  async getDpr(dprId: string): Promise<{ status: string; pdf_url?: string }> {
+    return this.fetchDpr(dprId);
   }
   async getDprFull(dprId: string): Promise<DprFullRecord> {
-    const token = await this.ensureAuthenticated();
-    const response = await fetch(`/api/dpr/${encodeURIComponent(dprId)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!response.ok) return this.handleProtectedFailure(response, 'Project report status check failed');
-    return response.json();
+    return this.fetchDpr(dprId);
   }
 
   async getDprHistory(dprId: string): Promise<DprHistory> {

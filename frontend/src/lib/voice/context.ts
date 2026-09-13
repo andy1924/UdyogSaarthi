@@ -1,5 +1,3 @@
-import { VOICE_LANGUAGES } from './languages';
-
 export interface StepContext {
   step: number;
   stepTitle: string;
@@ -182,4 +180,3 @@ export function buildUserContext(context: StepContext, question: string): string
 
 /** Display names for the languages the voice layer can speak. */
 export const VOICE_LANGUAGE_NAMES = LANGUAGE_NAMES;
-export const VOICE_LANGUAGE_CODES = Object.keys(VOICE_LANGUAGES);

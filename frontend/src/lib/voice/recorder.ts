@@ -1,3 +1,4 @@
+import { startLevelLoop } from './audio-level';
 import { normalizePeak } from './gain';
 import { downsampleTo16k } from './resample';
 
@@ -46,16 +47,7 @@ export function createRecorder(): Recorder {
     const analyser = context.createAnalyser();
     analyser.fftSize = 1024;
     source.connect(analyser);
-    const buffer = new Float32Array(analyser.fftSize);
-
-    const sample = () => {
-      analyser.getFloatTimeDomainData(buffer);
-      let sum = 0;
-      for (const value of buffer) sum += value * value;
-      levelCallback(Math.sqrt(sum / buffer.length));
-      frame = requestAnimationFrame(sample);
-    };
-    sample();
+    startLevelLoop(analyser, (rms) => levelCallback(rms), (id) => { frame = id; });
   };
 
   const begin = async () => {

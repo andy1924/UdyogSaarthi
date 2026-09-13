@@ -46,6 +46,43 @@ const VERDICT_COPY = {
 } as const;
 
 /**
+ * Radius in whole km, or null when the snapshot carries none. Both the score
+ * explanation and the snapshot facts need it, so it lives here once.
+ */
+function radiusKm(context: StepContext): number | null {
+  return typeof context.radiusMeters === 'number' ? Math.round(context.radiusMeters / 1000) : null;
+}
+
+/** The nearby-units sentence, shared by the English and Hindi score paths. */
+function nearbyUnitsSentence(nearbyUnits: number, radius: number | null, key: 'en' | 'hi'): string {
+  if (key === 'hi') {
+    return radius === null
+      ? `आसपास ${nearbyUnits} इकाइयाँ दर्ज मिलीं।`
+      : `${radius} किलोमीटर के भीतर ${nearbyUnits} इकाइयाँ दर्ज मिलीं।`;
+  }
+  return radius === null
+    ? `The check found ${nearbyUnits} registered units nearby.`
+    : `The check found ${nearbyUnits} registered units within ${radius} km.`;
+}
+
+/** The nearby-units and radius facts, shared by both snapshot paths. */
+function areaFacts(context: StepContext, key: 'en' | 'hi'): string[] {
+  const facts: string[] = [];
+  if (typeof context.nearbyUnits === 'number') {
+    facts.push(key === 'hi'
+      ? `आसपास ${context.nearbyUnits} दर्ज इकाइयाँ`
+      : `${context.nearbyUnits} registered units nearby`);
+  }
+  if (typeof context.radiusMeters === 'number') {
+    const radius = Math.round(context.radiusMeters / 1000);
+    facts.push(key === 'hi'
+      ? `${radius} किलोमीटर का दायरा`
+      : `a ${radius} km radius`);
+  }
+  return facts;
+}
+
+/**
  * The score is the number applicants ask about first, and "read the demand
  * card" is not an answer. Say the arithmetic, the count behind it and the
  * verdict, from the snapshot the wizard handed us.
@@ -54,7 +91,7 @@ function explainScore(context: StepContext, key: 'en' | 'hi'): string {
   const score = context.feasibilityScore ?? 0;
   const verdictKey = context.feasibilityVerdict as keyof typeof VERDICT_COPY | undefined;
   const verdict = verdictKey ? VERDICT_COPY[verdictKey] : undefined;
-  const radiusKm = typeof context.radiusMeters === 'number' ? Math.round(context.radiusMeters / 1000) : null;
+  const radius = radiusKm(context);
   const parts: string[] = [];
   if (key === 'hi') {
     parts.push(`आपका स्कोर 100 में से ${score} है।`);
@@ -62,9 +99,7 @@ function explainScore(context: StepContext, key: 'en' | 'hi'): string {
       parts.push(`यह 100 में से प्रतिस्पर्धा स्कोर ${context.competitionScore} घटाकर बनता है, इसलिए कम प्रतिस्पर्धा वाले बाज़ार का स्कोर ऊँचा आता है।`);
     }
     if (typeof context.nearbyUnits === 'number') {
-      parts.push(radiusKm === null
-        ? `आसपास ${context.nearbyUnits} इकाइयाँ दर्ज मिलीं।`
-        : `${radiusKm} किलोमीटर के भीतर ${context.nearbyUnits} इकाइयाँ दर्ज मिलीं।`);
+      parts.push(nearbyUnitsSentence(context.nearbyUnits, radius, key));
     }
     if (verdict) parts.push(`नतीजा है: ${verdict.hi}।`);
     parts.push('अगर यह पुराना लगे तो "स्थानीय माँग फिर जाँचें" दबाएँ।');
@@ -75,9 +110,7 @@ function explainScore(context: StepContext, key: 'en' | 'hi'): string {
     parts.push(`It is 100 minus the competition score of ${context.competitionScore}, so a market with few registered competitors scores higher.`);
   }
   if (typeof context.nearbyUnits === 'number') {
-    parts.push(radiusKm === null
-      ? `The check found ${context.nearbyUnits} registered units nearby.`
-      : `The check found ${context.nearbyUnits} registered units within ${radiusKm} km.`);
+    parts.push(nearbyUnitsSentence(context.nearbyUnits, radius, key));
   }
   if (verdict) parts.push(`The verdict is ${verdict.en}.`);
   parts.push('If that looks out of date, tap Try local demand again to re-run the check.');
@@ -98,8 +131,7 @@ function describeSnapshot(context: StepContext, key: 'en' | 'hi'): string {
   if (key === 'hi') {
     if (context.district) facts.push(`${context.district} जिला`);
     if (context.enterprise) facts.push(`${context.enterprise} व्यवसाय`);
-    if (typeof context.nearbyUnits === 'number') facts.push(`आसपास ${context.nearbyUnits} दर्ज इकाइयाँ`);
-    if (typeof context.radiusMeters === 'number') facts.push(`${Math.round(context.radiusMeters / 1000)} किलोमीटर का दायरा`);
+    facts.push(...areaFacts(context, key));
     if (typeof context.feasibilityScore === 'number') facts.push(`माँग स्कोर 100 में से ${context.feasibilityScore}`);
     if (typeof context.competitionScore === 'number') facts.push(`प्रतिस्पर्धा स्कोर ${context.competitionScore}`);
     if (typeof context.marginPercent === 'number') facts.push(`आपका योगदान ${context.marginPercent} प्रतिशत`);
@@ -109,8 +141,7 @@ function describeSnapshot(context: StepContext, key: 'en' | 'hi'): string {
   }
   if (context.district) facts.push(`${context.district} district`);
   if (context.enterprise) facts.push(`business ${context.enterprise}`);
-  if (typeof context.nearbyUnits === 'number') facts.push(`${context.nearbyUnits} registered units nearby`);
-  if (typeof context.radiusMeters === 'number') facts.push(`a ${Math.round(context.radiusMeters / 1000)} km radius`);
+  facts.push(...areaFacts(context, key));
   if (typeof context.feasibilityScore === 'number') facts.push(`a demand score of ${context.feasibilityScore} out of 100`);
   if (typeof context.competitionScore === 'number') facts.push(`a competition score of ${context.competitionScore}`);
   if (typeof context.marginPercent === 'number') facts.push(`your own contribution at ${context.marginPercent} percent`);
@@ -154,5 +185,3 @@ export function offlineAnswer(question: string, context: StepContext, lang: stri
   }
   return explainStep(context, key);
 }
-
-export { STEP_KEYS };

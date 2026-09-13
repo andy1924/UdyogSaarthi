@@ -2,8 +2,8 @@ import type { RawProgressEvent } from './download-progress';
 import { transcribeAudio, warmStt } from './engine';
 import { pickSttOptions, readSttDevice, type SttDevice } from './models';
 
-export { WHISPER_MODEL, hasWebGPU, pickSttOptions } from './models';
-export type { SttDevice, SttOptions } from './models';
+export { WHISPER_MODEL, pickSttOptions } from './models';
+export type { SttDevice } from './models';
 
 export interface Transcriber {
   transcribe(audio: Float32Array, lang: string): Promise<string>;

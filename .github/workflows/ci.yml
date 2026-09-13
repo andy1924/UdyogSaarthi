@@ -125,6 +125,27 @@ jobs:
         env:
           NEXT_TELEMETRY_DISABLED: 1
 
+  # ── Fallow audit (changed TS/JS only) ───────────────────────────────────
+  fallow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Fallow audit (fail on new findings)
+        run: npx -y fallow@3.25.0 audit --base origin/main --format github-annotations
+
+      - name: Fallow summary
+        if: always()
+        run: npx -y fallow@3.25.0 audit --base origin/main --format github-summary >> "$GITHUB_STEP_SUMMARY" || true
+
   # ── Docker build validation ─────────────────────────────────────────────
   docker-build:
     runs-on: ubuntu-latest

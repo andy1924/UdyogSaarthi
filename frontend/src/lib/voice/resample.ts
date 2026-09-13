@@ -1,4 +1,4 @@
-export const WHISPER_SAMPLE_RATE = 16_000;
+const WHISPER_SAMPLE_RATE = 16_000;
 
 /** Box-filter downsample to the 16 kHz mono stream Whisper expects. */
 export function downsampleTo16k(input: Float32Array, inputRate: number): Float32Array {

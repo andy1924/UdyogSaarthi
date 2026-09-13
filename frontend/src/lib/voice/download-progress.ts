@@ -1,4 +1,4 @@
-export type VoiceModelId = 'stt' | 'tts';
+type VoiceModelId = 'stt' | 'tts';
 
 export interface RawProgressEvent {
   status?: string;

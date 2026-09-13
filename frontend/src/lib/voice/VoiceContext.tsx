@@ -11,6 +11,7 @@ import { createProgressTracker, type ProgressSnapshot } from './download-progres
 import { createRecorder, type Recorder } from './recorder';
 import { Endpointer } from './endpoint';
 import { createSpeaker, primeAudio, type Speaker } from './tts';
+import { describeVoiceFailure, smoothLevel } from './voice-errors';
 import { createTranscriber, type Transcriber } from './stt';
 import { toPlainText } from './markdown';
 import { clipPage, pageText } from './context';
@@ -19,7 +20,7 @@ import type { StepContext } from './context';
 
 export type VoiceStatus = 'idle' | 'preparing' | 'listening' | 'thinking' | 'speaking' | 'error';
 
-export interface VoiceMessage {
+interface VoiceMessage {
   id: string;
   role: 'user' | 'assistant';
   text: string;
@@ -58,20 +59,6 @@ const VOICE_ENV = import.meta.env;
  * this device" is easy to misread as "nothing leaves this device".
  */
 const BRAIN_REMOTE = Boolean(readChatConfig(VOICE_ENV).url);
-
-const startFailed = 'Voice could not start. Your audio stays on this device; please try again.';
-
-/** Turns a microphone failure into something the user can act on. */
-function describeVoiceFailure(reason: unknown): string {
-  const name = reason instanceof DOMException ? reason.name : '';
-  if (name === 'NotAllowedError' || name === 'SecurityError') {
-    return 'Microphone access is blocked for this site. Allow the microphone in your browser settings, then try again.';
-  }
-  if (name === 'NotFoundError') return 'No microphone was found on this device.';
-  if (name === 'NotReadableError') return 'Another app is using the microphone. Close it and try again.';
-  // Anything else is unexpected, so keep the code: it is the only clue left.
-  return name ? `${startFailed} (${name})` : startFailed;
-}
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
   const { lang } = useLanguage();
@@ -116,13 +103,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   // pass, where they would otherwise read a stale status.
   useEffect(() => { statusRef.current = status; }, [status]);
 
-  /**
-   * Attack/release smoothing shared by the mic and the spoken reply, so the
-   * orb swells with a voice and settles after it instead of twitching on every
-   * analyser frame.
-   */
   const trackLevel = useCallback((raw: number) => {
-    level.current = level.current * 0.72 + Math.min(1, raw / 0.12) * 0.28;
+    level.current = smoothLevel(level.current, raw);
   }, []);
 
   const prepare = useCallback(async (

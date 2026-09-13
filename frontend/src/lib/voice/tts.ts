@@ -1,3 +1,4 @@
+import { startLevelLoop } from './audio-level';
 import { synthesizeSpeech, warmTts } from './engine';
 import type { VoiceLanguage } from './languages';
 import { hasWebGPU, MMS_TTS_OPTIONS, pickTtsOptions, type TtsOptions } from './models';
@@ -6,7 +7,6 @@ import { encodeWav } from './wav';
 import type { RawProgressEvent } from './download-progress';
 
 export { KOKORO_MODEL, MMS_HINDI_MODEL, MMS_TTS_OPTIONS, pickTtsOptions } from './models';
-export type { TtsOptions } from './models';
 
 /**
  * Ten minutes of speech, after which the speaker stops.
@@ -146,15 +146,8 @@ export async function createSpeaker(
       analyser.connect(context.destination);
       source = context.createMediaElementSource(audio);
       source.connect(analyser);
-      const buffer = new Float32Array(analyser.fftSize);
-      const sample = () => {
-        analyser!.getFloatTimeDomainData(buffer);
-        let sum = 0;
-        for (const value of buffer) sum += value * value;
-        levelSink(Math.sqrt(sum / buffer.length));
-        frame = requestAnimationFrame(sample);
-      };
-      sample();
+      const node = analyser as AnalyserNode;
+      startLevelLoop(node, (rms) => levelSink(rms), (id) => { frame = id; });
       await audio.play();
       return true;
     } catch {

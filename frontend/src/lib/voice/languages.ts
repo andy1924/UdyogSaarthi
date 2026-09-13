@@ -15,7 +15,7 @@ export const VOICE_LANGUAGES: Record<string, VoiceLanguage> = {
   hi: { stt: 'hi', engine: 'mms' },
 };
 
-export const VOICE_FALLBACK_LANG = 'en';
+const VOICE_FALLBACK_LANG = 'en';
 
 export interface ResolvedVoiceLanguage extends VoiceLanguage {
   lang: string;

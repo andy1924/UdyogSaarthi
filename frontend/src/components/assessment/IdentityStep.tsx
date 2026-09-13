@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Text } from '../../lib/LanguageContext';
 import { validateApplicantName } from '../../lib/identity-documents';
 import type { AssessmentState } from './useAssessment';
+import { getDisplayHolder, getEligibleSchemes, isValidPan, toggleIdInList } from './identity-step-helpers';
 
 type Props = Pick<AssessmentState,
   'stepAnimClass' | 'applicantName' | 'setApplicantName' | 'digiLockerStatus' |
@@ -11,8 +12,6 @@ type Props = Pick<AssessmentState,
 > & {
   holderName: string;
 };
-
-const FALLBACK_HOLDER = 'Asha Patil';
 
 export default function IdentityStep({
   stepAnimClass, applicantName, setApplicantName, digiLockerStatus,
@@ -23,11 +22,9 @@ export default function IdentityStep({
   const [accessGranted, setAccessGranted] = useState(false);
   const [showBlockedHint, setShowBlockedHint] = useState(false);
   const nameError = validateApplicantName(applicantName);
-  const displayHolder = holderName.trim() || FALLBACK_HOLDER;
-  const panValid = /^[A-Z]{5}[0-9]{4}[A-Z]$/.test(simulatedPan);
-  const eligibleSchemes = incomeTier === 'low'
-    ? ['PMEGP subsidy-linked loan', 'MUDRA Shishu']
-    : incomeTier === 'middle' ? ['MUDRA Kishor', 'Standard bank loan'] : ['Standard bank loan'];
+  const displayHolder = getDisplayHolder(holderName);
+  const panValid = isValidPan(simulatedPan);
+  const eligibleSchemes = getEligibleSchemes(incomeTier);
 
   const sandboxDocuments = [
     { id: 'pan', label: 'PAN Card', issuer: 'Income Tax Department', number: 'XXXXX1234F', holder: displayHolder, Icon: CreditCard },
@@ -35,7 +32,7 @@ export default function IdentityStep({
   ];
 
   const toggleDocument = (id: string) => {
-    setSelected((previous) => previous.includes(id) ? previous.filter((item) => item !== id) : [...previous, id]);
+    setSelected((previous) => toggleIdInList(previous, id));
   };
 
   const startConnect = () => {

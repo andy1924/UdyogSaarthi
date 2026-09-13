@@ -42,6 +42,4 @@ export const SAARTHI_LANGUAGES: SaarthiLanguage[] = [
   { code: 'ur', label: 'Urdu', nativeLabel: 'اردو' },
 ];
 
-export const DEFAULT_LANGUAGE_CODE = 'en';
-
 export const SAARTHI_LANG_STORAGE_KEY = 'saarthi-lang';

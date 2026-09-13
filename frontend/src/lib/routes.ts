@@ -26,7 +26,7 @@ export function parseHash(rawHash: string): ShellRoute {
   return { name: 'overview' };
 }
 
-export function routeHash(route: ShellRoute): string {
+function routeHash(route: ShellRoute): string {
   if (route.name === 'application-detail' && route.dprId) return `#/applications/${route.dprId}`;
   return `#/${route.name}`;
 }

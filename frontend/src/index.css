@@ -205,6 +205,23 @@ body {
   button:not(:disabled), a { transition-duration: 200ms; }
 }
 
+/* Card surfaces share a small amount of tactility across the dashboard and
+   assessment flow. The selector is deliberately limited to rounded, bordered,
+   filled content containers inside main: controls, alerts, popovers and form
+   fields should not rise with their surrounding card. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .app-shell main :is(article, section, li, div, details):not(.group)[class*="rounded-"][class*="border"][class*="bg-"]:not([role="alert"]):not([role="status"]) {
+    transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background-image 180ms ease;
+  }
+
+  .app-shell main :is(article, section, li, div, details):not(.group)[class*="rounded-"][class*="border"][class*="bg-"]:not([role="alert"]):not([role="status"]):hover {
+    transform: translateY(-2px);
+    border-color: rgb(97 115 60 / .48);
+    box-shadow: 0 10px 24px rgb(23 33 13 / .09);
+    background-image: linear-gradient(rgb(223 236 198 / .18), rgb(223 236 198 / .18));
+  }
+}
+
 input, select, textarea {
   transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
 }

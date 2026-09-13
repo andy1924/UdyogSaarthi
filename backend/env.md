@@ -30,3 +30,5 @@ API_SETU_BEARER_TOKEN="your_sandbox_token"
 # OVERPASS (Free Open Source POI Data)
 # ==========================================
 OVERPASS_API_URL="https://overpass-api.de/api/interpreter"
+
+SarvamAI_API = " "

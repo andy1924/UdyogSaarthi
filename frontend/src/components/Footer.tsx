@@ -13,7 +13,7 @@ type LegalDoc = 'privacy' | 'terms' | 'cookies';
 const columnTitle =
   'font-roboto-mono text-xs leading-[1.4] tracking-[0.08em] uppercase text-secondary';
 const columnLink =
-  'font-dm font-semibold text-base leading-[1.5] tracking-[-0.015em] text-on-surface-variant hover:text-primary transition-colors text-left';
+  'font-dm -mx-2 rounded-lg px-2 py-1 font-semibold text-base leading-[1.5] tracking-[-0.015em] text-on-surface-variant text-left transition-[color,background-color,transform,box-shadow] duration-200 hover:-translate-y-px hover:bg-surface-container-lowest/85 hover:text-primary hover:shadow-[0_2px_8px_rgb(23_33_13_/_0.08)] focus-visible:-translate-y-px focus-visible:bg-surface-container-lowest focus-visible:text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-secondary';
 
 export default function Footer() {
   const { t } = useLanguage();
@@ -39,7 +39,7 @@ export default function Footer() {
 
   return (
     <>
-      <footer className="relative isolate overflow-hidden border-t border-outline-variant/50 bg-white px-4 pb-8 pt-12 sm:px-8 sm:pb-10 sm:pt-16 lg:px-10">
+      <footer className="relative isolate overflow-hidden border-t border-outline-variant/50 bg-surface-container-low px-4 pb-8 pt-12 sm:px-8 sm:pb-10 sm:pt-16 lg:px-10">
         <BotanicalAccent side="left" className="bottom-8 rotate-6 opacity-20" />
         <div className="relative z-10 mx-auto flex max-w-[1320px] flex-col gap-10 lg:flex-row lg:justify-between lg:gap-16">
           <div className="flex-1">

@@ -123,7 +123,6 @@ footnote `Scheme rules v2024-11 · micro ≤₹1.40L 6.5%/3y · term ≤₹50L 8
 4. Directory `radius_m` mismatch: UI sends 10000, API allows 50000 — clamped client-side.
 5. DPR `transition`/`history` officer UI out of scope for applicant rebuild (client fns exist, no UI).
 6. i18n hero+CTA live for HI/TA/BN; deeper strings stubbed.
-7. NEW: `saarthi-design-system.md` (detailed agent spec, 20 components C00–C20) + `saarthi-element-map.html` (visual inventory with live specimens + copy snippets) added as build map — canonical hooks unchanged.
 
 1. Voice/ASR mocked (dock UI only) — ASR adapter unplugged (PRODUCT.md scope).
 2. GPS is demo-grade; `location_text` is the reliable anchor until LGD live verify.

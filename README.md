@@ -1,129 +1,108 @@
 # UdyogSaarthi
 
-**UdyogSaarthi** is a government-grade trust layer and companion platform designed for rural micro-entrepreneurs. It aims to replace predatory DPR (Detailed Project Report) middlemen by providing hyper-local business feasibility checks, deterministic scheme math, and automated DPR generation in the user's vernacular language.
+UdyogSaarthi is a multilingual, accessibility-first platform for rural
+micro-entrepreneurs. It helps applicants assess a business idea, understand
+scheme-linked finance and compliance, and create a reviewable Detailed Project
+Report (DPR).
 
----
+## What it does
 
-## Core Features
-- **Deterministic Scheme Engine:** Zero LLM arithmetic; strictly follows versioned scheme rules to compute TPC (Total Project Cost), margins, and EQI (Equated Quarterly Installment).
-- **Geospatial Feasibility Scoring:** Uses live OSM Overpass POI density data and **Mappls reverse geocoding** combined with authoritative **LGD (Local Government Directory) codes via Data.gov.in** to produce an auditable density score.
-- **DPR Generation:** Assembles applicant info, feasibility data, scheme calculations, and CAPEX/OPEX into a final PDF report using Jinja2 and WeasyPrint.
-- **Compliance & Directory:** Provides RAG-assisted license checklists with static fallback and PostGIS-backed nearby business lookups.
-- **Authentication, Workflow & Audit:** Provides JWT login, role-based DPR review transitions, and staff-only audit log queries.
+- Guides applicants through location, feasibility, finance, compliance, and DPR creation.
+- Uses deterministic, server-side scheme calculations; no client-side or LLM-based financial arithmetic.
+- Scores local business feasibility using geospatial data and local-government context.
+- Supports applicant, DIC officer, and SCA auditor workflows with JWT-based roles and an audit trail.
+- Generates DPR PDFs asynchronously through Celery.
+- Provides a responsive Vite and React PWA with multilingual UI, guided onboarding, local-language suggestions, and an on-device English and Hindi voice assistant.
 
----
+## Technology
 
-## Architecture & Tech Stack
-The repository contains the production-wired backend and Vite/React frontend.
-- **Backend Framework:** FastAPI (Python 3.11+)
-- **Frontend:** Vite + React + TypeScript + Tailwind CSS
-- **Database:** PostgreSQL with PostGIS + Redis for caching and Celery queues
-- **Document Generation:** Jinja2 + WeasyPrint through Celery
-- **External Integrations:** Mappls (geocoding/POI), Data.gov.in (LGD API), OSM Overpass (POI fallback), OpenAI (SWOT/compliance), and DigiLocker/API Setu-compatible KYC settings
+- Frontend: Vite, React, TypeScript, Tailwind CSS, Vitest
+- Backend: FastAPI, SQLAlchemy, Alembic, Celery
+- Data: PostgreSQL with PostGIS and Redis
+- Documents: Jinja2 and WeasyPrint
+- Integrations: Mappls, LGD and Data.gov.in, OSM Overpass, and DigiLocker-compatible KYC settings
 
----
-
-## Directory Structure
+## Directory structure
 
 ```text
-backend/       FastAPI app, migrations, tests, and Python packaging
-frontend/      Vite/React app, UI components, assets, and npm lockfile
-infra/         Docker Compose, secrets templates, and deployment config
-scripts/       Cross-platform development, health-check, and stop scripts
-docs/          Product, API, design, security, and runbook documentation
-graft/         Local context graph: linked markdown nodes (git-ignored; run `graft build`)
+.
+├── .github/                    GitHub Actions, issue templates, and PR template
+├── backend/
+│   ├── app/                    FastAPI routes, services, models, schemas, workers, and PDF templates
+│   ├── db/                     Database base configuration and Alembic migrations
+│   ├── tests/                  Backend tests
+│   ├── pyproject.toml          Python package and tool configuration
+│   └── Dockerfile              Backend container image
+├── docs/
+│   ├── frontend/               Frontend design and voice-assistant documentation
+│   ├── plans/                  Approved implementation plans
+│   ├── QUICKSTART.md           Local and Docker setup guide
+│   ├── apiDocs.md              API contract
+│   └── update.md               Current implementation status
+├── frontend/
+│   ├── public/                 Public browser assets
+│   ├── src/
+│   │   ├── assets/             Bundled visual assets
+│   │   ├── components/         Shared UI, assessment, legal, and voice components
+│   │   ├── lib/                API client, language, workflow, and voice logic
+│   │   ├── pages/              Application routes and screens
+│   │   └── worker/             Browser voice-model worker
+│   ├── package.json            Frontend scripts and dependencies
+│   └── vite.config.ts          Vite development and build configuration
+├── infra/                      Docker Compose and local infrastructure configuration
+├── scripts/                    Development, health-check, and shutdown helpers
+└── README.md                   Project overview
 ```
 
-Use `scripts/` for developer commands, including the Windows `start-dev.bat`
-and `stop-dev.bat` compatibility launchers. Application source stays inside
-`backend/` and `frontend/`.
+## Quick start
 
----
+For the full local stack, including PostGIS, Redis, the API, and the Celery
+worker, follow the [Docker quickstart](docs/QUICKSTART.md).
 
-## Getting Started
+To run the frontend independently:
 
-> 💡 **Quickstart with Docker:** For a one-command containerized setup (PostGIS + Redis + FastAPI), see our [**Developer Docker Quickstart Guide**](docs/QUICKSTART.md).
-
-### Prerequisites
-- Python 3.11 or higher
-- PostgreSQL (or PostGIS) running locally on port `5432`
-- Redis running locally on port `6379`
-
-### Installation
-1. **Clone the repository and enter the backend directory:**
-   ```bash
-   cd backend
-   ```
-2. **Set up a virtual environment and install dependencies:**
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install --upgrade pip
-   pip install -e ".[dev]"
-   ```
-
-### Environment Configuration
-Create a `.env` file in the `backend` directory. The following variables are supported (see `backend/app/core/config.py` for defaults):
-```env
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/udyogsaarthi
-REDIS_URL=redis://localhost:6379/0
-DEBUG=True
-SECRET_KEY=your_secret_key_here
-
-# Geo Integrations
-MAPPLS_REST_KEY=your_mappls_api_key
-DATA_GOV_API_KEY=your_data_gov_api_key
-LGD_API_RESOURCE_ID=9115b89c-b661-4d12-8a1c-6ef2dc81c7b5
-
-# AI Fallback
-OPENAI_API_KEY=your_openai_api_key
-```
-
-### Running the Application
-Start the FastAPI development server:
 ```bash
-uvicorn app.main:app --reload
+cd frontend
+npm install
+npm run dev
 ```
-- API Docs: `http://localhost:8000/docs`
-- Healthcheck: `http://localhost:8000/health`
 
----
+The app is available at `http://localhost:5173` and expects the API at
+`http://localhost:8000`.
 
-## Testing & CI
-Backend uses `pytest` for testing and `ruff` for linting; frontend uses `vitest` with `tsc` typechecking and `eslint`. All are enforced via GitHub Actions.
+## Quality checks
+
 ```bash
-# Backend (from backend/)
+# Backend
+cd backend
 ruff check .
 pytest
 
-# Frontend (from frontend/)
+# Frontend
+cd frontend
 npm run typecheck
 npm test
 npm run lint
+npm run build
 ```
 
----
-
-## Current Status & Limitations
-- Backend **and frontend are live-wired**: FastAPI APIs plus a Vite + React app (applicant wizard, officer review, audit console, DPR view) talking to the live API.
-- Core logic for authentication, scheme math, feasibility, compliance, DPR generation, PDF queuing, workflow transitions, and audit logging is implemented.
-- **Live LGD resolution** and **Mappls reverse geocoding** are integrated. The feasibility API returns `502 Bad Gateway` if authoritative location or POI data cannot be fetched.
-- This remains a prototype: AI/KYC/compliance fallbacks are not authoritative, DPR persistence is best-effort, PDF output requires a Celery worker, and DPR ownership checks are not yet enforced.
-
----
-
 ## Documentation
-- [**Developer Docker Quickstart**](docs/QUICKSTART.md)
-- [**API Documentation**](docs/apiDocs.md)
-- [**Project Status Updates**](docs/update.md) ← read this first for what exists
-- [**Product Truth**](docs/PRODUCT.md)
-- [**Design System**](docs/DESIGN.md)
-- [**Frontend Theme (pine/emerald, authoritative)**](docs/frontend/DESIGN.md)
 
----
+- [Current project status](docs/update.md)
+- [Developer quickstart](docs/QUICKSTART.md)
+- [API documentation](docs/apiDocs.md)
+- [Product overview](docs/PRODUCT.md)
+- [Frontend design system](docs/frontend/DESIGN.md)
+- [Voice assistant guide](docs/frontend/voice-assistant.md)
+- [Security requirements](docs/cybersecurity.md)
 
 ## Contributing
-See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, ground rules, and the pull request process. Please also read our [Code of Conduct](CODE_OF_CONDUCT.md). Report security issues privately per our [Security Policy](SECURITY.md) - never as public issues.
+
+Read [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md),
+and [SECURITY.md](SECURITY.md) before opening an issue or pull request.
 
 ## License
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+
+This project is licensed under the [MIT License](LICENSE).
+
+Created with love by Team Butter Masala Dosa ❤️

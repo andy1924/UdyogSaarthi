@@ -22,7 +22,7 @@ services:
     # Let Docker select the host architecture (important on Apple Silicon and
     # ARM Linux; forcing amd64 causes slow emulation and flaky DB startup).
     container_name: udyogsaarthi-db
-    restart: unless-stopped
+    restart: "no"
     environment:
       POSTGRES_DB: udyogsaarthi
       POSTGRES_USER: postgres
@@ -50,7 +50,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: udyogsaarthi-redis
-    restart: unless-stopped
+    restart: "no"
     ports:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
@@ -75,7 +75,7 @@ services:
       dockerfile: backend/Dockerfile
       target: runtime
     container_name: udyogsaarthi-api
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       db:
         condition: service_healthy
@@ -137,7 +137,7 @@ services:
       dockerfile: backend/Dockerfile
       target: runtime
     container_name: udyogsaarthi-worker
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       db:
         condition: service_healthy
@@ -183,7 +183,7 @@ services:
       context: ../frontend
       dockerfile: Dockerfile
     container_name: udyogsaarthi-frontend
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       api:
         condition: service_healthy
